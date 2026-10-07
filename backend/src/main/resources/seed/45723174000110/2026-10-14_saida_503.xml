@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- NF-e fictícia gerada por GeradorNfe (testes/seed do TribIA). Homologação, sem valor fiscal. -->
+<NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+  <infNFe versao="4.00" Id="NFe35261045723174000110550010000005031497064317">
+    <ide>
+      <cUF>35</cUF>
+      <cNF>49706431</cNF>
+      <natOp>VENDA DE MERCADORIA</natOp>
+      <mod>55</mod>
+      <serie>1</serie>
+      <nNF>503</nNF>
+      <dhEmi>2026-10-14T10:00:00-03:00</dhEmi>
+      <tpNF>1</tpNF>
+      <idDest>1</idDest>
+      <cMunFG>3509502</cMunFG>
+      <tpImp>1</tpImp>
+      <tpEmis>1</tpEmis>
+      <cDV>7</cDV>
+      <tpAmb>2</tpAmb>
+      <finNFe>1</finNFe>
+      <indFinal>0</indFinal>
+      <indPres>1</indPres>
+      <procEmi>0</procEmi>
+      <verProc>TribIA-gerador</verProc>
+    </ide>
+    <emit>
+      <CNPJ>45723174000110</CNPJ>
+      <xNome>FARMACIA FICTICIA SAUDE LTDA</xNome>
+      <enderEmit><xLgr>RUA FICTICIA</xLgr><nro>100</nro><xBairro>CENTRO</xBairro><cMun>3509502</cMun><xMun>CAMPINAS</xMun><UF>SP</UF><CEP>01001000</CEP><cPais>1058</cPais><xPais>BRASIL</xPais></enderEmit>
+      <IE>111111111111</IE>
+      <CRT>3</CRT>
+    </emit>
+    <dest>
+      <CNPJ>46931582000120</CNPJ>
+      <xNome>CONSULTORIO ODONTOLOGICO FICTICIO SORRISO LTDA</xNome>
+      <enderDest><xLgr>RUA FICTICIA</xLgr><nro>100</nro><xBairro>CENTRO</xBairro><cMun>3550308</cMun><xMun>SAO PAULO</xMun><UF>SP</UF><CEP>01001000</CEP><cPais>1058</cPais><xPais>BRASIL</xPais></enderDest>
+      <indIEDest>1</indIEDest>
+      <IE>222222222222</IE>
+    </dest>
+    <det nItem="1">
+      <prod>
+        <cProd>MED003</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>IBUPROFENO 400MG 10 CAPSULAS</xProd>
+        <NCM>30049069</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>CX</uCom>
+        <qCom>45.0000</qCom>
+        <vUnCom>12.9000000000</vUnCom>
+        <vProd>580.50</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>CX</uTrib>
+        <qTrib>45.0000</qTrib>
+        <vUnTrib>12.9000000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>580.50</vBC><pICMS>18.00</pICMS><vICMS>104.49</vICMS></ICMS00></ICMS>
+        <PIS><PISNT><CST>04</CST></PISNT></PIS>
+        <COFINS><COFINSNT><CST>04</CST></COFINSNT></COFINS>
+      </imposto>
+    </det>
+    <det nItem="2">
+      <prod>
+        <cProd>HIG003</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>LUVA DE PROCEDIMENTO LATEX M CX 100</xProd>
+        <NCM>40151900</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>CX</uCom>
+        <qCom>75.0000</qCom>
+        <vUnCom>29.9000000000</vUnCom>
+        <vProd>2242.50</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>CX</uTrib>
+        <qTrib>75.0000</qTrib>
+        <vUnTrib>29.9000000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>2242.50</vBC><pICMS>18.00</pICMS><vICMS>403.65</vICMS></ICMS00></ICMS>
+        <PIS><PISAliq><CST>01</CST><vBC>2242.50</vBC><pPIS>0.65</pPIS><vPIS>14.58</vPIS></PISAliq></PIS>
+        <COFINS><COFINSAliq><CST>01</CST><vBC>2242.50</vBC><pCOFINS>3.00</pCOFINS><vCOFINS>67.28</vCOFINS></COFINSAliq></COFINS>
+      </imposto>
+    </det>
+    <det nItem="3">
+      <prod>
+        <cProd>HIG001</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>ALGODAO HIDROFILO 500G</xProd>
+        <NCM>30059090</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>45.0000</qCom>
+        <vUnCom>5.9000000000</vUnCom>
+        <vProd>265.50</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>45.0000</qTrib>
+        <vUnTrib>5.9000000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>265.50</vBC><pICMS>18.00</pICMS><vICMS>47.79</vICMS></ICMS00></ICMS>
+        <PIS><PISAliq><CST>01</CST><vBC>265.50</vBC><pPIS>0.65</pPIS><vPIS>1.73</vPIS></PISAliq></PIS>
+        <COFINS><COFINSAliq><CST>01</CST><vBC>265.50</vBC><pCOFINS>3.00</pCOFINS><vCOFINS>7.96</vCOFINS></COFINSAliq></COFINS>
+      </imposto>
+    </det>
+    <total>
+      <ICMSTot>
+        <vBC>3088.50</vBC>
+        <vICMS>555.93</vICMS>
+        <vICMSDeson>0.00</vICMSDeson>
+        <vFCP>0.00</vFCP>
+        <vBCST>0.00</vBCST>
+        <vST>0.00</vST>
+        <vFCPST>0.00</vFCPST>
+        <vFCPSTRet>0.00</vFCPSTRet>
+        <vProd>3088.50</vProd>
+        <vFrete>0.00</vFrete>
+        <vSeg>0.00</vSeg>
+        <vDesc>0.00</vDesc>
+        <vII>0.00</vII>
+        <vIPI>0.00</vIPI>
+        <vIPIDevol>0.00</vIPIDevol>
+        <vPIS>16.31</vPIS>
+        <vCOFINS>75.24</vCOFINS>
+        <vOutro>0.00</vOutro>
+        <vNF>3088.50</vNF>
+      </ICMSTot>
+    </total>
+    <transp><modFrete>9</modFrete></transp>
+    <pag><detPag><tPag>15</tPag><vPag>3088.50</vPag></detPag></pag>
+    <infAdic><infCpl>NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL</infCpl></infAdic>
+  </infNFe>
+</NFe>

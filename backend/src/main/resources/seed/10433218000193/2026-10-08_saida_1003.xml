@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- NF-e fictícia gerada por GeradorNfe (testes/seed do TribIA). Homologação, sem valor fiscal. -->
+<NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+  <infNFe versao="4.00" Id="NFe35261010433218000193550010000010031183759750">
+    <ide>
+      <cUF>35</cUF>
+      <cNF>18375975</cNF>
+      <natOp>VENDA DE MERCADORIA</natOp>
+      <mod>55</mod>
+      <serie>1</serie>
+      <nNF>1003</nNF>
+      <dhEmi>2026-10-08T10:00:00-03:00</dhEmi>
+      <tpNF>1</tpNF>
+      <idDest>1</idDest>
+      <cMunFG>3550308</cMunFG>
+      <tpImp>1</tpImp>
+      <tpEmis>1</tpEmis>
+      <cDV>0</cDV>
+      <tpAmb>2</tpAmb>
+      <finNFe>1</finNFe>
+      <indFinal>0</indFinal>
+      <indPres>1</indPres>
+      <procEmi>0</procEmi>
+      <verProc>TribIA-gerador</verProc>
+    </ide>
+    <emit>
+      <CNPJ>10433218000193</CNPJ>
+      <xNome>DISTRIBUIDORA FICTICIA DE ALIMENTOS LTDA</xNome>
+      <enderEmit><xLgr>RUA FICTICIA</xLgr><nro>100</nro><xBairro>CENTRO</xBairro><cMun>3550308</cMun><xMun>SAO PAULO</xMun><UF>SP</UF><CEP>01001000</CEP><cPais>1058</cPais><xPais>BRASIL</xPais></enderEmit>
+      <IE>111111111111</IE>
+      <CRT>3</CRT>
+    </emit>
+    <dest>
+      <CNPJ>41385729000100</CNPJ>
+      <xNome>MERCEARIA FICTICIA SAO JOAO LTDA</xNome>
+      <enderDest><xLgr>RUA FICTICIA</xLgr><nro>100</nro><xBairro>CENTRO</xBairro><cMun>3550308</cMun><xMun>SAO PAULO</xMun><UF>SP</UF><CEP>01001000</CEP><cPais>1058</cPais><xPais>BRASIL</xPais></enderDest>
+      <indIEDest>1</indIEDest>
+      <IE>222222222222</IE>
+    </dest>
+    <det nItem="1">
+      <prod>
+        <cProd>ARZ001</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>ARROZ TIPO 1 5KG</xProd>
+        <NCM>10063021</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>40.0000</qCom>
+        <vUnCom>28.9000000000</vUnCom>
+        <vProd>1156.00</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>40.0000</qTrib>
+        <vUnTrib>28.9000000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS40><orig>0</orig><CST>40</CST></ICMS40></ICMS>
+        <PIS><PISNT><CST>06</CST></PISNT></PIS>
+        <COFINS><COFINSNT><CST>06</CST></COFINSNT></COFINS>
+      </imposto>
+    </det>
+    <det nItem="2">
+      <prod>
+        <cProd>FEJ001</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>FEIJAO CARIOCA 1KG</xProd>
+        <NCM>07133319</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>60.0000</qCom>
+        <vUnCom>8.6900000000</vUnCom>
+        <vProd>521.40</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>60.0000</qTrib>
+        <vUnTrib>8.6900000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS40><orig>0</orig><CST>40</CST></ICMS40></ICMS>
+        <PIS><PISNT><CST>06</CST></PISNT></PIS>
+        <COFINS><COFINSNT><CST>06</CST></COFINSNT></COFINS>
+      </imposto>
+    </det>
+    <det nItem="3">
+      <prod>
+        <cProd>LEI001</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>LEITE UHT INTEGRAL 1L</xProd>
+        <NCM>04012010</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>120.0000</qCom>
+        <vUnCom>5.4900000000</vUnCom>
+        <vProd>658.80</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>120.0000</qTrib>
+        <vUnTrib>5.4900000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS40><orig>0</orig><CST>40</CST></ICMS40></ICMS>
+        <PIS><PISNT><CST>06</CST></PISNT></PIS>
+        <COFINS><COFINSNT><CST>06</CST></COFINSNT></COFINS>
+      </imposto>
+    </det>
+    <det nItem="4">
+      <prod>
+        <cProd>BIS001</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>BISCOITO RECHEADO CHOCOLATE 130G</xProd>
+        <NCM>19053100</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>80.0000</qCom>
+        <vUnCom>3.5900000000</vUnCom>
+        <vProd>287.20</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>80.0000</qTrib>
+        <vUnTrib>3.5900000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>287.20</vBC><pICMS>18.00</pICMS><vICMS>51.70</vICMS></ICMS00></ICMS>
+        <PIS><PISAliq><CST>01</CST><vBC>287.20</vBC><pPIS>1.65</pPIS><vPIS>4.74</vPIS></PISAliq></PIS>
+        <COFINS><COFINSAliq><CST>01</CST><vBC>287.20</vBC><pCOFINS>7.60</pCOFINS><vCOFINS>21.83</vCOFINS></COFINSAliq></COFINS>
+      </imposto>
+    </det>
+    <det nItem="5">
+      <prod>
+        <cProd>DET001</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>DETERGENTE LIQUIDO NEUTRO 500ML</xProd>
+        <NCM>34022000</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>72.0000</qCom>
+        <vUnCom>2.7900000000</vUnCom>
+        <vProd>200.88</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>72.0000</qTrib>
+        <vUnTrib>2.7900000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>200.88</vBC><pICMS>18.00</pICMS><vICMS>36.16</vICMS></ICMS00></ICMS>
+        <PIS><PISAliq><CST>01</CST><vBC>200.88</vBC><pPIS>1.65</pPIS><vPIS>3.31</vPIS></PISAliq></PIS>
+        <COFINS><COFINSAliq><CST>01</CST><vBC>200.88</vBC><pCOFINS>7.60</pCOFINS><vCOFINS>15.27</vCOFINS></COFINSAliq></COFINS>
+      </imposto>
+    </det>
+    <total>
+      <ICMSTot>
+        <vBC>488.08</vBC>
+        <vICMS>87.86</vICMS>
+        <vICMSDeson>0.00</vICMSDeson>
+        <vFCP>0.00</vFCP>
+        <vBCST>0.00</vBCST>
+        <vST>0.00</vST>
+        <vFCPST>0.00</vFCPST>
+        <vFCPSTRet>0.00</vFCPSTRet>
+        <vProd>2824.28</vProd>
+        <vFrete>0.00</vFrete>
+        <vSeg>0.00</vSeg>
+        <vDesc>0.00</vDesc>
+        <vII>0.00</vII>
+        <vIPI>0.00</vIPI>
+        <vIPIDevol>0.00</vIPIDevol>
+        <vPIS>8.05</vPIS>
+        <vCOFINS>37.10</vCOFINS>
+        <vOutro>0.00</vOutro>
+        <vNF>2824.28</vNF>
+      </ICMSTot>
+    </total>
+    <transp><modFrete>9</modFrete></transp>
+    <pag><detPag><tPag>15</tPag><vPag>2824.28</vPag></detPag></pag>
+    <infAdic><infCpl>NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL</infCpl></infAdic>
+  </infNFe>
+</NFe>

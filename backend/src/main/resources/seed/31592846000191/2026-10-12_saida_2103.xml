@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- NF-e fictícia gerada por GeradorNfe (testes/seed do TribIA). Homologação, sem valor fiscal. -->
+<NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+  <infNFe versao="4.00" Id="NFe35261031592846000191550010000021031482465035">
+    <ide>
+      <cUF>35</cUF>
+      <cNF>48246503</cNF>
+      <natOp>VENDA DE MERCADORIA</natOp>
+      <mod>55</mod>
+      <serie>1</serie>
+      <nNF>2103</nNF>
+      <dhEmi>2026-10-12T10:00:00-03:00</dhEmi>
+      <tpNF>1</tpNF>
+      <idDest>1</idDest>
+      <cMunFG>3550308</cMunFG>
+      <tpImp>1</tpImp>
+      <tpEmis>1</tpEmis>
+      <cDV>5</cDV>
+      <tpAmb>2</tpAmb>
+      <finNFe>1</finNFe>
+      <indFinal>0</indFinal>
+      <indPres>1</indPres>
+      <procEmi>0</procEmi>
+      <verProc>TribIA-gerador</verProc>
+    </ide>
+    <emit>
+      <CNPJ>31592846000191</CNPJ>
+      <xNome>UTILIDADES E LIMPEZA FICTICIA LTDA</xNome>
+      <enderEmit><xLgr>RUA FICTICIA</xLgr><nro>100</nro><xBairro>CENTRO</xBairro><cMun>3550308</cMun><xMun>SAO PAULO</xMun><UF>SP</UF><CEP>01001000</CEP><cPais>1058</cPais><xPais>BRASIL</xPais></enderEmit>
+      <IE>111111111111</IE>
+      <CRT>3</CRT>
+    </emit>
+    <dest>
+      <CNPJ>37406825000110</CNPJ>
+      <xNome>RESTAURANTE FICTICIO SABOR CASEIRO LTDA</xNome>
+      <enderDest><xLgr>RUA FICTICIA</xLgr><nro>100</nro><xBairro>CENTRO</xBairro><cMun>3550308</cMun><xMun>SAO PAULO</xMun><UF>SP</UF><CEP>01001000</CEP><cPais>1058</cPais><xPais>BRASIL</xPais></enderDest>
+      <indIEDest>1</indIEDest>
+      <IE>222222222222</IE>
+    </dest>
+    <det nItem="1">
+      <prod>
+        <cProd>LIM003</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>DETERGENTE LIQUIDO NEUTRO 500ML</xProd>
+        <NCM>34022000</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>300.0000</qCom>
+        <vUnCom>2.7900000000</vUnCom>
+        <vProd>837.00</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>300.0000</qTrib>
+        <vUnTrib>2.7900000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>837.00</vBC><pICMS>18.00</pICMS><vICMS>150.66</vICMS></ICMS00></ICMS>
+        <PIS><PISAliq><CST>01</CST><vBC>837.00</vBC><pPIS>1.65</pPIS><vPIS>13.81</vPIS></PISAliq></PIS>
+        <COFINS><COFINSAliq><CST>01</CST><vBC>837.00</vBC><pCOFINS>7.60</pCOFINS><vCOFINS>63.61</vCOFINS></COFINSAliq></COFINS>
+      </imposto>
+    </det>
+    <det nItem="2">
+      <prod>
+        <cProd>LIM002</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>DESINFETANTE LAVANDA 2L</xProd>
+        <NCM>38089419</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>100.0000</qCom>
+        <vUnCom>9.9000000000</vUnCom>
+        <vProd>990.00</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>100.0000</qTrib>
+        <vUnTrib>9.9000000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>990.00</vBC><pICMS>18.00</pICMS><vICMS>178.20</vICMS></ICMS00></ICMS>
+        <PIS><PISAliq><CST>01</CST><vBC>990.00</vBC><pPIS>1.65</pPIS><vPIS>16.34</vPIS></PISAliq></PIS>
+        <COFINS><COFINSAliq><CST>01</CST><vBC>990.00</vBC><pCOFINS>7.60</pCOFINS><vCOFINS>75.24</vCOFINS></COFINSAliq></COFINS>
+      </imposto>
+    </det>
+    <det nItem="3">
+      <prod>
+        <cProd>UTI004</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>BALDE PLASTICO 10L</xProd>
+        <NCM>39249000</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>25.0000</qCom>
+        <vUnCom>19.9000000000</vUnCom>
+        <vProd>497.50</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>25.0000</qTrib>
+        <vUnTrib>19.9000000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>497.50</vBC><pICMS>18.00</pICMS><vICMS>89.55</vICMS></ICMS00></ICMS>
+        <PIS><PISAliq><CST>01</CST><vBC>497.50</vBC><pPIS>1.65</pPIS><vPIS>8.21</vPIS></PISAliq></PIS>
+        <COFINS><COFINSAliq><CST>01</CST><vBC>497.50</vBC><pCOFINS>7.60</pCOFINS><vCOFINS>37.81</vCOFINS></COFINSAliq></COFINS>
+      </imposto>
+    </det>
+    <det nItem="4">
+      <prod>
+        <cProd>UTI003</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>ESPONJA DUPLA FACE</xProd>
+        <NCM>39249000</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>250.0000</qCom>
+        <vUnCom>2.4900000000</vUnCom>
+        <vProd>622.50</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>250.0000</qTrib>
+        <vUnTrib>2.4900000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>622.50</vBC><pICMS>18.00</pICMS><vICMS>112.05</vICMS></ICMS00></ICMS>
+        <PIS><PISAliq><CST>01</CST><vBC>622.50</vBC><pPIS>1.65</pPIS><vPIS>10.27</vPIS></PISAliq></PIS>
+        <COFINS><COFINSAliq><CST>01</CST><vBC>622.50</vBC><pCOFINS>7.60</pCOFINS><vCOFINS>47.31</vCOFINS></COFINSAliq></COFINS>
+      </imposto>
+    </det>
+    <det nItem="5">
+      <prod>
+        <cProd>LIM001</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>AGUA SANITARIA 5L</xProd>
+        <NCM>28289011</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>75.0000</qCom>
+        <vUnCom>14.9000000000</vUnCom>
+        <vProd>1117.50</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>75.0000</qTrib>
+        <vUnTrib>14.9000000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>1117.50</vBC><pICMS>18.00</pICMS><vICMS>201.15</vICMS></ICMS00></ICMS>
+        <PIS><PISAliq><CST>01</CST><vBC>1117.50</vBC><pPIS>1.65</pPIS><vPIS>18.44</vPIS></PISAliq></PIS>
+        <COFINS><COFINSAliq><CST>01</CST><vBC>1117.50</vBC><pCOFINS>7.60</pCOFINS><vCOFINS>84.93</vCOFINS></COFINSAliq></COFINS>
+      </imposto>
+    </det>
+    <total>
+      <ICMSTot>
+        <vBC>4064.50</vBC>
+        <vICMS>731.61</vICMS>
+        <vICMSDeson>0.00</vICMSDeson>
+        <vFCP>0.00</vFCP>
+        <vBCST>0.00</vBCST>
+        <vST>0.00</vST>
+        <vFCPST>0.00</vFCPST>
+        <vFCPSTRet>0.00</vFCPSTRet>
+        <vProd>4064.50</vProd>
+        <vFrete>0.00</vFrete>
+        <vSeg>0.00</vSeg>
+        <vDesc>0.00</vDesc>
+        <vII>0.00</vII>
+        <vIPI>0.00</vIPI>
+        <vIPIDevol>0.00</vIPIDevol>
+        <vPIS>67.07</vPIS>
+        <vCOFINS>308.90</vCOFINS>
+        <vOutro>0.00</vOutro>
+        <vNF>4064.50</vNF>
+      </ICMSTot>
+    </total>
+    <transp><modFrete>9</modFrete></transp>
+    <pag><detPag><tPag>15</tPag><vPag>4064.50</vPag></detPag></pag>
+    <infAdic><infCpl>NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL</infCpl></infAdic>
+  </infNFe>
+</NFe>

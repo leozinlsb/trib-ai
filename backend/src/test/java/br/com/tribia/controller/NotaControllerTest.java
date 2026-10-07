@@ -18,8 +18,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Cada teste roda numa transação desfeita ao final: o banco volta a ter só os clientes. */
-@SpringBootTest
+/** Sem seed, e cada teste roda numa transação desfeita ao final: o banco volta a ter só os clientes. */
+@SpringBootTest(properties = "tribia.seed.enabled=false")
 @AutoConfigureMockMvc
 @Transactional
 class NotaControllerTest {

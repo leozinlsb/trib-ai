@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- NF-e fictícia gerada por GeradorNfe (testes/seed do TribIA). Homologação, sem valor fiscal. -->
+<NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+  <infNFe versao="4.00" Id="NFe35260856239841000100550010000402111746707506">
+    <ide>
+      <cUF>35</cUF>
+      <cNF>74670750</cNF>
+      <natOp>VENDA DE MERCADORIA</natOp>
+      <mod>55</mod>
+      <serie>1</serie>
+      <nNF>40211</nNF>
+      <dhEmi>2026-08-02T10:00:00-03:00</dhEmi>
+      <tpNF>1</tpNF>
+      <idDest>1</idDest>
+      <cMunFG>3550308</cMunFG>
+      <tpImp>1</tpImp>
+      <tpEmis>1</tpEmis>
+      <cDV>6</cDV>
+      <tpAmb>2</tpAmb>
+      <finNFe>1</finNFe>
+      <indFinal>0</indFinal>
+      <indPres>1</indPres>
+      <procEmi>0</procEmi>
+      <verProc>TribIA-gerador</verProc>
+    </ide>
+    <emit>
+      <CNPJ>56239841000100</CNPJ>
+      <xNome>CEREALISTA FICTICIA GRAOS DO SUL LTDA</xNome>
+      <enderEmit><xLgr>RUA FICTICIA</xLgr><nro>100</nro><xBairro>CENTRO</xBairro><cMun>3550308</cMun><xMun>SAO PAULO</xMun><UF>SP</UF><CEP>01001000</CEP><cPais>1058</cPais><xPais>BRASIL</xPais></enderEmit>
+      <IE>111111111111</IE>
+      <CRT>3</CRT>
+    </emit>
+    <dest>
+      <CNPJ>10433218000193</CNPJ>
+      <xNome>DISTRIBUIDORA FICTICIA DE ALIMENTOS LTDA</xNome>
+      <enderDest><xLgr>RUA FICTICIA</xLgr><nro>100</nro><xBairro>CENTRO</xBairro><cMun>3550308</cMun><xMun>SAO PAULO</xMun><UF>SP</UF><CEP>01001000</CEP><cPais>1058</cPais><xPais>BRASIL</xPais></enderDest>
+      <indIEDest>1</indIEDest>
+      <IE>222222222222</IE>
+    </dest>
+    <det nItem="1">
+      <prod>
+        <cProd>AR5KG</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>ARROZ BRANCO TIPO 1 PACOTE 5KG</xProd>
+        <NCM>10063021</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>200.0000</qCom>
+        <vUnCom>21.5000000000</vUnCom>
+        <vProd>4300.00</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>200.0000</qTrib>
+        <vUnTrib>21.5000000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS40><orig>0</orig><CST>40</CST></ICMS40></ICMS>
+        <PIS><PISNT><CST>06</CST></PISNT></PIS>
+        <COFINS><COFINSNT><CST>06</CST></COFINSNT></COFINS>
+      </imposto>
+    </det>
+    <det nItem="2">
+      <prod>
+        <cProd>FJC1</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>FEIJAO CARIOCA TIPO 1 1KG</xProd>
+        <NCM>07133319</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>150.0000</qCom>
+        <vUnCom>6.2000000000</vUnCom>
+        <vProd>930.00</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>150.0000</qTrib>
+        <vUnTrib>6.2000000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS40><orig>0</orig><CST>40</CST></ICMS40></ICMS>
+        <PIS><PISNT><CST>06</CST></PISNT></PIS>
+        <COFINS><COFINSNT><CST>06</CST></COFINSNT></COFINS>
+      </imposto>
+    </det>
+    <det nItem="3">
+      <prod>
+        <cProd>AC1</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>ACUCAR CRISTAL 1KG</xProd>
+        <NCM>17019900</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>UN</uCom>
+        <qCom>100.0000</qCom>
+        <vUnCom>3.4000000000</vUnCom>
+        <vProd>340.00</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>UN</uTrib>
+        <qTrib>100.0000</qTrib>
+        <vUnTrib>3.4000000000</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMS40><orig>0</orig><CST>40</CST></ICMS40></ICMS>
+        <PIS><PISNT><CST>06</CST></PISNT></PIS>
+        <COFINS><COFINSNT><CST>06</CST></COFINSNT></COFINS>
+      </imposto>
+    </det>
+    <total>
+      <ICMSTot>
+        <vBC>0.00</vBC>
+        <vICMS>0.00</vICMS>
+        <vICMSDeson>0.00</vICMSDeson>
+        <vFCP>0.00</vFCP>
+        <vBCST>0.00</vBCST>
+        <vST>0.00</vST>
+        <vFCPST>0.00</vFCPST>
+        <vFCPSTRet>0.00</vFCPSTRet>
+        <vProd>5570.00</vProd>
+        <vFrete>0.00</vFrete>
+        <vSeg>0.00</vSeg>
+        <vDesc>0.00</vDesc>
+        <vII>0.00</vII>
+        <vIPI>0.00</vIPI>
+        <vIPIDevol>0.00</vIPIDevol>
+        <vPIS>0.00</vPIS>
+        <vCOFINS>0.00</vCOFINS>
+        <vOutro>0.00</vOutro>
+        <vNF>5570.00</vNF>
+      </ICMSTot>
+    </total>
+    <transp><modFrete>9</modFrete></transp>
+    <pag><detPag><tPag>15</tPag><vPag>5570.00</vPag></detPag></pag>
+    <infAdic><infCpl>NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL</infCpl></infAdic>
+  </infNFe>
+</NFe>
