@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Compra da Distribuidora (cliente 1) de um fornecedor fictício, com o grupo IBS/CBS destacado nos itens
+     (alíquotas-teste de 2026: CBS 0,9% e IBS 0,1%). Raiz <nfeProc> para testar o segundo formato aceito.
+     TODO conferir os nomes das tags do grupo IBSCBS na NT 2025.002 (layout RTC). -->
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe>
+    <infNFe versao="4.00" Id="NFe35260951938267000165550010000056781876543216">
+      <ide>
+        <cUF>35</cUF>
+        <cNF>87654321</cNF>
+        <natOp>VENDA DE MERCADORIA</natOp>
+        <mod>55</mod>
+        <serie>1</serie>
+        <nNF>5678</nNF>
+        <dhEmi>2026-09-10T09:00:00-03:00</dhEmi>
+        <tpNF>1</tpNF>
+        <idDest>1</idDest>
+        <cMunFG>3550308</cMunFG>
+        <tpImp>1</tpImp>
+        <tpEmis>1</tpEmis>
+        <cDV>6</cDV>
+        <tpAmb>2</tpAmb>
+        <finNFe>1</finNFe>
+        <indFinal>0</indFinal>
+        <indPres>1</indPres>
+        <procEmi>0</procEmi>
+        <verProc>TribIA-teste</verProc>
+      </ide>
+      <emit>
+        <CNPJ>51938267000165</CNPJ>
+        <xNome>ATACADO FICTICIO DE LIMPEZA LTDA</xNome>
+        <enderEmit>
+          <xLgr>RUA DOS FORNECEDORES</xLgr>
+          <nro>300</nro>
+          <xBairro>DISTRITO INDUSTRIAL</xBairro>
+          <cMun>3550308</cMun>
+          <xMun>SAO PAULO</xMun>
+          <UF>SP</UF>
+          <CEP>02001000</CEP>
+          <cPais>1058</cPais>
+          <xPais>BRASIL</xPais>
+        </enderEmit>
+        <IE>333333333333</IE>
+        <CRT>3</CRT>
+      </emit>
+      <dest>
+        <CNPJ>10433218000193</CNPJ>
+        <xNome>DISTRIBUIDORA FICTICIA DE ALIMENTOS LTDA</xNome>
+        <enderDest>
+          <xLgr>RUA DOS TESTES</xLgr>
+          <nro>100</nro>
+          <xBairro>CENTRO</xBairro>
+          <cMun>3550308</cMun>
+          <xMun>SAO PAULO</xMun>
+          <UF>SP</UF>
+          <CEP>01001000</CEP>
+          <cPais>1058</cPais>
+          <xPais>BRASIL</xPais>
+        </enderDest>
+        <indIEDest>1</indIEDest>
+        <IE>111111111111</IE>
+      </dest>
+      <det nItem="1">
+        <prod>
+          <cProd>D500</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>DETERGENTE LIQUIDO NEUTRO 500ML</xProd>
+          <NCM>34022000</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>UN</uCom>
+          <qCom>200.0000</qCom>
+          <vUnCom>1.8000000000</vUnCom>
+          <vProd>360.00</vProd>
+          <cEANTrib>SEM GTIN</cEANTrib>
+          <uTrib>UN</uTrib>
+          <qTrib>200.0000</qTrib>
+          <vUnTrib>1.8000000000</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+        <imposto>
+          <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>360.00</vBC><pICMS>18.00</pICMS><vICMS>64.80</vICMS></ICMS00></ICMS>
+          <PIS><PISAliq><CST>01</CST><vBC>360.00</vBC><pPIS>1.65</pPIS><vPIS>5.94</vPIS></PISAliq></PIS>
+          <COFINS><COFINSAliq><CST>01</CST><vBC>360.00</vBC><pCOFINS>7.60</pCOFINS><vCOFINS>27.36</vCOFINS></COFINSAliq></COFINS>
+          <IBSCBS>
+            <CST>000</CST>
+            <cClassTrib>000001</cClassTrib>
+            <gIBSCBS>
+              <vBC>360.00</vBC>
+              <gIBSUF><pIBSUF>0.1000</pIBSUF><vIBSUF>0.36</vIBSUF></gIBSUF>
+              <gIBSMun><pIBSMun>0.0000</pIBSMun><vIBSMun>0.00</vIBSMun></gIBSMun>
+              <vIBS>0.36</vIBS>
+              <gCBS><pCBS>0.9000</pCBS><vCBS>3.24</vCBS></gCBS>
+            </gIBSCBS>
+          </IBSCBS>
+        </imposto>
+      </det>
+      <det nItem="2">
+        <prod>
+          <cProd>PT2R</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>PAPEL TOALHA 2 ROLOS</xProd>
+          <NCM>48182000</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>PCT</uCom>
+          <qCom>100.0000</qCom>
+          <vUnCom>4.2000000000</vUnCom>
+          <vProd>420.00</vProd>
+          <cEANTrib>SEM GTIN</cEANTrib>
+          <uTrib>PCT</uTrib>
+          <qTrib>100.0000</qTrib>
+          <vUnTrib>4.2000000000</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+        <imposto>
+          <ICMS><ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC><vBC>420.00</vBC><pICMS>18.00</pICMS><vICMS>75.60</vICMS></ICMS00></ICMS>
+          <PIS><PISAliq><CST>01</CST><vBC>420.00</vBC><pPIS>1.65</pPIS><vPIS>6.93</vPIS></PISAliq></PIS>
+          <COFINS><COFINSAliq><CST>01</CST><vBC>420.00</vBC><pCOFINS>7.60</pCOFINS><vCOFINS>31.92</vCOFINS></COFINSAliq></COFINS>
+          <IBSCBS>
+            <CST>000</CST>
+            <cClassTrib>000001</cClassTrib>
+            <gIBSCBS>
+              <vBC>420.00</vBC>
+              <gIBSUF><pIBSUF>0.1000</pIBSUF><vIBSUF>0.42</vIBSUF></gIBSUF>
+              <gIBSMun><pIBSMun>0.0000</pIBSMun><vIBSMun>0.00</vIBSMun></gIBSMun>
+              <vIBS>0.42</vIBS>
+              <gCBS><pCBS>0.9000</pCBS><vCBS>3.78</vCBS></gCBS>
+            </gIBSCBS>
+          </IBSCBS>
+        </imposto>
+      </det>
+      <total>
+        <ICMSTot>
+          <vBC>780.00</vBC>
+          <vICMS>140.40</vICMS>
+          <vICMSDeson>0.00</vICMSDeson>
+          <vFCP>0.00</vFCP>
+          <vBCST>0.00</vBCST>
+          <vST>0.00</vST>
+          <vFCPST>0.00</vFCPST>
+          <vFCPSTRet>0.00</vFCPSTRet>
+          <vProd>780.00</vProd>
+          <vFrete>0.00</vFrete>
+          <vSeg>0.00</vSeg>
+          <vDesc>0.00</vDesc>
+          <vII>0.00</vII>
+          <vIPI>0.00</vIPI>
+          <vIPIDevol>0.00</vIPIDevol>
+          <vPIS>12.87</vPIS>
+          <vCOFINS>59.28</vCOFINS>
+          <vOutro>0.00</vOutro>
+          <vNF>780.00</vNF>
+        </ICMSTot>
+      </total>
+      <transp><modFrete>9</modFrete></transp>
+      <pag><detPag><tPag>15</tPag><vPag>780.00</vPag></detPag></pag>
+    </infNFe>
+  </NFe>
+  <protNFe versao="4.00">
+    <infProt>
+      <tpAmb>2</tpAmb>
+      <verAplic>TESTE</verAplic>
+      <chNFe>35260951938267000165550010000056781876543216</chNFe>
+      <dhRecbto>2026-09-10T09:00:05-03:00</dhRecbto>
+      <nProt>135260000000001</nProt>
+      <cStat>100</cStat>
+      <xMotivo>Autorizado o uso da NF-e</xMotivo>
+    </infProt>
+  </protNFe>
+</nfeProc>

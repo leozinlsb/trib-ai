@@ -1,9 +1,11 @@
 package br.com.tribia.exception;
 
-/** Vira HTTP 404 no {@link ApiExceptionHandler}. */
-public class RecursoNaoEncontradoException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+/** HTTP 404. */
+public class RecursoNaoEncontradoException extends ApiException {
 
     public RecursoNaoEncontradoException(String mensagem) {
-        super(mensagem);
+        super(HttpStatus.NOT_FOUND, "Recurso não encontrado", mensagem);
     }
 }
