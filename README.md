@@ -13,9 +13,32 @@ cd backend
 ./mvnw test
 ```
 
-- API: http://localhost:8081 (a 8080 fica para a calculadora offline da Receita)
-- Swagger: http://localhost:8081/swagger-ui.html
-- Console H2: http://localhost:8081/h2-console (JDBC URL `jdbc:h2:mem:tribia`, usuário `sa`)
+- API: http://localhost:8090 (a calculadora offline da Receita ocupa 8080, 8081, 8082 e 80)
+- Swagger: http://localhost:8090/swagger-ui.html
+- Console H2: http://localhost:8090/h2-console (JDBC URL `jdbc:h2:mem:tribia`, usuário `sa`)
+
+### Calculadora oficial (Calculadora RTC da Receita)
+
+O TribIA chama a calculadora offline em `http://localhost:8080/api` (`tribia.calculadora.url`). Usamos a
+distribuição oficial **jar** da Receita (`calculadora-jar.zip`), que roda direto no Java, sem WSL nem Docker:
+
+```bash
+# 1. baixa ou atualiza (só baixa se a Receita publicou versão nova; pare a calculadora antes)
+python -I ferramentas/atualizar_calculadora.py          # pasta padrão: %USERPROFILE%\Desktop\calculadora-rtc
+
+# 2. a cada uso (deixe a janela aberta; sobe em ~10 s)
+ferramentas\iniciar-calculadora.bat
+```
+
+O script consulta as APIs públicas `dados-abertos/versao` e `download/url?platform=jar` do portal
+piloto-cbs.tributos.gov.br e guarda a versão instalada em `versao.json`.
+
+Observações:
+- A partir de 2027 a calculadora exige as alíquotas nominais; o TribIA envia as de `tribia.aliquotas.ano2027.*`,
+  por isso o resultado vem marcado como **simulado**.
+- Se a calculadora não conhecer um NCM (ex.: `34022000`, extinto em 2022), o item é recalculado sem NCM e
+  o resultado traz um aviso.
+- O teste `CalculadoraOficialContratoTest` roda contra a calculadora real quando ela está no ar; senão, é pulado.
 
 ### Dados de demonstração
 

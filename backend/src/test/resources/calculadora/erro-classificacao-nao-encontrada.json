@@ -1,0 +1,1 @@
+{"type":"http://localhost/errors/classificacao-tributaria-nao-encontrada","title":"Classificação tributária não encontrada","status":404,"detail":"Classificação tributária não encontrada para código 999999 e data 2027-01-15 (CBS e IBS)","instance":"/api/calculadora/regime-geral","timestamp":"2026-10-07T19:24:17.871850700Z"}

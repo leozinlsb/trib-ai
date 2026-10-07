@@ -1,11 +1,10 @@
 package br.com.tribia.service.apuracao;
 
-import br.com.tribia.config.AliquotasProperties;
+import br.com.tribia.Fixtures;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.util.Set;
 
 import static br.com.tribia.model.Regime.LUCRO_PRESUMIDO;
 import static br.com.tribia.model.Regime.LUCRO_REAL;
@@ -17,11 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /** Fórmulas da seção 3 do adendo. Alíquotas iguais às de application.properties. */
 class RegrasApuracaoTest {
 
-    static final AliquotasProperties ALIQUOTAS = new AliquotasProperties(
-            new AliquotasProperties.Hoje(bd("1.65"), bd("7.60"), Set.of("01", "02", "03")),
-            new AliquotasProperties.Ano2027(bd("9.43"), bd("0.05"), bd("0.05"), true));
-
-    final RegrasApuracao regras = new RegrasApuracao(ALIQUOTAS);
+    final RegrasApuracao regras = new RegrasApuracao(Fixtures.ALIQUOTAS);
 
     @Nested
     class PisCofinsHoje {
@@ -117,11 +112,22 @@ class RegrasApuracaoTest {
         }
 
         @Test
-        void impostoSeletivoSomaNoDebitoMasNaoNoCredito() {
+        void impostoSeletivoEntraNaBaseDaCbsEDoIbs() {
+            // mesmos números da calculadora oficial: 479,52 + IS 10% (47,95) = base 527,47
             var comIs = new ParametrosClassificacao(bd("0"), bd("0"), bd("10"));
             Tributos2027 t = regras.tributos2027(bd("479.52"), comIs);
 
             assertThat(t.vIs()).isEqualByComparingTo("47.95");
+            assertThat(t.vCbs()).isEqualByComparingTo("49.74");
+            assertThat(t.vIbsUf()).isEqualByComparingTo("0.26");
+            assertThat(t.vIbsMun()).isEqualByComparingTo("0.26");
+        }
+
+        @Test
+        void impostoSeletivoSomaNoDebitoMasNaoNoCredito() {
+            var comIs = new ParametrosClassificacao(bd("0"), bd("0"), bd("10"));
+            Tributos2027 t = regras.tributos2027(bd("479.52"), comIs);
+
             assertThat(regras.imposto2027(SAIDA, t, true)).isEqualByComparingTo(t.vCbs().add(t.vIbs()).add(t.vIs()));
             assertThat(regras.imposto2027(ENTRADA, t, true)).isEqualByComparingTo(t.vCbs().add(t.vIbs()));
         }

@@ -162,7 +162,7 @@ public class ParserNfeService {
         return itens;
     }
 
-    // TODO conferir os nomes das tags na NT 2025.002 (ver IbsCbsDestacado)
+    /** Tags conferidas contra o modelo da calculadora oficial (ver {@link IbsCbsDestacado}). */
     private IbsCbsDestacado ibsCbs(Element det, Leitor x) {
         Node g = x.no(det, "nfe:imposto/nfe:IBSCBS");
         if (g == null) {

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Compra da Distribuidora (cliente 1) de um fornecedor fictício, com o grupo IBS/CBS destacado nos itens
-     (alíquotas-teste de 2026: CBS 0,9% e IBS 0,1%). Raiz <nfeProc> para testar o segundo formato aceito.
-     TODO conferir os nomes das tags do grupo IBSCBS na NT 2025.002 (layout RTC). -->
+     (alíquotas-teste de 2026: CBS 0,9% e IBS 0,1%). Raiz <nfeProc> para testar o segundo formato aceito. -->
 <nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
   <NFe>
     <infNFe versao="4.00" Id="NFe35260951938267000165550010000056781876543216">

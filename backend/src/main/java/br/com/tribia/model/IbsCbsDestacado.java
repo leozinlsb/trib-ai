@@ -9,9 +9,9 @@ import java.math.BigDecimal;
  * Grupo IBS/CBS já destacado no item da NF-e (obrigatório no regime regular desde 03/08/2026).
  * Quando o item não traz o grupo, o objeto fica null no {@link Item}.
  *
- * TODO conferir os nomes exatos das tags na NT 2025.002 (layout RTC) antes da demo.
- * Caminhos usados hoje: imposto/IBSCBS/{CST, cClassTrib, gIBSCBS/{vBC, gIBSUF/{pIBSUF, vIBSUF},
- * gIBSMun/{pIBSMun, vIBSMun}, vIBS, gCBS/{pCBS, vCBS}}}.
+ * Caminhos: imposto/IBSCBS/{CST, cClassTrib, gIBSCBS/{vBC, gIBSUF/{pIBSUF, vIBSUF},
+ * gIBSMun/{pIBSMun, vIBSMun}, vIBS, gCBS/{pCBS, vCBS}}}. Conferidos contra o modelo de saída da
+ * Calculadora RTC oficial (IBSCBSDomain / GrupoIBSCBSDomain), que segue a NT 2025.002.
  */
 @Embeddable
 public class IbsCbsDestacado {

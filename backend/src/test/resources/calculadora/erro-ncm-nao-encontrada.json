@@ -1,0 +1,1 @@
+{"type":"http://localhost/errors/ncm-nao-encontrada","title":"NCM não encontrada","status":404,"detail":"NCM de código 34022000 não encontrada para a data 2027-01-15","instance":"/api/calculadora/regime-geral","timestamp":"2026-10-07T19:24:17.927817400Z"}

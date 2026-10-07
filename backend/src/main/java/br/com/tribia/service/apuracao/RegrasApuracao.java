@@ -59,17 +59,20 @@ public class RegrasApuracao {
     /**
      * Cálculo simplificado de CBS, IBS e IS de 2027 (plano B quando a calculadora oficial não responde).
      * Alíquota efetiva = alíquota de referência x (100 - redução) / 100.
+     * O IS integra a base da CBS e do IBS (conferido contra a calculadora oficial 1.5.4).
      *
      * TODO base de cálculo: hoje é o valor do item. Conferir na LC 214 o que sai da base na transição
-     * (ICMS, ISS, PIS/Cofins) e alinhar com o que a calculadora oficial faz.
+     * (ICMS, ISS, PIS/Cofins); a calculadora oficial recebe a base pronta e também não a ajusta.
      */
     public Tributos2027 tributos2027(BigDecimal base, ParametrosClassificacao p) {
         AliquotasProperties.Ano2027 a = aliquotas.ano2027();
+        BigDecimal vIs = percentual(base, p.aliquotaIs());
+        BigDecimal baseIbsCbs = base.add(vIs);
         return new Tributos2027(
-                comReducao(base, a.cbs(), p.reducaoCbs()),
-                comReducao(base, a.ibsUf(), p.reducaoIbs()),
-                comReducao(base, a.ibsMun(), p.reducaoIbs()),
-                percentual(base, p.aliquotaIs()));
+                comReducao(baseIbsCbs, a.cbs(), p.reducaoCbs()),
+                comReducao(baseIbsCbs, a.ibsUf(), p.reducaoIbs()),
+                comReducao(baseIbsCbs, a.ibsMun(), p.reducaoIbs()),
+                vIs);
     }
 
     /**
