@@ -1,0 +1,11 @@
+.git
+.env
+**/node_modules
+frontend/dist
+backend/target
+backend/data
+backend/notas-demo-ao-vivo
+backend/ferramentas
+backend/application-local.properties
+docs
+*.md

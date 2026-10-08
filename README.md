@@ -116,13 +116,25 @@ GEMINI_API_KEY=sua-chave
 - Os testes nunca usam a chave do `.env`. `GeminiContratoTest` usa a IA de verdade (gasta cota) e só roda com
   `GEMINI_API_KEY` definida como variável de ambiente.
 
-### Hospedagem (profile `prod`)
+### Hospedagem (imagem única, profile `prod`)
 
-O `backend/Dockerfile` sobe a API com `SPRING_PROFILES_ACTIVE=prod`: sem console H2 nem Swagger, rotas
-`/api/demo` desligadas (ligue com `TRIBIA_DEMO_HABILITADO=true` só num ambiente de demonstração), cookie de sessão
-`Secure` e login bloqueado por 15 min após 5 falhas no mesmo e-mail. Variáveis: `TRIBIA_ADMIN_SENHA` (obrigatória,
-12+ caracteres: sem ela a API não sobe) e `GEMINI_API_KEY` (opcional). O front na Vercel repassa `/api` ao backend
-(`frontend/vercel.json`), então tudo fica na mesma origem e não é preciso configurar CORS.
+O `Dockerfile` da **raiz** gera uma imagem só: compila o front (React) e o empacota no jar, e a API Spring Boot serve
+as telas e o `/api` no mesmo endereço (sem Vercel/Netlify, sem proxy, sem CORS, cookie na mesma origem).
+Sobe com `SPRING_PROFILES_ACTIVE=prod`: sem console H2 nem Swagger, rotas `/api/demo` desligadas (ligue com
+`TRIBIA_DEMO_HABILITADO=true` só num ambiente de demonstração), cookie de sessão `Secure` e login bloqueado por
+15 min após 5 falhas no mesmo e-mail.
+
+Variáveis: `TRIBIA_ADMIN_SENHA` (obrigatória, 12+ caracteres: sem ela a API não sobe), `GEMINI_API_KEY` (opcional),
+`TRIBIA_DEMO_HABILITADO` e `TRIBIA_DEMO_RESPOSTAS_IA` (`true` para o plano B da demonstração).
+
+```powershell
+# na raiz do repositório
+docker build -t tribia-app .
+docker run --rm -p 8090:8090 --env-file .env -e TRIBIA_ADMIN_SENHA="uma-senha-forte-123" tribia-app   # http://localhost:8090
+```
+
+No Render: **New → Web Service**, repositório `trib-ai`, branch `main`, **Root Directory vazio** (raiz), runtime
+Docker, Health Check Path `/api/auth/me`, e as variáveis acima no painel (nunca em arquivo).
 
 ### Apresentação (profile `demo`)
 

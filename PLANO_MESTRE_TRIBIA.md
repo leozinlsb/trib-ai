@@ -102,8 +102,8 @@ detalhe da nota, revisão/aceite, alertas, relatório e CSVs, perfil EMPRESA iso
 **Segurança do deploy (08/10/2026):** profile `prod` ativado pelo Dockerfile (sem console H2/Swagger/demo,
 cookie Secure, senha do admin obrigatória), limite de tentativas de login e container sem root; 7 testes novos,
 suíte 233 / 0 falhas nas duas ordens. Roteiro da apresentação em `docs/ROTEIRO_DEMO.md`.
-**Pendências:** `docker build` da imagem (Docker Desktop parado nesta máquina), deploy de fato e validação do
-fluxo na URL pública; ensaio final com quem vai apresentar.
+**Deploy:** imagem única (API + front, `Dockerfile` na raiz) construída e validada em container (E2E 11/11).
+**Pendências:** deploy de fato no Render e validação do fluxo na URL pública; ensaio final com quem vai apresentar.
 
 ## Continuidade e evidências
 
