@@ -121,7 +121,12 @@ public class CalculoService {
     }
 
     /** Marca nos avisos as compras em que o crédito foi limitado pela divergência com a nota (a revisão reaproveita). */
-    public static final String AVISO_CREDITO_DIVERGENTE = "Compra com enquadramento diferente do destacado pelo fornecedor";
+    /** Hipótese S5 (PENDENCIAS S5-PROJECAO): os valores de 2027 são projeção pendente de validação fiscal. */
+    public static final String AVISO_PROJECAO_S5 = "Projeção pendente de validação fiscal: a base de 2027 exclui o "
+            + "ICMS (LC 214, art. 12, § 2º, V) e também o PIS/Cofins destacados na nota de 2026 (hipótese de projeção, "
+            + "ainda não confirmada por especialista).";
+
+    public static final String AVISO_CREDITO_DIVERGENTE ="Compra com enquadramento diferente do destacado pelo fornecedor";
 
     /**
      * @param cbsCenario alíquota da CBS (%) para simular um cenário; null usa a configurada
@@ -386,6 +391,9 @@ public class CalculoService {
     private List<String> avisosDeAliquota(AliquotasNominais n, BigDecimal cbsCenario) {
         List<String> avisos = new ArrayList<>();
         avisos.add("Comparativo tributário é estimativa e exige revisão profissional; não é apuração fiscal definitiva.");
+        if (props.excluirTributosDaBase()) {
+            avisos.add(AVISO_PROJECAO_S5);
+        }
         AliquotasProperties.Ano2027 a = aliquotas.ano2027();
         if (cbsCenario != null) {
             avisos.add("Cenário simulado: CBS de " + cbsCenario.stripTrailingZeros().toPlainString() + "% em 2027.");

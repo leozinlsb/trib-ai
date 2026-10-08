@@ -81,6 +81,11 @@ R1 e R2 (alertas e crédito de compras), ambos resolvidos em 08/10/2026 (R2: cr�
 correção, a confirmar com especialista; R1: compras viram "efeito no preço").
 **Pendências:** A1, I-FISCAL, V1–V6 (S5 decidida em 08/10: base sem ICMS/PIS/Cofins),
 validação profissional. Detalhes em `PENDENCIAS.md`.
+**Progresso 08/10/2026 (tarde), sem aprovação de conclusão:** vigência da NCM pela tabela oficial do Siscomex, relatório
+PDF, leitura de PDF/DOCX/XLSX, fila persistente com retomada e adaptador da JEV (API pública do Jev/TypeSafe, desligado,
+não validado na API real). Backend 290 / 0 falhas; E2E 7/7 + 11/11. Pendentes: confirmar a JEV (JEV-CONFIRMAR),
+hipótese de PIS/Cofins na base projetada (S5-PROJECAO), histórico da NCM (NCM-HIST), OCR.
+Evidências: `docs/contexto-projeto/ENTREGA-INTELIGENCIA-FISCAL-2026-10-08.md`.
 
 ## Etapa 4 — Testes completos, refinamento e preparação do produto
 

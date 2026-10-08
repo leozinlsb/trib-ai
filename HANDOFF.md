@@ -6,7 +6,50 @@
 
 ---
 
-## Atualização mais recente — Etapa 2 concluída, Etapa 3 revisada, Etapa 4 iniciada (08/10/2026)
+## Atualização mais recente — entrega: JEV pronta para teste real, revisão humana e segurança (08/10/2026, noite)
+
+Auditoria do Hermes (P0 JEV, P0 S5, P1 prompt injection) tratada no que dependia de código. Sem commit.
+
+- **JEV:** contrato reconfirmado na documentação oficial (`/v1/systemone`, Bearer, `noul` = probabilidade de "sim").
+  Teste de conexão do administrador (`GET /api/admin/jev/status` sem custo; `POST /api/admin/jev/teste?confirmarCusto=true`
+  cobrado, mercadoria sintética) + card "JEV AI" em Configurações + `JevContratoTest` opt-in. **Nenhuma chamada real feita.**
+- **Gemini × JEV:** divergência (outra candidata ≥ 0,20 acima) ou nota < 0,50 → ALERTA, divergência com as duas notas e
+  revisão humana; concordância nunca confirma (`tribia.jev.limite-baixo`, `tribia.jev.margem-divergencia`).
+- **Revisão humana da análise:** `PUT /api/analises-fiscais/{id}/revisao` + card na tela; aceitar ou trocar a NCM (troca
+  exige justificativa; NCM precisa constar da NCM vigente); grava quem/quando, preserva o resultado automático; sai no PDF.
+- **Prompt injection:** delimitador aleatório por pedido, `<`/`>` e controles neutralizados, prompt reforçado, saída da
+  IA limitada (600 caracteres, 10 itens); trechos com cara de instrução viram observação e mandam para revisão.
+- **S5:** aviso "Projeção pendente de validação fiscal" nas respostas de cálculo, no detalhe da nota e no painel 2027.
+- **Testes:** backend 314 / 0 falhas / 8 ignorados (o 8º é o contrato real da JEV); front build/lint/test verdes;
+  E2E `etapa6-if-e2e.mjs` 7/7 (fluxo completo com dublês locais da IA), `etapa5` 7/7, `etapa4` 11/11.
+- Roteiro da demonstração atualizado (`docs/ROTEIRO_DEMO.md`, passos 11–17). Passo a passo da JEV: `docs/JEV-AI-INTEGRACAO.md` §0.
+
+## Registro anterior — Inteligência Fiscal: NCM, JEV, PDF, anexos e fila persistente (08/10/2026, tarde)
+
+Pedido da responsável a partir da auditoria do Hermes (fases A–K). Branch `dev/prataliyann-hue`, **sem commit**.
+Relatório completo: `docs/contexto-projeto/ENTREGA-INTELIGENCIA-FISCAL-2026-10-08.md`.
+
+- **NCM vigente oficial** (Portal Único Siscomex, Res. Gecex 926/2026) em `dados-oficiais/ncm-vigente.csv`, extraída por
+  `ferramentas/atualizar_ncm.mjs`. `ValidadorNcm` confere existência e vigência na data da análise (OK / ALERTA /
+  FALHA→revisão), usa o texto oficial pela hierarquia e cita fonte e versão. NCM não é TIPI.
+- **JEV AI:** adaptador `JevHttp` para a API pública do Jev (TypeSafe), desligado por padrão (`tribia.jev.modo`), chave
+  só em `JEV_API_KEY`. Testado com servidor simulado; **nenhuma chamada real**. Premissa a confirmar. Guia:
+  `docs/JEV-AI-INTEGRACAO.md`.
+- **PDF:** `GET /api/analises-fiscais/{id}/relatorio` (PDFBox 3.0.5, Apache 2.0); 409 sem resultado; 404 outra empresa.
+- **Anexos:** PDF, DOCX e XLSX lidos (`LeitorAnexos`); assinatura conferida (arquivo disfarçado → 400); zip-bomb e XXE
+  bloqueados; imagens e .doc/.xls antigos aceitos e não lidos, com motivo.
+- **Fila persistente:** texto dos anexos gravado na análise, reserva atômica (sem duplicidade), retomada após reinício
+  com até 2 tentativas (`RetomadaAnalisesFiscais`). Colunas novas anuláveis; nada destrutivo.
+- **Front:** card "Inteligência Fiscal" no início da empresa (dados reais, inclusive falhas); pagamento da compra com
+  confirmação; "Recalcular 2027" na nota; "Recalcular todas as notas" nas configurações; download do PDF respeita
+  `VITE_API_URL`.
+- **S5:** aritmética confere (recalculado à mão); exclusão do PIS/Cofins na projeção de 2027 é hipótese que precisa de
+  especialista (PENDENCIAS S5-PROJECAO). Nenhum valor fiscal alterado.
+- **Testes:** backend 290 / 0 falhas / 7 ignorados nas duas ordens; front build, lint e `npm test` verdes; E2E novo
+  `etapa5-e2e.mjs` 7/7 e regressão `etapa4-e2e.mjs` 11/11, sem chaves reais e sem `.env`.
+- Teste da equipe `CreditoCompraDivergenteTest` normaliza CRLF do XML (falhava no Windows com `autocrlf`).
+
+## Registro anterior — Etapa 2 concluída, Etapa 3 revisada, Etapa 4 iniciada (08/10/2026)
 
 Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_MESTRE_TRIBIA.md`).
 

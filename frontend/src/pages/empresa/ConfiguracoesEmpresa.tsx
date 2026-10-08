@@ -4,6 +4,7 @@ import { desativarCliente, reativarCliente } from '../../api/tribia'
 import { AcessosEmpresa } from '../../components/empresas/AcessosEmpresa'
 import { CabecalhoEmpresa, EstadoEmpresa } from '../../components/empresas/CabecalhoEmpresa'
 import { EmpresaForm } from '../../components/empresas/EmpresaForm'
+import { RecalcularEmpresa } from '../../components/empresas/RecalcularEmpresa'
 import { CardConta, CardPreferencias } from '../../components/Preferencias'
 import { Badge, Card, Confirmacao } from '../../components/ui'
 import { useEmpresa } from '../../hooks/useEmpresa'
@@ -45,6 +46,8 @@ export function ConfiguracoesEmpresa() {
           <div className="mb-gap">
             <AcessosEmpresa empresa={empresa} />
           </div>
+
+          <RecalcularEmpresa empresa={empresa} totalNotas={notas.length} />
 
           <Card titulo={empresa.ativo ? 'Desativar empresa' : 'Empresa desativada'}>
             <div className="zona-acao">
@@ -110,6 +113,7 @@ export function ConfiguracoesEmpresa() {
               <div><dt>Situação</dt><dd>{empresa.ativo ? <Badge cor="green" sm>Ativa</Badge> : <Badge cor="gray" sm>Desativada</Badge>}</dd></div>
             </dl>
           </Card>
+          <RecalcularEmpresa empresa={empresa} totalNotas={notas.length} />
           <div className="grid-2">
             <CardConta />
             <CardPreferencias />

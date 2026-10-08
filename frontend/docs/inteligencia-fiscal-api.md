@@ -1,8 +1,12 @@
 # Inteligência Fiscal: contrato de API proposto
 
-**Situação:** implementado no backend em 08/10/2026 (`backend/src/main/java/br/com/tribia/service/fiscal/`).
-O endpoint opcional de relatório em PDF não existe (`relatorio.disponivel` vem `false`). A pontuação da JEV AI
-aparece quando houver um bean `AvaliadorJev`; até lá as alternativas vêm sem `pontuacao`. Guia da integração: `docs/JEV-AI-INTEGRACAO.md`.
+**Situação:** implementado no backend em 08/10/2026 (`backend/src/main/java/br/com/tribia/service/fiscal/`),
+inclusive o relatório em PDF: quando a análise tem resultado, `relatorioDisponivel` e `relatorio.disponivel` vêm `true`
+e `relatorio.downloadUrl` = `/api/analises-fiscais/{id}/relatorio`. A pontuação da JEV AI aparece quando
+`tribia.jev.modo` estiver ativo; desligada (padrão), as alternativas vêm sem `pontuacao`. Guia: `docs/JEV-AI-INTEGRACAO.md`.
+Os indicadores trazem também `falhas` e `informacoesInsuficientes` (campos acrescentados, opcionais para o front).
+Anexos: o conteúdo é conferido contra a extensão (arquivo disfarçado → `400`); PDF, DOCX e XLSX são lidos; imagens e
+.doc/.xls aparecem nas limitações como não lidos.
 
 Toda a lógica fica no backend: chamadas ao Gemini e ao JEV, interpretação da mercadoria, busca NCM, validação
 fiscal, leitura dos anexos, geração do relatório, persistência e controle de acesso. O navegador não recebe
@@ -42,7 +46,7 @@ Resposta `200`:
 ### `GET /api/clientes/{clienteId}/analises-fiscais/indicadores`
 
 ```json
-{ "total": 42, "concluidas": 30, "emProcessamento": 2, "aguardandoRevisao": 3 }
+{ "total": 42, "concluidas": 30, "emProcessamento": 2, "aguardandoRevisao": 3, "falhas": 4, "informacoesInsuficientes": 3 }
 ```
 
 ### `POST /api/clientes/{clienteId}/analises-fiscais`
@@ -63,10 +67,11 @@ Se o backend preferir eventos, a alternativa é `GET /api/analises-fiscais/{id}/
 `text/event-stream`, emitindo o novo `status` a cada mudança. Nesse caso, basta trocar o efeito de polling
 em `pages/fiscal/AnaliseFiscal.tsx`.
 
-### `GET /api/analises-fiscais/{id}/relatorio` (opcional)
+### `GET /api/analises-fiscais/{id}/relatorio`
 
-Arquivo do relatório (PDF), se o backend gerar. Quando existir, preencher `relatorio.downloadUrl` no detalhe.
-O botão "Baixar relatório" só aparece com essa URL.
+PDF do relatório (`application/pdf`, anexo `tribia-analise-fiscal-{id}.pdf`). `409` se a análise ainda não tem
+resultado (em andamento, falha ou informações insuficientes); `404` para análise de outra empresa. O botão
+"Baixar relatório" só aparece com `relatorio.downloadUrl`.
 
 ## Tipos
 

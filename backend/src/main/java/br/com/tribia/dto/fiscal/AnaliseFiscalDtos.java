@@ -34,7 +34,9 @@ public final class AnaliseFiscalDtos {
                                  String mensagem, Relatorio relatorio) {
     }
 
-    public record Indicadores(long total, long concluidas, long emProcessamento, long aguardandoRevisao) {
+    /** Contagem por situação, agregada no banco. falhas e informacoesInsuficientes completam o total. */
+    public record Indicadores(long total, long concluidas, long emProcessamento, long aguardandoRevisao, long falhas,
+                              long informacoesInsuficientes) {
     }
 
     public record Pagina<T>(List<T> itens, long total, int pagina, int tamanho) {

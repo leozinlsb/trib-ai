@@ -16,6 +16,8 @@ import br.com.tribia.model.Cliente;
 import br.com.tribia.model.StatusAnalise;
 import br.com.tribia.repository.AnaliseFiscalRepository;
 import br.com.tribia.security.AcessoService;
+import br.com.tribia.security.UsuarioLogado;
+import br.com.tribia.service.tabelas.TabelaNcmVigente;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,7 +34,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -65,11 +66,18 @@ public class AnaliseFiscalService {
     private final TaskExecutor executor;
     private final ObjectMapper json;
     private final TransactionTemplate tx;
+    private final RelatorioAnalisePdf pdf;
+    private final LeitorAnexos leitor;
+    private final TabelaNcmVigente ncmVigente;
 
     public AnaliseFiscalService(AnaliseFiscalRepository repository, AcessoService acesso,
                                 ProcessadorAnaliseFiscal processador,
                                 @Qualifier("analisesFiscaisExecutor") TaskExecutor executor, ObjectMapper json,
-                                PlatformTransactionManager transacoes) {
+                                PlatformTransactionManager transacoes, RelatorioAnalisePdf pdf,
+                                LeitorAnexos leitor, TabelaNcmVigente ncmVigente) {
+        this.ncmVigente = ncmVigente;
+        this.pdf = pdf;
+        this.leitor = leitor;
         this.repository = repository;
         this.acesso = acesso;
         this.processador = processador;
@@ -111,7 +119,9 @@ public class AnaliseFiscalService {
         long emProcessamento = porStatus.entrySet().stream().filter(e -> e.getKey().emAndamento())
                 .mapToLong(Map.Entry::getValue).sum();
         return new Indicadores(total, porStatus.getOrDefault(StatusAnalise.CONCLUIDA, 0L), emProcessamento,
-                porStatus.getOrDefault(StatusAnalise.AGUARDANDO_REVISAO, 0L));
+                porStatus.getOrDefault(StatusAnalise.AGUARDANDO_REVISAO, 0L),
+                porStatus.getOrDefault(StatusAnalise.FALHA, 0L),
+                porStatus.getOrDefault(StatusAnalise.INFORMACOES_INSUFICIENTES, 0L));
     }
 
     /** Cria a análise (status AGUARDANDO) e dispara o processamento em segundo plano. */
@@ -130,12 +140,20 @@ public class AnaliseFiscalService {
         for (MultipartFile f : lista) {
             String nome = nome(f);
             anexos.add(new Anexo(nome, f.getSize(), f.getContentType() == null ? "application/octet-stream" : f.getContentType()));
-            if ("txt".equals(extensao(nome))) {
-                textos.put(nome, texto(f));
-            } else {
-                naoLidos.add(nome);
+            LeitorAnexos.Leitura leitura;
+            try {
+                leitura = leitor.ler(nome, extensao(nome), bytes(f));
+            } catch (LeitorAnexos.AnexoRecusadoException e) {
+                throw ApiException.requisicaoInvalida(e.getMessage());
+            }
+            if (leitura.lido()) {
+                textos.put(nome, leitura.texto());
+            }
+            if (leitura.observacao() != null) {
+                naoLidos.add(nome + " (" + leitura.observacao() + ")");
             }
         }
+        String anexosLidos = escrever(new ProcessadorAnaliseFiscal.AnexosLidos(textos, naoLidos));
 
         String ncmAtual = dados.ncmAtual() == null ? null : dados.ncmAtual().replaceAll("\\D", "");
         AnaliseFiscal salva = tx.execute(s -> {
@@ -144,6 +162,7 @@ public class AnaliseFiscalService {
                     vazioComoNulo(dados.composicao()), vazioComoNulo(dados.finalidade()),
                     vazioComoNulo(dados.caracteristicas()), vazioComoNulo(ncmAtual), escrever(anexos), agora);
             a.mudarStatus(StatusAnalise.AGUARDANDO, escrever(List.of(new Etapa(StatusAnalise.AGUARDANDO, agora))), agora);
+            a.guardarAnexosLidos(anexosLidos);
             return repository.save(a);
         });
 
@@ -151,7 +170,7 @@ public class AnaliseFiscalService {
         AnaliseResumo criada = resumo(salva);
         // depois do commit: o processamento lê a análise em outra transação
         try {
-            executor.execute(() -> processador.processar(salva.getId(), textos, naoLidos));
+            executor.execute(() -> processador.processar(salva.getId()));
         } catch (TaskRejectedException e) {
             tx.executeWithoutResult(s -> repository.findById(salva.getId()).ifPresent(a -> {
                 a.mudarStatus(StatusAnalise.FALHA, a.getHistoricoJson(), Instant.now());
@@ -163,30 +182,106 @@ public class AnaliseFiscalService {
         return criada;
     }
 
+    /** Pedido de revisão humana: a NCM decidida (a sugerida, uma alternativa ou outra da NCM vigente) e o porquê. */
+    public record RevisaoForm(String ncm, String observacao) {
+    }
+
+    /**
+     * Registra a decisão de uma pessoa sobre a sugestão. Só em análises com resultado (concluída ou aguardando
+     * revisão). A NCM decidida precisa constar da NCM vigente; trocar a sugestão exige justificativa. O resultado
+     * automático é preservado como evidência e a revisão entra no histórico; a análise passa a CONCLUIDA.
+     */
+    public AnaliseDetalhe revisar(Long analiseId, RevisaoForm form) {
+        UsuarioLogado quem = acesso.atual();
+        AnaliseFiscal lida = acessivel(analiseId);
+        if (lida.getResultadoJson() == null
+                || (lida.getStatus() != StatusAnalise.CONCLUIDA && lida.getStatus() != StatusAnalise.AGUARDANDO_REVISAO)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Revisão indisponível",
+                    "Só é possível revisar uma análise concluída ou aguardando revisão.");
+        }
+        String ncm = form == null || form.ncm() == null ? "" : form.ncm().replaceAll("\\D", "");
+        String observacao = form == null || form.observacao() == null ? "" : form.observacao().trim();
+        if (ncm.length() != 8) {
+            throw ApiException.requisicaoInvalida("Informe a NCM decidida com 8 dígitos.");
+        }
+        if (observacao.length() > 1000) {
+            throw ApiException.requisicaoInvalida("A observação pode ter até 1000 caracteres.");
+        }
+        if (ncmVigente.consultar(ncm, LocalDate.now(BRASILIA)).situacao() != TabelaNcmVigente.Situacao.VIGENTE) {
+            throw ApiException.requisicaoInvalida("A NCM " + ValidadorNcm.formatar(ncm)
+                    + " não consta da NCM vigente: confira o código.");
+        }
+        ResultadoAnaliseFiscal atual = ler(lida.getResultadoJson(), ResultadoAnaliseFiscal.class);
+        String sugerida = atual.resultado() == null ? null : atual.resultado().ncm();
+        boolean aceita = ncm.equals(sugerida);
+        if (!aceita && observacao.isBlank()) {
+            throw ApiException.requisicaoInvalida("Explique por que a NCM decidida é diferente da sugerida.");
+        }
+        Instant agora = Instant.now();
+        ResultadoAnaliseFiscal.RevisaoHumana r = new ResultadoAnaliseFiscal.RevisaoHumana(aceita ? "ACEITA" : "ALTERADA",
+                ncm, sugerida, observacao.isBlank() ? null : observacao, quem.nome() + " (" + quem.email() + ")",
+                agora.toString());
+        tx.executeWithoutResult(s -> repository.findById(analiseId).ifPresent(a -> {
+            List<Etapa> historico = new ArrayList<>(processador.ler(a.getHistoricoJson()));
+            historico.add(new Etapa(StatusAnalise.CONCLUIDA, agora));
+            a.mudarStatus(StatusAnalise.CONCLUIDA, escrever(historico), agora);
+            a.concluir(a.getNcmSugerida(), escrever(atual.comRevisao(r)), a.getMensagem());
+        }));
+        return detalhar(analiseId);
+    }
+
     public AnaliseDetalhe detalhar(Long analiseId) {
-        AnaliseFiscal a = tx.execute(s -> {
+        return detalhe(acessivel(analiseId));
+    }
+
+    /** PDF do relatório: só para análises com resultado; outra empresa = 404, como no detalhe. */
+    public RelatorioPdf relatorio(Long analiseId) {
+        AnaliseFiscal a = acessivel(analiseId);
+        if (a.getResultadoJson() == null) {
+            throw new ApiException(HttpStatus.CONFLICT, "Relatório indisponível",
+                    a.getStatus().emAndamento()
+                            ? "A análise ainda está em processamento: o relatório fica disponível quando ela terminar."
+                            : "Esta análise terminou sem resultado ("
+                            + RelatorioAnalisePdf.nomeStatus(a.getStatus()).toLowerCase(Locale.ROOT)
+                            + "): não há relatório para gerar.");
+        }
+        byte[] conteudo = pdf.gerar(detalhe(a), a.getCliente(), Instant.now());
+        return new RelatorioPdf(conteudo, "tribia-analise-fiscal-" + a.getId() + ".pdf");
+    }
+
+    public record RelatorioPdf(byte[] conteudo, String nomeArquivo) {
+    }
+
+    /** Lê a análise e confere a empresa; empresa alheia vira "análise não encontrada" (404). */
+    private AnaliseFiscal acessivel(Long analiseId) {
+        return tx.execute(s -> {
             AnaliseFiscal encontrada = repository.findById(analiseId).orElseThrow(() -> naoEncontrada(analiseId));
             try {
                 acesso.clienteAcessivel(encontrada.getCliente().getId());
             } catch (RecursoNaoEncontradoException e) {
                 throw naoEncontrada(analiseId);
             }
+            encontrada.getCliente().getRazaoSocial(); // carrega a empresa (usada no relatório, fora da transação)
             return encontrada;
         });
+    }
+
+    private AnaliseDetalhe detalhe(AnaliseFiscal a) {
         MercadoriaEntradaDto entrada = new MercadoriaEntradaDto(a.getMercadoria(), a.getDescricao(), a.getComposicao(),
                 a.getFinalidade(), a.getCaracteristicas(), a.getNcmAtual());
         ResultadoAnaliseFiscal resultado = a.getResultadoJson() == null ? null : ler(a.getResultadoJson(), ResultadoAnaliseFiscal.class);
         List<Etapa> historico = processador.ler(a.getHistoricoJson());
         List<Anexo> anexos = a.getAnexosJson() == null ? List.of() : ler(a.getAnexosJson(), LISTA_ANEXOS);
         return new AnaliseDetalhe(resumo(a), entrada, anexos, historico, resultado, a.getMensagem(),
-                new Relatorio(false, null));
+                a.getResultadoJson() == null ? new Relatorio(false, null)
+                        : new Relatorio(true, "/api/analises-fiscais/" + a.getId() + "/relatorio"));
     }
 
     // ---------------- apoio ----------------
 
     private static AnaliseResumo resumo(AnaliseFiscal a) {
         return new AnaliseResumo(a.getId(), a.getCliente().getId(), a.getMercadoria(), a.getNcmSugerida(), a.getStatus(),
-                a.getCriadaEm(), a.getAtualizadaEm(), false);
+                a.getCriadaEm(), a.getAtualizadaEm(), a.getResultadoJson() != null);
     }
 
     private static void validarArquivos(List<MultipartFile> arquivos) {
@@ -217,9 +312,9 @@ public class AnaliseFiscalService {
         return i < 0 ? "" : nome.substring(i + 1).toLowerCase(Locale.ROOT);
     }
 
-    private static String texto(MultipartFile f) {
+    private static byte[] bytes(MultipartFile f) {
         try {
-            return new String(f.getBytes(), StandardCharsets.UTF_8);
+            return f.getBytes();
         } catch (IOException e) {
             throw ApiException.requisicaoInvalida("Não foi possível ler o arquivo \"" + nome(f) + "\".");
         }

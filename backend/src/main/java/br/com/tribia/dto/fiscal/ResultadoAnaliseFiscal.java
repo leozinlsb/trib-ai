@@ -11,7 +11,28 @@ import java.util.List;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ResultadoAnaliseFiscal(Resultado resultado, Fundamentacao fundamentacao, List<Alternativa> alternativas,
-                                     Validacao validacao, List<Fonte> fontes) {
+                                     Validacao validacao, List<Fonte> fontes, List<RevisaoHumana> revisoes) {
+
+    public ResultadoAnaliseFiscal(Resultado resultado, Fundamentacao fundamentacao, List<Alternativa> alternativas,
+                                  Validacao validacao, List<Fonte> fontes) {
+        this(resultado, fundamentacao, alternativas, validacao, fontes, null);
+    }
+
+    /** Nova revisão registrada no fim da lista; o resultado automático continua igual (evidência). */
+    public ResultadoAnaliseFiscal comRevisao(RevisaoHumana r) {
+        List<RevisaoHumana> todas = new java.util.ArrayList<>(revisoes == null ? List.of() : revisoes);
+        todas.add(r);
+        return new ResultadoAnaliseFiscal(resultado, fundamentacao, alternativas, validacao, fontes, List.copyOf(todas));
+    }
+
+    /**
+     * Decisão de uma pessoa sobre a sugestão: ACEITA (mantém a NCM sugerida) ou ALTERADA (escolheu outra). É registro
+     * interno de revisão, não parecer nem decisão da Receita Federal.
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record RevisaoHumana(String decisao, String ncm, String ncmSugerida, String observacao, String revisadaPor,
+                                String revisadaEm) {
+    }
 
     public enum SituacaoValidacao {
         VALIDADO_VERIFICACOES, PENDENTE_REVISAO, INFORMACOES_INSUFICIENTES, INCONSISTENCIA

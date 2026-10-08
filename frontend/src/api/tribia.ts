@@ -1,6 +1,6 @@
 import { json, request } from './client'
 import type {
-  CalculoNota, ClassificacaoNota, Cliente, ClienteForm, NotaDetalhe, NotaResumo, OpcaoClassificacao, Painel, Relatorio,
+  CalculoEmpresa, CalculoNota, ClassificacaoNota, Cliente, ClienteForm, NotaDetalhe, NotaResumo, OpcaoClassificacao, Painel, Relatorio,
   Revisao, RevisaoResultado, RevisarItem, TipoNota, UploadResultado, Usuario,
 } from './types'
 
@@ -113,6 +113,16 @@ export function classificarNota(id: number) {
 /** Recalcula 2027 para os itens já classificados da nota (calculadora oficial ou simplificada, com aviso). */
 export function calcularNota(id: number) {
   return request<CalculoNota>(`/api/notas/${id}/calcular`, { method: 'POST' })
+}
+
+/** Confirma (ou desfaz) o pagamento de uma compra ao fornecedor e recalcula a nota (crédito de 2027, LC 214 art. 47). */
+export function confirmarPagamento(id: number, confirmado: boolean) {
+  return request<CalculoNota>(`/api/notas/${id}/pagamento?confirmado=${confirmado}`, { method: 'PUT' })
+}
+
+/** Recalcula 2027 em todas as notas da empresa (uma transação por nota no servidor). */
+export function recalcularEmpresa(clienteId: number) {
+  return request<CalculoEmpresa>(`/api/clientes/${clienteId}/calcular`, { method: 'POST' })
 }
 
 /** Painel da empresa: indicadores e comparativo hoje (PIS/Cofins) x 2027 (CBS/IBS/IS). Só lê o que já foi calculado. */

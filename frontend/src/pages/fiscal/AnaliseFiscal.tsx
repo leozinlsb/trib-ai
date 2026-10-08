@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ChevronRight, Download, FileText, Plus, RefreshCw } from 'lucide-react'
-import { ApiError } from '../../api/client'
+import { API_URL, ApiError } from '../../api/client'
 import { detalharAnalise, emAndamento, servicoIndisponivel, type AnaliseDetalhe } from '../../api/inteligenciaFiscal'
 import type { Cliente } from '../../api/types'
 import { CabecalhoEmpresa, EstadoEmpresa } from '../../components/empresas/CabecalhoEmpresa'
 import { BadgeStatus, ServicoIndisponivel } from '../../components/fiscal/Comum'
 import { EtapasProcessamento } from '../../components/fiscal/Etapas'
+import { RevisaoAnalise } from '../../components/fiscal/Revisao'
 import { Alternativas, CardResultado, Fontes, Fundamentacao, Validacao } from '../../components/fiscal/Resultado'
 import { Aviso, Card, Carregando, ErroEstado, Vazio } from '../../components/ui'
 import { useEmpresa } from '../../hooks/useEmpresa'
@@ -92,13 +93,19 @@ export function AnaliseFiscal() {
   return (
     <>
       {trilha(estado.analise.mercadoria)}
-      <VisaoAnalise analise={estado.analise} empresa={empresa} />
+      <VisaoAnalise analise={estado.analise} empresa={empresa} onRevisada={(a) => setEstado({ tipo: 'ok', analise: a })} />
     </>
   )
 }
 
 /** Apresentação de uma análise (usada também pela tela de exemplo em desenvolvimento). */
-export function VisaoAnalise({ analise, empresa, exemplo }: { analise: AnaliseDetalhe; empresa: Cliente; exemplo?: boolean }) {
+export function VisaoAnalise({ analise, empresa, exemplo, onRevisada }: {
+  analise: AnaliseDetalhe
+  empresa: Cliente
+  exemplo?: boolean
+  /** revisão registrada: a página troca a análise pela versão devolvida pelo servidor */
+  onRevisada?: (a: AnaliseDetalhe) => void
+}) {
   const andamento = emAndamento(analise.status)
   const temResultado = !!analise.resultado
   const empresaId = empresa.id
@@ -112,7 +119,7 @@ export function VisaoAnalise({ analise, empresa, exemplo }: { analise: AnaliseDe
         acoes={
           <>
             {analise.relatorio?.downloadUrl && !exemplo && (
-              <a href={analise.relatorio.downloadUrl} className="btn btn--secondary">
+              <a href={`${API_URL}${analise.relatorio.downloadUrl}`} className="btn btn--secondary" download>
                 <Download size={16} /> Baixar relatório
               </a>
             )}
@@ -159,6 +166,7 @@ export function VisaoAnalise({ analise, empresa, exemplo }: { analise: AnaliseDe
             </Aviso>
           )}
           <CardResultado analise={analise} />
+          {!exemplo && onRevisada && <RevisaoAnalise analise={analise} onRevisada={onRevisada} />}
           <div className="grid-2">
             <Fundamentacao analise={analise} />
             <Validacao analise={analise} />

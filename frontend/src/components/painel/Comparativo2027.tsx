@@ -52,7 +52,7 @@ export function Comparativo2027({ id }: { id: number }) {
   return (
     <Card
       titulo={titulo}
-      sub="Imposto líquido (débito − crédito) do período, com a classificação atual de cada item."
+      sub="Imposto líquido (débito − crédito) do período, com a classificação atual de cada item. 2027 é projeção pendente de validação fiscal (base sem ICMS, PIS e Cofins)."
       acoes={
         ind.pendentesRevisao > 0 ? (
           <Link to={rotaEmpresa(id, 'revisao')} style={{ fontSize: 13, fontWeight: 500 }}>

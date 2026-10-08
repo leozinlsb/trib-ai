@@ -28,6 +28,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +46,7 @@ import java.util.stream.Collectors;
 public class ProcessadorAnaliseFiscal {
 
     private static final Logger log = LoggerFactory.getLogger(ProcessadorAnaliseFiscal.class);
+    private static final ZoneId BRASILIA = ZoneId.of("America/Sao_Paulo");
     private static final TypeReference<List<Etapa>> LISTA_ETAPAS = new TypeReference<>() {
     };
 
@@ -67,13 +70,23 @@ public class ProcessadorAnaliseFiscal {
         this.relogio = Clock.systemUTC();
     }
 
+    /** Texto lido de cada anexo e os não lidos com o motivo; gravado na análise para permitir retomar. */
+    public record AnexosLidos(Map<String, String> textos, List<String> naoLidos) {
+        public static final AnexosLidos NENHUM = new AnexosLidos(Map.of(), List.of());
+    }
+
     /**
-     * @param textoDosAnexos  conteúdo dos anexos de texto (nome → texto), enviado à IA
-     * @param anexosNaoLidos  anexos que a IA não lê nesta versão (PDF, imagens, Office)
+     * Processa a análise gravada (dados e texto dos anexos vêm do banco). Só uma execução por vez: se a análise não
+     * estiver mais em AGUARDANDO (outra execução pegou, ou ela já terminou), não faz nada.
      */
-    public void processar(Long analiseId, Map<String, String> textoDosAnexos, List<String> anexosNaoLidos) {
+    public void processar(Long analiseId) {
+        Integer reservada = tx.execute(s -> repository.reservar(analiseId, Instant.now(relogio)));
+        if (reservada == null || reservada == 0) {
+            log.info("Análise fiscal {}: já em processamento ou encerrada; nada a fazer", analiseId);
+            return;
+        }
         try {
-            executar(analiseId, textoDosAnexos, anexosNaoLidos);
+            executar(analiseId);
         } catch (RuntimeException e) {
             log.error("Análise fiscal {}: falha inesperada", analiseId, e);
             encerrar(analiseId, StatusAnalise.FALHA, null, null,
@@ -81,10 +94,13 @@ public class ProcessadorAnaliseFiscal {
         }
     }
 
-    private void executar(Long analiseId, Map<String, String> textoDosAnexos, List<String> anexosNaoLidos) {
+    private void executar(Long analiseId) {
         AnaliseFiscal a = mudar(analiseId, StatusAnalise.INTERPRETANDO);
+        log.info("Análise fiscal {}: início (tentativa {})", analiseId, a.getTentativas());
+        AnexosLidos anexos = lerAnexos(a.getAnexosLidosJson());
         PesquisaNcmIa.Entrada entrada = new PesquisaNcmIa.Entrada(a.getMercadoria(), a.getDescricao(), a.getComposicao(),
-                a.getFinalidade(), a.getCaracteristicas(), a.getNcmAtual(), textoDosAnexos);
+                a.getFinalidade(), a.getCaracteristicas(), a.getNcmAtual(), anexos.textos());
+        List<String> anexosNaoLidos = anexos.naoLidos();
 
         mudar(analiseId, StatusAnalise.PESQUISANDO_NCM);
         Resposta r;
@@ -107,11 +123,12 @@ public class ProcessadorAnaliseFiscal {
         }
 
         mudar(analiseId, StatusAnalise.AVALIANDO);
-        List<String> limitacoes = limitacoes(anexosNaoLidos);
+        List<String> limitacoes = limitacoes(anexosNaoLidos, anexos.textos());
         Map<String, Pontuacao> pontuacoes = avaliarComJev(entrada, r, limitacoes);
 
         mudar(analiseId, StatusAnalise.VALIDANDO);
-        ValidadorNcm.Resultado v = validador.validar(r.candidatas(), a.getNcmAtual());
+        ValidadorNcm.Resultado v = validador.validar(r.candidatas(), a.getNcmAtual(),
+                LocalDate.now(relogio.withZone(BRASILIA)), pontuacoes);
 
         mudar(analiseId, StatusAnalise.GERANDO_RELATORIO);
         PesquisaNcmIa.Candidata escolhida = r.candidatas().get(0);
@@ -120,19 +137,37 @@ public class ProcessadorAnaliseFiscal {
         if (!r.descartadas().isEmpty()) {
             observacoes.add("Códigos propostos pela IA e descartados por formato inválido: " + String.join("; ", r.descartadas()) + ".");
         }
+        List<String> suspeitos = PesquisaNcmIa.trechosSuspeitos(entrada);
+        if (!suspeitos.isEmpty()) {
+            observacoes.add("Trechos com aparência de instrução dirigida à IA em: " + String.join(", ", suspeitos)
+                    + ". Foram tratados como dados, não como ordens; confira se influenciaram a sugestão.");
+        }
+        // texto oficial da NCM quando o código consta da tabela; senão, o da IA, avisado nas limitações
+        String descricao = v.descricaoOficial() != null && !v.descricaoOficial().isBlank()
+                ? v.descricaoOficial() : escolhida.descricao();
+        if (v.descricaoOficial() == null || v.descricaoOficial().isBlank()) {
+            limitacoes.add("A descrição do código vem da análise da IA (o código não consta da NCM vigente).");
+        }
+        List<Fonte> fontes = new ArrayList<>(v.fontes());
+        fontes.addAll(fontes(v.usouRegrasDaReforma()));
         ResultadoAnaliseFiscal resultado = new ResultadoAnaliseFiscal(
-                new Resultado(escolhida.ncm(), escolhida.descricao(), situacao, Instant.now(relogio).toString()),
+                new Resultado(escolhida.ncm(), descricao, situacao, Instant.now(relogio).toString()),
                 new Fundamentacao(r.caracteristicas(), escolhida.motivos(), r.regrasConsideradas(), observacoes, limitacoes),
                 r.candidatas().stream()
                         .map(c -> new Alternativa(c.ncm(), c.descricao(),
                                 c.avaliacao() + " (confiança da análise: " + c.confianca() + ")", pontuacoes.get(c.ncm())))
                         .toList(),
                 v.validacao(),
-                fontes(v.usouRegrasDaReforma()));
+                fontes);
 
-        boolean validado = situacao == SituacaoValidacao.VALIDADO_VERIFICACOES;
+        // texto com cara de instrução à IA: nunca conclui sozinha, vai para uma pessoa conferir
+        boolean validado = situacao == SituacaoValidacao.VALIDADO_VERIFICACOES && suspeitos.isEmpty();
+        String mensagem = validado ? null : suspeitos.isEmpty() ? mensagemRevisao(v.validacao())
+                : "Os dados ou anexos contêm trechos que parecem instruções à IA (" + String.join(", ", suspeitos)
+                + "): confira a sugestão antes de usar."
+                + (mensagemRevisao(v.validacao()) == null ? "" : " " + mensagemRevisao(v.validacao()));
         encerrar(analiseId, validado ? StatusAnalise.CONCLUIDA : StatusAnalise.AGUARDANDO_REVISAO, escolhida.ncm(),
-                resultado, validado ? null : mensagemRevisao(v.validacao()));
+                resultado, mensagem);
     }
 
     private Map<String, Pontuacao> avaliarComJev(PesquisaNcmIa.Entrada e, Resposta r, List<String> limitacoes) {
@@ -141,6 +176,9 @@ public class ProcessadorAnaliseFiscal {
             limitacoes.add("Pontuação de compatibilidade (JEV AI) ainda não disponível: as alternativas aparecem sem ela.");
             return Map.of();
         }
+        if (avaliador.simulado()) {
+            limitacoes.add("Pontuações da JEV AI SIMULADAS (ambiente de desenvolvimento): valores fictícios, sem significado fiscal.");
+        }
         try {
             return avaliador.avaliar(
                     new MercadoriaParaJev(e.nome(), e.descricao(), e.composicao(), e.finalidade(), e.caracteristicas(),
@@ -148,22 +186,41 @@ public class ProcessadorAnaliseFiscal {
                     r.candidatas().stream().map(c -> new Candidata(c.ncm(), c.descricao())).toList());
         } catch (RuntimeException ex) {
             log.warn("JEV AI indisponível: {}", ex.getMessage());
-            limitacoes.add("A JEV AI não respondeu nesta análise: as alternativas aparecem sem pontuação.");
+            // as mensagens de JevIndisponivelException são escritas para a tela (sem chave nem dados da mercadoria)
+            String motivo = ex instanceof AvaliadorJev.JevIndisponivelException && ex.getMessage() != null
+                    ? " (" + ex.getMessage() + ")" : "";
+            limitacoes.add("A JEV AI não respondeu nesta análise" + motivo + ": as alternativas aparecem sem pontuação.");
             return Map.of();
         }
     }
 
-    private static List<String> limitacoes(List<String> anexosNaoLidos) {
+    private static List<String> limitacoes(List<String> anexosNaoLidos, Map<String, String> textos) {
         List<String> l = new ArrayList<>();
         l.add("Sugestão gerada por IA a partir das informações enviadas: não é classificação fiscal definitiva e "
                 + "deve ser conferida por profissional habilitado.");
-        l.add("A descrição do código vem da análise da IA; confira o texto oficial na TIPI.");
-        l.add(ValidadorNcm.VIGENCIA_NAO_VERIFICADA);
+        l.add("Existência e vigência conferidas na NCM vigente embarcada no sistema; a validade da NCM não define o "
+                + "tratamento tributário (IPI, IBS/CBS, benefícios).");
         if (!anexosNaoLidos.isEmpty()) {
-            l.add("Anexos não lidos pela análise nesta versão (só arquivos .txt são lidos): "
-                    + String.join(", ", anexosNaoLidos) + ".");
+            l.add("Anexos não lidos ou lidos em parte: " + String.join("; ", anexosNaoLidos) + ".");
+        }
+        int total = textos.values().stream().mapToInt(String::length).sum();
+        if (total > PesquisaNcmIa.MAX_TEXTO_ANEXOS) {
+            l.add("Os anexos somam " + total + " caracteres de texto; a análise considerou os primeiros "
+                    + PesquisaNcmIa.MAX_TEXTO_ANEXOS + ".");
         }
         return l;
+    }
+
+    AnexosLidos lerAnexos(String anexosLidosJson) {
+        if (anexosLidosJson == null || anexosLidosJson.isBlank()) {
+            return AnexosLidos.NENHUM;
+        }
+        try {
+            AnexosLidos a = json.readValue(anexosLidosJson, AnexosLidos.class);
+            return new AnexosLidos(a.textos() == null ? Map.of() : a.textos(), a.naoLidos() == null ? List.of() : a.naoLidos());
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Anexos lidos da análise ilegíveis", e);
+        }
     }
 
     private static List<Fonte> fontes(boolean usouRegrasDaReforma) {
@@ -195,7 +252,9 @@ public class ProcessadorAnaliseFiscal {
     }
 
     private static String mensagemRevisao(Validacao v) {
-        return v.pendencias().isEmpty() ? null : "Pontos a conferir: " + String.join(" ", v.pendencias());
+        List<String> pontos = new ArrayList<>(v.divergencias());
+        pontos.addAll(v.pendencias());
+        return pontos.isEmpty() ? null : "Pontos a conferir: " + String.join(" ", pontos);
     }
 
     // ---------------- gravação ----------------

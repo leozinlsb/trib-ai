@@ -81,6 +81,17 @@ public class AnaliseFiscal {
     @Lob
     private String resultadoJson;
 
+    /**
+     * Texto extraído dos anexos e os não lidos com o motivo ({textos: {nome: texto}, naoLidos: [...]}). Fica gravado
+     * para a análise poder ser retomada depois de um reinício do servidor; os arquivos em si não são guardados.
+     * Nulo em análises criadas antes desta coluna existir.
+     */
+    @Lob
+    private String anexosLidosJson;
+
+    /** Quantas vezes o processamento começou (retomadas após reinício contam). Nulo = nenhuma. */
+    private Integer tentativas;
+
     protected AnaliseFiscal() {
     }
 
@@ -103,6 +114,18 @@ public class AnaliseFiscal {
         this.status = novo;
         this.historicoJson = historicoJson;
         this.atualizadaEm = agora;
+    }
+
+    public void guardarAnexosLidos(String anexosLidosJson) {
+        this.anexosLidosJson = anexosLidosJson;
+    }
+
+    public String getAnexosLidosJson() {
+        return anexosLidosJson;
+    }
+
+    public int getTentativas() {
+        return tentativas == null ? 0 : tentativas;
     }
 
     public void concluir(String ncmSugerida, String resultadoJson, String mensagem) {
