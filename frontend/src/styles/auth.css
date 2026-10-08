@@ -1,0 +1,179 @@
+/* ============ Login (mesma identidade da landing e do sistema) ============ */
+.auth {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  background: var(--surface);
+}
+
+.auth__marca {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px 48px;
+  background: var(--navy-850);
+  color: #fff;
+}
+.auth__marca::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.1px, transparent 1.1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to top, #000, transparent 75%);
+  pointer-events: none;
+}
+.auth__marca > * {
+  position: relative;
+}
+.auth__logo {
+  display: inline-flex;
+  text-decoration: none;
+}
+.auth__logo:hover {
+  text-decoration: none;
+}
+.auth__mensagem h1 {
+  font-size: clamp(30px, 3vw, 40px);
+  line-height: 1.12;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.auth__mensagem p {
+  margin-top: 14px;
+  font-size: 16.5px;
+  line-height: 1.6;
+  color: var(--navy-100);
+  max-width: 420px;
+}
+.auth__mensagem ul {
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 15px;
+  color: #e9eef9;
+}
+.auth__mensagem li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.auth__mensagem li svg {
+  flex: none;
+  color: var(--green-500);
+}
+.auth__rodape {
+  font-size: 13px;
+  color: var(--navy-300);
+}
+
+.auth__conteudo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 24px 40px;
+}
+.auth__voltar {
+  position: absolute;
+  top: 28px;
+  left: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-3);
+  text-decoration: none;
+}
+.auth__voltar:hover {
+  color: var(--navy-900);
+  text-decoration: none;
+}
+.auth__caixa {
+  width: 100%;
+  max-width: 400px;
+}
+.auth__logo-mobile {
+  display: none;
+  margin-bottom: 28px;
+}
+.auth__caixa h2 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--navy-950);
+}
+.auth__sub {
+  margin-top: 8px;
+  color: var(--text-3);
+  font-size: 15px;
+}
+.auth__form {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.auth__botao {
+  height: 46px;
+  justify-content: center;
+  margin-top: 4px;
+  font-size: 15.5px;
+}
+.auth__ajuda {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-3);
+}
+
+/* campos (também usados nos formulários do sistema) */
+.input--lg {
+  height: 44px;
+  font-size: 15px;
+}
+.input--erro,
+.input--erro:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(214, 64, 76, 0.12);
+}
+.field__erro {
+  font-size: 12.5px;
+  color: var(--badge-red-fg);
+}
+.input-senha {
+  position: relative;
+}
+.input-senha .input {
+  padding-right: 44px;
+}
+.input-senha .icon-btn {
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+}
+
+@media (max-width: 900px) {
+  .auth {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .auth__marca {
+    display: none;
+  }
+  .auth__logo-mobile {
+    display: block;
+  }
+  .auth__voltar {
+    left: 20px;
+  }
+}
