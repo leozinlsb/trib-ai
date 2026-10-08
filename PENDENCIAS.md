@@ -32,7 +32,7 @@ Sem commit, sem mudanças fiscais, sem tocar dados reais. Abertos:
 
 ## Testes do backend (08/10/2026)
 
-**Atual (após S5 e R2, 08/10/2026): 226 testes, 0 falhas, 0 erros, 7 ignorados**, nas duas ordens
+**Atual (após S5, R2 e segurança do deploy, 08/10/2026): 233 testes, 0 falhas, 0 erros, 7 ignorados**, nas duas ordens
 (`-Dsurefire.runOrder=reversealphabetical`), sem a calculadora no ar (3 contratos RTC + 2 Gemini reais +
 2 geradores opt-in ignorados). Front: build, lint e `npm test` (8) verdes. Histórico abaixo.
 
@@ -73,7 +73,7 @@ restantes era de autenticação (evidências históricas); a execução P0.1 nã
 | T5 | IA: em 429/503 espera e tenta o mesmo modelo uma vez, depois o de reserva, e desiste (sem backoff progressivo). | No plano gratuito, itens podem ficar pendentes em rajadas. |
 | T6 | Respostas gravadas da IA (profile `demo`) cobrem só os produtos das notas em `notas-demo-ao-vivo/`. Outro XML subido ao vivo sem IA fica pendente. | Usar as notas preparadas. Regravar com `GerarRespostasIaDemoTest` se mudarem. |
 | T7 | Chave de acesso: upload confere dígito e dados da nota; fixture de cache agora coerente. | Validação preservada e teste de cache entre empresas verde. |
-| T8 | Sessão + CSRF/guardas/cache testados, HTTP real e E2E Chrome aprovados. | Escopo sintético não certifica produção; O1/histórico pendentes, desabilitar console H2/demo em produção. |
+| T8 | Sessão + CSRF/guardas/cache testados, HTTP real e E2E Chrome aprovados. Profile `prod` (Dockerfile): console H2, Swagger e `/api/demo` desligados, cookie `Secure`, senha do admin obrigatória (12+), login bloqueado por 15 min após 5 falhas no mesmo e-mail (em memória, por instância). | Imagem Docker não construída aqui (Docker Desktop parado): rodar `docker build` antes do deploy. O bloqueio por e-mail pode ser usado para travar um usuário por 15 min. Sem limite por IP. |
 | T9 | Cache IA/revisão privado por empresa; catálogo somente SEED. Legado sem dono ignorado, não apagado. | Possível aumento de chamadas IA; notas históricas potencialmente contaminadas requerem revisão autorizada, sem limpeza automática. |
 | T10 | Revisão sem trilha de auditoria (quem revisou e o que era antes); só a data da última alteração. | Depende de login (fora do escopo). |
 | T11 | "Uso e consumo" (`creditavel=false`) vale só para o item marcado; não se propaga aos idênticos. | Marcar item a item. |

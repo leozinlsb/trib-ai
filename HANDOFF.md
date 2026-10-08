@@ -29,7 +29,13 @@ Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_
   simplificado; IA 8/8 em 11,7 s; azeite ficou integral (trava V6 confirmada com o modelo real).
 - **E2E Etapa 4** (`frontend/scripts/etapa4-e2e.mjs`, Playwright fora do repo + Chrome local): 11 fluxos, 0 erros
   JavaScript; capturas em `backend/target/etapa4-e2e`. Comando no cabeçalho do script.
-- Próximo: revisão de segurança do deploy (console H2/demo desligados), roteiro do pitch com os números novos.
+- **Segurança do deploy:** `application-prod.properties` (ativado pelo Dockerfile): console H2, Swagger e
+  `/api/demo` desligados (demo só com `TRIBIA_DEMO_HABILITADO=true`), cookie Secure + forward headers, senha do
+  admin obrigatória (12+ caracteres, senão não sobe). `LimiteTentativasLogin`: 5 falhas no mesmo e-mail → 429 por
+  15 min. Dockerfile roda como usuário sem privilégios. Testes: `PerfilProducaoTest`, `LimiteTentativasLoginTest`.
+  Suíte: 233 / 0 falhas / 7 ignorados nas duas ordens. `docker build` NÃO executado (Docker Desktop parado).
+- **Roteiro da apresentação:** `docs/ROTEIRO_DEMO.md` (preparação, passos com números, plano B, ressalvas).
+- Próximo: `docker build` e deploy de demonstração; ensaio final com quem apresenta.
 
 ## Registro anterior — Etapa 3 iniciada: motor de alertas (branch `dev/nicolau`, 08/10/2026)
 
@@ -75,7 +81,7 @@ Somente frontend alterado; nenhuma regra fiscal, teste, backend ou configuraçã
   no ambiente de desenvolvimento; rodar `.\mvnw.cmd test`.
 - Deploy de demonstração preparado: `frontend/vercel.json` (rewrite `/api` → backend, fallback SPA)
   e `backend/Dockerfile` (Render). Mesmo domínio para o navegador por causa do cookie de sessão/CSRF;
-  no backend definir `TRIBIA_ADMIN_SENHA` e `TRIBIA_CORS_ORIGENS=https://*.vercel.app`. H2 do
+  no backend definir `TRIBIA_ADMIN_SENHA` (12+ caracteres). CORS não é necessário: o rewrite deixa tudo na mesma origem. H2 do
   container zera a cada deploy (seed recria as empresas fictícias); calculadora RTC não sobe lá
   (cálculo cai no modo simplificado, com aviso).
 
