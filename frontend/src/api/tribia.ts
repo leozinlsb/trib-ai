@@ -1,5 +1,8 @@
 import { json, request } from './client'
-import type { Cliente, ClienteForm, NotaDetalhe, NotaResumo, Relatorio, TipoNota, UploadResultado, Usuario } from './types'
+import type {
+  CalculoNota, ClassificacaoNota, Cliente, ClienteForm, NotaDetalhe, NotaResumo, OpcaoClassificacao, Painel, Relatorio,
+  Revisao, RevisaoResultado, RevisarItem, TipoNota, UploadResultado, Usuario,
+} from './types'
 
 // Endpoints reais do backend. O backend aplica as permissões: cada usuário só recebe o que pode ver.
 
@@ -95,4 +98,43 @@ export function gerarRelatorio(clienteId: number, periodo: { de?: string; ate?: 
   if (periodo.ate) qs.set('ate', periodo.ate)
   const q = qs.toString()
   return request<Relatorio>(`/api/clientes/${clienteId}/relatorio${q ? `?${q}` : ''}`, { signal })
+}
+
+/* ---------- Classificação, cálculo 2027, painel e revisão ---------- */
+
+/**
+ * Classifica os itens da nota (XML → cache → IA, sempre dentro da tabela oficial) e recalcula a nota.
+ * Itens já classificados não mudam. Sem IA configurada, responde 200 com itens pendentes e um aviso.
+ */
+export function classificarNota(id: number) {
+  return request<ClassificacaoNota>(`/api/notas/${id}/classificar`, { method: 'POST' })
+}
+
+/** Recalcula 2027 para os itens já classificados da nota (calculadora oficial ou simplificada, com aviso). */
+export function calcularNota(id: number) {
+  return request<CalculoNota>(`/api/notas/${id}/calcular`, { method: 'POST' })
+}
+
+/** Painel da empresa: indicadores e comparativo hoje (PIS/Cofins) x 2027 (CBS/IBS/IS). Só lê o que já foi calculado. */
+export function painelEmpresa(clienteId: number, periodo: { de?: string; ate?: string } = {}, signal?: AbortSignal) {
+  const qs = new URLSearchParams({ limiteItens: '5', limiteFornecedores: '5' })
+  if (periodo.de) qs.set('de', periodo.de)
+  if (periodo.ate) qs.set('ate', periodo.ate)
+  return request<Painel>(`/api/clientes/${clienteId}/dashboard?${qs}`, { signal })
+}
+
+/** Itens que precisam de revisão: sem classificação, não aceitos ou com confiança baixa. */
+export function listarRevisao(clienteId: number, signal?: AbortSignal) {
+  return request<Revisao>(`/api/clientes/${clienteId}/revisao`, { signal })
+}
+
+/** Opções de cClassTrib aceitas em NF-e; com NCM, as associadas a ele pela lista oficial vêm primeiro. */
+export function opcoesClassificacao(ncm?: string | null, signal?: AbortSignal) {
+  const q = ncm ? `?ncm=${encodeURIComponent(ncm)}` : ''
+  return request<OpcaoClassificacao[]>(`/api/classificacoes/opcoes${q}`, { signal })
+}
+
+/** Aceita, corrige ou marca como uso e consumo a classificação de um item (recalcula as notas afetadas). */
+export function revisarItem(itemId: number, corpo: RevisarItem) {
+  return request<RevisaoResultado>(`/api/itens/${itemId}/classificacao`, json('PUT', corpo))
 }

@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom'
-import { BrainCircuit } from 'lucide-react'
-import { rotaAnaliseFiscal } from '../../lib/rotas'
+import { BrainCircuit, ListChecks } from 'lucide-react'
+import { INTELIGENCIA_FISCAL_ATIVA, rotaAnaliseFiscal, rotaEmpresa } from '../../lib/rotas'
 import { ClassificacaoItens } from '../../components/analises/ClassificacaoItens'
 import { Relacionamentos } from '../../components/analises/Relacionamentos'
 import { CabecalhoEmpresa, EstadoEmpresa } from '../../components/empresas/CabecalhoEmpresa'
@@ -36,9 +36,15 @@ export function AnalisesRelatorios() {
         empresa={empresa}
         secao="Análises e Relatórios"
         acoes={
-          <Link to={rotaAnaliseFiscal(id)} className="btn btn--secondary">
-            <BrainCircuit size={17} /> Relatórios de mercadorias
-          </Link>
+          INTELIGENCIA_FISCAL_ATIVA ? (
+            <Link to={rotaAnaliseFiscal(id)} className="btn btn--secondary">
+              <BrainCircuit size={17} /> Relatórios de mercadorias
+            </Link>
+          ) : (
+            <Link to={rotaEmpresa(id, 'revisao')} className="btn btn--secondary">
+              <ListChecks size={17} /> Revisar classificações
+            </Link>
+          )
         }
       />
       <div className="tabs" role="tablist">

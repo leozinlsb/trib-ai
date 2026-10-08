@@ -12,6 +12,7 @@ import br.com.tribia.model.Item;
 import br.com.tribia.model.Nota;
 import br.com.tribia.model.Regime;
 import br.com.tribia.model.TipoNota;
+import br.com.tribia.repository.ClassificacaoRepository;
 import br.com.tribia.repository.NotaRepository;
 import br.com.tribia.security.AcessoService;
 import br.com.tribia.service.apuracao.Apuracao;
@@ -28,6 +29,8 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.TreeMap;
 
 /**
@@ -45,9 +48,11 @@ public class RelatorioService {
     private final RegrasApuracao regras;
     private final AliquotasProperties aliquotas;
     private final AcessoService acesso;
+    private final ClassificacaoRepository classificacoes;
 
     public RelatorioService(NotaRepository notas, RegrasApuracao regras, AliquotasProperties aliquotas,
-                            AcessoService acesso) {
+                            AcessoService acesso, ClassificacaoRepository classificacoes) {
+        this.classificacoes = classificacoes;
         this.notas = notas;
         this.regras = regras;
         this.aliquotas = aliquotas;
@@ -63,6 +68,8 @@ public class RelatorioService {
         }
         List<Nota> lista = notas.buscarComItensNoPeriodo(cliente.getId(), de, ate);
         Regime regime = cliente.getRegime();
+        // Classificação da reforma: a persistida (XML, cache, IA, regra ou revisão) ou, na falta dela, a do XML.
+        Set<Long> comClassificacao = idsComClassificacao(lista);
 
         int entradas = 0;
         int saidas = 0;
@@ -95,7 +102,7 @@ public class RelatorioService {
                 BigDecimal imposto = regras.pisCofinsHoje(regime, n.getTipo(), tributavel(i));
                 daNota = daNota.somar(saida ? new Apuracao(imposto, ZERO) : new Apuracao(ZERO, imposto));
 
-                if (ClassificacaoXml.de(i).isPresent()) {
+                if (comClassificacao.contains(i.getId()) || ClassificacaoXml.de(i).isPresent()) {
                     classificados++;
                     classificadosNaNota++;
                 } else {
@@ -186,6 +193,16 @@ public class RelatorioService {
         if (lista.size() < MAX_REFERENCIAS) {
             lista.add(new Referencia(n.getId(), n.getNumero(), i.getNItem(), i.getDescricao()));
         }
+    }
+
+    private Set<Long> idsComClassificacao(List<Nota> lista) {
+        List<Long> ids = lista.stream().flatMap(n -> n.getItens().stream()).map(Item::getId).toList();
+        if (ids.isEmpty()) {
+            return Set.of();
+        }
+        return classificacoes.findByItemIdIn(ids).stream()
+                .map(c -> c.getItem().getId())
+                .collect(Collectors.toSet());
     }
 
     private static void validarCompetencia(String c) {

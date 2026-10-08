@@ -11,6 +11,7 @@ import { VisaoGeral } from './pages/admin/VisaoGeral'
 import { AnalisesRelatorios } from './pages/empresa/AnalisesRelatorios'
 import { ConfiguracoesEmpresa } from './pages/empresa/ConfiguracoesEmpresa'
 import { InicioEmpresa } from './pages/empresa/InicioEmpresa'
+import { Revisao } from './pages/empresa/Revisao'
 import { Landing } from './pages/landing/Landing'
 import { Login } from './pages/Login'
 import { NotaDetalhe } from './pages/NotaDetalhe'
@@ -135,6 +136,7 @@ export default function App() {
                   <Route index element={<InicioEmpresa />} />
                   <Route path="documentos" element={<Documentos />} />
                   <Route path="documentos/:id" element={<NotaDetalhe />} />
+                  <Route path="revisao" element={<Revisao />} />
                   <Route path="inteligencia-fiscal" element={<InteligenciaFiscal />} />
                   <Route path="inteligencia-fiscal/nova" element={<NovaAnalise />} />
                   {ExemploAnalise && (

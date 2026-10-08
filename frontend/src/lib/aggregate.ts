@@ -100,15 +100,22 @@ export function competencias(notas: NotaResumo[]) {
 
 export type StatusClassificacao = 'classificada' | 'parcial' | 'pendente'
 
-export function itemClassificado(i: NotaDetalhe['itens'][number]) {
+/** O XML trouxe CST e cClassTrib no grupo IBS/CBS (o que o emitente informou, ainda não conferido). */
+export function itemComCodigoNoXml(i: NotaDetalhe['itens'][number]) {
   const g = i.ibsCbsDestacado
   return !!(g && g.cst && g.cst.trim() && g.cClassTrib && g.cClassTrib.trim())
 }
 
 /**
- * Mesma regra do backend (ClassificacaoXml): o item está classificado quando o XML
- * trouxe CST e cClassTrib no grupo IBS/CBS. Os demais dependem da classificação por IA.
+ * O item tem classificação persistida no TribIA (XML, cache, IA, regra ou revisão manual).
+ * B5: antes só o XML contava, e itens classificados pelo cache/IA apareciam como pendentes.
+ * Fallback no XML enquanto a nota não foi processada (POST /api/notas/{id}/classificar).
  */
+export function itemClassificado(i: NotaDetalhe['itens'][number]) {
+  return i.classificacao != null || itemComCodigoNoXml(i)
+}
+
+/** Status da nota a partir da classificação de cada item (ver {@link itemClassificado}). */
 export function statusClassificacao(n: NotaDetalhe): StatusClassificacao {
   const total = n.itens.length
   const ok = n.itens.filter(itemClassificado).length

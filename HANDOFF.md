@@ -6,7 +6,35 @@
 
 ---
 
-## Atualização mais recente — execução autônoma da Etapa 1 (08/10/2026)
+## Atualização mais recente — Etapa 2 iniciada no front (branch `dev/nicolau`, 08/10/2026)
+
+**Etapa 2 EM ANDAMENTO — integração front × back. Build/lint NÃO verificados no ambiente de
+desenvolvimento (npm bloqueado); rodar `npm run build` e `npm run lint` antes do commit.**
+Somente frontend alterado; nenhuma regra fiscal, teste, backend ou configuração de segurança mudou.
+
+- Front passou a chamar endpoints que já existiam e não eram usados:
+  `POST /api/notas/{id}/classificar` (calcula 2027 junto), `GET /api/clientes/{id}/dashboard`,
+  `GET /api/clientes/{id}/revisao`, `GET /api/classificacoes/opcoes`, `PUT /api/itens/{id}/classificacao`.
+- **B5 resolvido no front:** `Item` agora tipa `classificacao` e `calculo`; `itemClassificado`
+  considera a classificação persistida (antes só o XML → "0,0% · 0 de 23").
+- Upload: após importar, as notas são classificadas e calculadas em segundo plano (toast com resumo).
+- Detalhe da nota: coluna "Classificação (reforma)" (CST · cClassTrib, regime, origem, confiança),
+  colunas Hoje × 2027, KPIs PIS/Cofins × CBS/IBS/IS e botão "Processar nota".
+- Início da empresa: card "Comparativo 2027" (dashboard do back), próximo passo "Processar N notas".
+- Nova tela **Revisão** (`/dashboard/empresas/:id/revisao`): aceitar, corrigir (opções por NCM)
+  e marcar uso e consumo; recalcula as notas afetadas.
+- Inteligência Fiscal oculta do menu por padrão (endpoints não existem no back); reativar com
+  `VITE_INTELIGENCIA_FISCAL=true`.
+- Roteiro manual de 7 testes aprovado pelo Nicolau em 08/10 (XMLs fictícios 77101/1101).
+- Relatório (back): `RelatorioService` passa a contar classificações persistidas (B6). Não compilado
+  no ambiente de desenvolvimento; rodar `.\mvnw.cmd test`.
+- Deploy de demonstração preparado: `frontend/vercel.json` (rewrite `/api` → backend, fallback SPA)
+  e `backend/Dockerfile` (Render). Mesmo domínio para o navegador por causa do cookie de sessão/CSRF;
+  no backend definir `TRIBIA_ADMIN_SENHA` e `TRIBIA_CORS_ORIGENS=https://*.vercel.app`. H2 do
+  container zera a cada deploy (seed recria as empresas fictícias); calculadora RTC não sobe lá
+  (cálculo cai no modo simplificado, com aviso).
+
+## Registro anterior — execução autônoma da Etapa 1 (08/10/2026)
 
 **Etapa 1 CONCLUÍDA COM RESSALVAS no ambiente isolado/caminhos avaliados. Etapa 2 não iniciada.**
 Não é liberação de produção: chave antiga sem revogação comprovada, histórico do cache não

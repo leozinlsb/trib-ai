@@ -67,8 +67,8 @@ export function Relatorios() {
                     <td className="right num">{fmtNumero(qtd)}</td>
                     <td className="right">
                       <div className="acoes-linha">
-                        <Link to={rotaEmpresa(c.id, 'inteligencia-fiscal')} className="btn btn--ghost btn--sm">
-                          Análises fiscais
+                        <Link to={rotaEmpresa(c.id, 'revisao')} className="btn btn--ghost btn--sm">
+                          Revisão
                         </Link>
                         <Link to={rotaEmpresa(c.id, 'analises')} className="btn btn--secondary btn--sm">
                           Abrir relatório <ArrowRight size={14} />

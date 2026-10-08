@@ -150,6 +150,186 @@ export interface Item {
   creditavel: boolean
   /** null quando a nota não trouxe o grupo IBS/CBS no item */
   ibsCbsDestacado: IbsCbsDestacado | null
+  /** classificação persistida (XML, cache, IA, regra ou revisão); null enquanto o item não for classificado */
+  classificacao: Classificacao | null
+  /** cálculo de 2027 persistido; null enquanto a nota não for calculada ou o item estiver sem classificação */
+  calculo: Calculo | null
+}
+
+/* ---------- Classificação e cálculo (reforma tributária) ---------- */
+
+export type OrigemClassificacao = 'XML' | 'CACHE' | 'IA' | 'REGRA' | 'MANUAL'
+export type RegimeTributario = 'INTEGRAL' | 'REDUZIDA' | 'ALIQUOTA_ZERO' | 'SEM_INCIDENCIA' | 'OUTRO'
+export type OrigemCalculo = 'CALCULADORA' | 'SIMPLIFICADA'
+
+/** ClassificacaoDto do backend. */
+export interface Classificacao {
+  cst: string
+  cClassTrib: string
+  /** nome oficial do cClassTrib */
+  nomeCClassTrib: string | null
+  regime: RegimeTributario
+  /** ex.: "Redução de 60%" */
+  descricaoRegime: string | null
+  justificativa: string | null
+  /** 0 a 1 */
+  confianca: number | null
+  origem: OrigemClassificacao
+  aceita: boolean
+  revisada: boolean
+}
+
+/** CalculoDto do backend (um item). */
+export interface Calculo {
+  natureza: 'DEBITO' | 'CREDITO'
+  origemValores: OrigemCalculo
+  vCbs: number | null
+  vIbsUf: number | null
+  vIbsMun: number | null
+  vIs: number | null
+  pCbs: number | null
+  sujeitoIs: boolean
+  impostoHoje: number | null
+  imposto2027: number | null
+  simulado: boolean
+}
+
+export interface Apuracao {
+  debito: number
+  credito: number
+  /** débito - crédito (pode ser negativo) */
+  liquido: number
+  aPagar: number
+  saldoCredor: number
+}
+
+/** Hoje (PIS/Cofins) x 2027 (CBS/IBS/IS). A chave "2027" vem assim do backend. */
+export interface Comparativo {
+  hoje: Apuracao
+  '2027': Apuracao
+  /** null quando hoje não há imposto a pagar */
+  variacaoPct: number | null
+}
+
+/** Resultado de POST /api/notas/{id}/calcular. */
+export interface CalculoNota {
+  notaId: number
+  origem: OrigemCalculo | null
+  simulado: boolean
+  aliquotaCbs: number | null
+  itensCalculados: number
+  itensPendentes: number[]
+  avisos: string[]
+  comparativo: Comparativo | null
+}
+
+/** Resultado de POST /api/notas/{id}/classificar (já com o recálculo da nota). */
+export interface ClassificacaoNota {
+  notaId: number
+  totalItens: number
+  classificados: number
+  porOrigem: Partial<Record<OrigemClassificacao, number>>
+  /** nItem dos itens ainda sem classificação */
+  pendentes: number[]
+  avisos: string[]
+  calculo: CalculoNota | null
+}
+
+/* ---------- Painel do cliente (GET /api/clientes/{id}/dashboard) ---------- */
+
+export interface Indicadores {
+  faturamento: number
+  compras: number
+  liquidoHoje: number
+  liquido2027: number
+  variacaoPct: number | null
+  credito2027: number
+  saldoCredor: boolean
+  pendentesRevisao: number
+  icmsVendas: number | null
+}
+
+export interface ItemImpacto {
+  descricao: string | null
+  ncm: string | null
+  cClassTrib: string | null
+  regime: RegimeTributario | null
+  produtos: number
+  impostoHoje: number
+  imposto2027: number
+  /** imposto2027 - impostoHoje; positivo = aumenta o imposto */
+  diferenca: number
+}
+
+export interface Painel {
+  cliente: { id: number; nome: string; cnpj: string; regime: Regime }
+  periodo: { de: string | null; ate: string | null }
+  indicadores: Indicadores
+  comparativo: Comparativo
+  porMes: { competencia: string; faturamento: number; liquidoHoje: number; liquido2027: number }[]
+  topItens: ItemImpacto[]
+  topFornecedores: { cnpj: string | null; nome: string | null; compras: number; creditoHoje: number; credito2027: number }[]
+  avisos: string[]
+}
+
+/* ---------- Revisão (GET /api/clientes/{id}/revisao e PUT /api/itens/{id}/classificacao) ---------- */
+
+export type MotivoRevisao = 'SEM_CLASSIFICACAO' | 'NAO_ACEITA' | 'CONFIANCA_BAIXA'
+
+export interface OpcaoClassificacao {
+  cClassTrib: string
+  cst: string
+  nome: string
+  regime: RegimeTributario
+  descricaoRegime: string | null
+  anexo: string | null
+  /** benefício de anexo: só vale para NCMs da lista oficial */
+  exigeNcmNaLista: boolean
+  /** a lista oficial associa este código ao NCM do item */
+  sugeridaPeloNcm: boolean
+}
+
+export interface ItemRevisao {
+  itemId: number
+  notaId: number
+  notaNumero: number | null
+  tipo: TipoNota
+  competencia: string
+  contraparteNome: string | null
+  nItem: number
+  codigo: string | null
+  descricao: string | null
+  ncm: string | null
+  valorTotal: number | null
+  creditavel: boolean
+  classificacao: Classificacao | null
+  motivos: MotivoRevisao[]
+  opcoesSugeridas: OpcaoClassificacao[]
+}
+
+export interface Revisao {
+  clienteId: number
+  confiancaMinima: number
+  total: number
+  itens: ItemRevisao[]
+}
+
+/** Corpo do PUT /api/itens/{id}/classificacao: informe ao menos aceitar, cClassTrib ou creditavel. */
+export interface RevisarItem {
+  aceitar?: boolean
+  cst?: string
+  cClassTrib?: string
+  justificativa?: string
+  creditavel?: boolean
+  /** padrão no backend: true (aplica aos itens idênticos ainda não revisados) */
+  aplicarAosIguais?: boolean
+}
+
+export interface RevisaoResultado {
+  item: Item
+  itensAtualizados: number
+  notasRecalculadas: number[]
+  avisos: string[]
 }
 
 export interface NotaDetalhe {

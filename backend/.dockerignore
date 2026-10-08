@@ -1,0 +1,6 @@
+target/
+data/
+application-local.properties
+.env
+notas-demo-ao-vivo/
+ferramentas/

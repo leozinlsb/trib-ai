@@ -6,7 +6,7 @@ Atualizado a cada etapa. Itens resolvidos saem daqui e ficam no histórico do gi
 ## Bugs conhecidos
 
 Etapa atual: **1, CONCLUÍDA COM RESSALVAS no ambiente isolado/caminhos avaliados**;
-não certifica produção/fiscal. Etapa 2 não iniciada. Referência: `PLANO_MESTRE_TRIBIA.md`.
+não certifica produção/fiscal. Etapa 2 em andamento no front (branch `dev/nicolau`, ver HANDOFF). Referência: `PLANO_MESTRE_TRIBIA.md`.
 Resultados, auditoria individual e plano histórico:
 `docs/contexto-projeto/CONCLUSAO-ETAPA-1-2026-10-08.md`. Relatórios anteriores preservados.
 
@@ -26,7 +26,9 @@ Sem commit, sem mudanças fiscais, sem tocar dados reais. Abertos:
 | # | Bug | Evidência | Correção proposta |
 |---|-----|-----------|-------------------|
 | B3-HISTORICO | Classificações eventualmente contaminadas pelo cache antigo não foram remediadas. | Defeito anterior reproduzido em dados sintéticos; ocorrência real não investigada. | Avaliar histórico somente em ambiente autorizado, aprovar remediação auditável; não inferir dono/apagar automaticamente. Etapa 1. |
-| B5 | Detalhe da nota mostra o item como "Pendente" mesmo classificado. | Backend devolve `itens[].classificacao`; o front lê só `ibsCbsDestacado`. | Ajuste no front (fase de integração). |
+| B5 | ~~Detalhe da nota mostra "Pendente" mesmo classificado.~~ Corrigido no front (branch `dev/nicolau`), aguardando build/teste local. | `itemClassificado` agora lê `classificacao` persistida. | Validar no navegador e remover daqui após o merge. |
+| B6 | ~~Relatório (back) contava classificados só pelo XML.~~ Corrigido em `dev/nicolau`: soma as classificações persistidas. | `RelatorioService` + `ClassificacaoRepository.findByItemIdIn`. | Escrito sem compilar: rodar `.\mvnw.cmd test` e conferir o relatório. |
+| I-FISCAL | Telas de Inteligência Fiscal chamam 4 endpoints inexistentes. | `api/inteligenciaFiscal.ts`. | Ocultas por padrão (`VITE_INTELIGENCIA_FISCAL`); implementar back na Etapa 3. |
 | F-TABELA | Exceções NCM em linhas repetidas podem reintroduzir associação excluída. | Arroz/feijão retornam múltiplos códigos; fallback agora se abstém. | Conferir extração/semântica com base oficial, Etapa 3; não alterar tabelas sem validação. |
 
 ## Testes do backend (08/10/2026)
