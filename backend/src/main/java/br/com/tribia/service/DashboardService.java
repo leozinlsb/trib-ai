@@ -24,6 +24,7 @@ import br.com.tribia.model.Cliente;
 import br.com.tribia.model.Natureza;
 import br.com.tribia.model.Nota;
 import br.com.tribia.repository.NotaRepository;
+import br.com.tribia.security.AcessoService;
 import br.com.tribia.service.apuracao.Comparativo;
 import br.com.tribia.service.calculo.CalculoService;
 import br.com.tribia.service.classificacao.CriterioRevisao;
@@ -69,14 +70,16 @@ public class DashboardService {
     private final CriterioRevisao criterioRevisao;
     private final AliquotasProperties aliquotas;
     private final NotaRepository notaRepository;
+    private final AcessoService acesso;
 
     public DashboardService(ClienteService clienteService, DadosApuracao dados, CriterioRevisao criterioRevisao,
-                            AliquotasProperties aliquotas, NotaRepository notaRepository) {
+                            AliquotasProperties aliquotas, NotaRepository notaRepository, AcessoService acesso) {
         this.clienteService = clienteService;
         this.dados = dados;
         this.criterioRevisao = criterioRevisao;
         this.aliquotas = aliquotas;
         this.notaRepository = notaRepository;
+        this.acesso = acesso;
     }
 
     public DashboardDto dashboard(Long clienteId, String de, String ate) {
@@ -125,6 +128,7 @@ public class DashboardService {
 
     /** Resumo de uma nota: comparativo, regimes e o efeito de todos os seus produtos. */
     public ResumoNotaDto resumoDaNota(Long notaId) {
+        acesso.notaAcessivel(notaId);
         Nota nota = notaRepository.buscarComItens(notaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Nota " + notaId + " não encontrada"));
         List<Linha> linhas = dados.daNota(notaId);

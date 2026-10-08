@@ -8,6 +8,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.file.Files;
@@ -18,6 +19,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {"tribia.demo.habilitado=true", "tribia.demo.respostas-ia=true",
         "tribia.calculo.modo=SIMPLIFICADA"})
 @AutoConfigureMockMvc
+@WithUserDetails("admin@tribia.local")
 class RoteiroDemoTest {
 
     static final Path AO_VIVO = Path.of("notas-demo-ao-vivo");
@@ -54,7 +57,7 @@ class RoteiroDemoTest {
 
     private String ensaio() throws Exception {
         // 0. volta ao estado inicial e confere o checklist
-        mvc.perform(post("/api/demo/reiniciar"))
+        mvc.perform(post("/api/demo/reiniciar").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.notasImportadas").value(18))
                 .andExpect(jsonPath("$.itensSemClassificacao").value(0));
@@ -70,7 +73,7 @@ class RoteiroDemoTest {
 
         // 2. upload ao vivo de produtos novos: a IA classifica (aqui, pelas respostas gravadas) e a nota é recalculada
         long novos = upload(1, "1-distribuidora_nf1004.xml");
-        mvc.perform(post("/api/notas/" + novos + "/classificar"))
+        mvc.perform(post("/api/notas/" + novos + "/classificar").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.classificados").value(8))
                 .andExpect(jsonPath("$.porOrigem.IA").value(8))
@@ -84,7 +87,7 @@ class RoteiroDemoTest {
 
         // 3. a nota de teste do hackathon: quase tudo do cache, o detergente (NCM extinto) vai para a IA
         long hackathon = upload(1, "1-distribuidora_nfe_teste_hackathon.xml");
-        mvc.perform(post("/api/notas/" + hackathon + "/classificar"))
+        mvc.perform(post("/api/notas/" + hackathon + "/classificar").with(csrf()))
                 .andExpect(jsonPath("$.porOrigem.CACHE").value(7))
                 .andExpect(jsonPath("$.porOrigem.IA").value(1))
                 .andExpect(jsonPath("$.calculo.itensCalculados").value(8));
@@ -93,7 +96,7 @@ class RoteiroDemoTest {
         mvc.perform(get("/api/clientes/1/revisao")).andExpect(jsonPath("$.total").value(10));
         long carne = itens.get(0).get("id").asLong();
         mvc.perform(put("/api/itens/" + carne + "/classificacao").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"aceitar\": true}"))
+                        .content("{\"aceitar\": true}").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.item.classificacao.revisada").value(true));
         mvc.perform(get("/api/clientes/1/revisao")).andExpect(jsonPath("$.total").value(9));
@@ -110,7 +113,7 @@ class RoteiroDemoTest {
     private long upload(long cliente, String arquivo) throws Exception {
         byte[] xml = Files.readAllBytes(AO_VIVO.resolve(arquivo));
         String body = mvc.perform(multipart("/api/clientes/" + cliente + "/notas")
-                        .file(new MockMultipartFile("arquivos", arquivo, "application/xml", xml)))
+                        .file(new MockMultipartFile("arquivos", arquivo, "application/xml", xml)).with(csrf()))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return json.readTree(body).get("importadas").get(0).get("id").asLong();

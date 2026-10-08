@@ -18,9 +18,11 @@ import br.com.tribia.model.TipoNota;
 import br.com.tribia.repository.CalculoRepository;
 import br.com.tribia.repository.ClassificacaoRepository;
 import br.com.tribia.repository.NotaRepository;
+import br.com.tribia.security.AcessoService;
 import br.com.tribia.service.nfe.NfeLida;
 import br.com.tribia.service.tabelas.TabelaCClassTrib;
 import br.com.tribia.util.CnpjUtil;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,16 +40,18 @@ public class NotaService {
     private final ClassificacaoRepository classificacaoRepository;
     private final CalculoRepository calculoRepository;
     private final TabelaCClassTrib tabela;
+    private final AcessoService acesso;
 
     public NotaService(NotaRepository repository, ClienteService clienteService, ParserNfeService parser,
                        ClassificacaoRepository classificacaoRepository, CalculoRepository calculoRepository,
-                       TabelaCClassTrib tabela) {
+                       TabelaCClassTrib tabela, AcessoService acesso) {
         this.repository = repository;
         this.clienteService = clienteService;
         this.parser = parser;
         this.classificacaoRepository = classificacaoRepository;
         this.calculoRepository = calculoRepository;
         this.tabela = tabela;
+        this.acesso = acesso;
     }
 
     /**
@@ -59,6 +63,10 @@ public class NotaService {
     @Transactional
     public Nota importar(Long clienteId, byte[] xml) {
         Cliente cliente = clienteService.buscar(clienteId);
+        if (!cliente.isAtivo()) {
+            throw new ApiException(HttpStatus.CONFLICT, "Empresa desativada",
+                    "Esta empresa está desativada. Reative-a para enviar notas.");
+        }
         NfeLida lida = parser.ler(xml);
 
         validarEscopo(lida);
@@ -122,6 +130,7 @@ public class NotaService {
 
     @Transactional(readOnly = true)
     public NotaDetalheDto detalhar(Long notaId) {
+        acesso.notaAcessivel(notaId);
         Nota nota = repository.buscarComItens(notaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Nota " + notaId + " não encontrada"));
         List<Long> ids = nota.getItens().stream().map(Item::getId).toList();

@@ -5,11 +5,12 @@ import br.com.tribia.service.tabelas.TabelaNcmAplicavel;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 /**
- * Último recurso quando a IA não responde e não há resposta gravada: sugere pela regra oficial mais específica do
- * NCM (ex.: arroz 1006.30 → 200003) ou, sem regra, tributação integral. A confiança é baixa de propósito: o item
- * sempre vai para a revisão. Melhor um palpite sinalizado do que um item fora do cálculo.
+ * Último recurso: somente uma associação inequívoca na tabela pode virar sugestão não aceita.
+ * Ausência, ambiguidade ou dependência do adquirente não autorizam inferir tributação integral.
+ * NCM é uma pista, não comprovação do enquadramento da operação; revisão humana continua obrigatória.
  */
 @Component
 public class ClassificadorPorRegra {
@@ -29,18 +30,20 @@ public class ClassificadorPorRegra {
         this.opcoes = opcoes;
     }
 
-    public Sugestao sugerir(String ncm) {
-        return regrasNcm.regrasPara(ncm).stream()
+    public Optional<Sugestao> sugerir(String ncm) {
+        if (ncm == null || !ncm.matches("\\d{8}")) return Optional.empty();
+        var candidatas = regrasNcm.regrasPara(ncm).stream()
                 .filter(r -> opcoes.permitida(r.cClassTrib()))
-                .findFirst()
+                .toList();
+        if (candidatas.stream().map(TabelaNcmAplicavel.Regra::cClassTrib).distinct().count() != 1) {
+            return Optional.empty();
+        }
+        return candidatas.stream().findFirst()
                 .map(r -> {
                     var c = tabela.buscar(r.cClassTrib()).orElseThrow();
                     return new Sugestao(c.cst(), c.codigo(), "Sugestão automática (IA indisponível): a regra oficial do NCM "
                             + ncm + " aponta " + r.descricao() + " – " + c.descricaoRegime()
                             + ". Confirme na revisão.", CONFIANCA);
-                })
-                .orElseGet(() -> new Sugestao("000", "000001", "Sugestão automática (IA indisponível): o NCM "
-                        + (ncm == null ? "(vazio)" : ncm) + " não tem regra oficial de redução; tributação integral. "
-                        + "Confirme na revisão (medicamentos, por exemplo, não têm regra por NCM).", CONFIANCA));
+                });
     }
 }

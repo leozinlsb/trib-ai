@@ -1,4 +1,10 @@
-type Secao = 'documentos' | 'analises' | 'configuracoes' | 'inteligencia-fiscal'
+type Secao = 'documentos' | 'alertas' | 'revisao' | 'analises' | 'configuracoes' | 'inteligencia-fiscal'
+
+/**
+ * Inteligência Fiscal (sugestão de NCM) ainda não tem backend: fica fora do menu até existir.
+ * Para ver as telas em desenvolvimento: VITE_INTELIGENCIA_FISCAL=true no frontend/.env.
+ */
+export const INTELIGENCIA_FISCAL_ATIVA = import.meta.env.VITE_INTELIGENCIA_FISCAL === 'true'
 
 /** Caminhos do ambiente de uma empresa. */
 export function rotaEmpresa(id: number, sub?: Secao | `${Secao}/${string}`) {
@@ -18,7 +24,7 @@ export function rotaAnaliseFiscal(empresaId: number, analiseId?: number | 'nova'
  * Itens específicos (uma nota, uma análise) não existem na outra empresa: volta para a lista da seção.
  */
 export function trocarEmpresaNoCaminho(pathname: string, novoId: number) {
-  const m = pathname.match(/^\/dashboard\/empresas\/\d+(\/(documentos|analises|configuracoes|inteligencia-fiscal))?/)
+  const m = pathname.match(/^\/dashboard\/empresas\/\d+(\/(documentos|alertas|revisao|analises|configuracoes|inteligencia-fiscal))?/)
   const secao = m?.[2] as Secao | undefined
   return rotaEmpresa(novoId, secao)
 }

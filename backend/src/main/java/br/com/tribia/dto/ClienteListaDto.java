@@ -14,11 +14,12 @@ public record ClienteListaDto(
         String uf,
         String municipio,
         String codigoMunicipio,
+        boolean ativo,
         int notas,
         IndicadoresDto indicadores
 ) {
     public static ClienteListaDto de(Cliente c, int notas, IndicadoresDto indicadores) {
         return new ClienteListaDto(c.getId(), c.getCnpj(), c.getRazaoSocial(), c.getNomeFantasia(), c.getRegime(),
-                c.getSetor(), c.getUf(), c.getMunicipio(), c.getCodigoMunicipio(), notas, indicadores);
+                c.getSetor(), c.getUf(), c.getMunicipio(), c.getCodigoMunicipio(), c.isAtivo(), notas, indicadores);
     }
 }

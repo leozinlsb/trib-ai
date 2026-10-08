@@ -104,14 +104,24 @@ export function DadosProvider({ children }: { children: ReactNode }) {
     await Promise.all(Array.from({ length: Math.min(PARALELO, faltam.length) }, trabalhador))
   }, [])
 
+  // Mantém o detalhe antigo na tela até o novo chegar (sem piscar para "carregando").
+  const atualizarDetalhes = useCallback(async (ids: number[]) => {
+    ids.forEach((id) => carregados.current.delete(id))
+    await carregarDetalhes(ids)
+  }, [carregarDetalhes])
+
+  const [versaoFiscal, setVersaoFiscal] = useState(0)
+  const marcarAlteracaoFiscal = useCallback(() => setVersaoFiscal((v) => v + 1), [])
+
   const valor = useMemo<DadosCtx>(
     () => ({
       clientes, notas, status, erro, carregadoEm, recarregar,
       conexao, verificadoEm, verificarConexao,
-      carregarDetalhes, detalhes, errosDetalhe,
+      carregarDetalhes, atualizarDetalhes, detalhes, errosDetalhe,
+      versaoFiscal, marcarAlteracaoFiscal,
     }),
     [clientes, notas, status, erro, carregadoEm, recarregar, conexao, verificadoEm,
-      verificarConexao, carregarDetalhes, detalhes, errosDetalhe],
+      verificarConexao, carregarDetalhes, atualizarDetalhes, detalhes, errosDetalhe, versaoFiscal, marcarAlteracaoFiscal],
   )
 
   return <DadosContext value={valor}>{children}</DadosContext>

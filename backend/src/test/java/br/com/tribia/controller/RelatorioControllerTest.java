@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.charset.StandardCharsets;
@@ -20,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = "tribia.calculo.modo=SIMPLIFICADA")
 @AutoConfigureMockMvc
+@WithUserDetails("admin@tribia.local")
 class RelatorioControllerTest {
 
     @Autowired
@@ -40,13 +42,27 @@ class RelatorioControllerTest {
         assertThat(Arrays.copyOf(bytes, 3)).as("BOM UTF-8").containsExactly(0xEF, 0xBB, 0xBF);
         List<String> linhas = new String(bytes, 3, bytes.length - 3, StandardCharsets.UTF_8).lines().toList();
 
-        assertThat(linhas.get(0)).startsWith("Competência;Data de emissão;Tipo;Nota;");
+        assertThat(linhas.get(0)).startsWith("Competência;Data de emissão;Tipo;Operação;Nota;");
         assertThat(linhas).hasSize(1 + 23 + 7); // cabeçalho + 23 itens + resumo
         assertThat(linhas).anySatisfy(l -> assertThat(l)
                 .contains(";REFRIGERANTE COLA 2L;22021000;")
                 .contains(";959,04;")
-                .contains(";INTEGRAL;CACHE;")
-                .contains(";91,40;"));
+                .contains(";INTEGRAL;CACHE;"));
+        assertThat(linhas.stream().filter(l -> l.startsWith("2026-")).toList())
+                .allSatisfy(l -> assertThat(l.split(";", -1)).hasSize(37));
+        assertThat(linhas).anySatisfy(l -> assertThat(l).contains(";SAIDA;VENDA;"));
+        assertThat(linhas).anySatisfy(l -> assertThat(l).contains(";ENTRADA;COMPRA;"));
+    }
+
+    /** Mantém os valores anteriores visíveis: contrato CSV não deve mascarar a divergência de base fiscal. */
+    @Test
+    void comparativoFiscalDoCsvMantemReferenciaPendenteDeValidacao() throws Exception {
+        String csv = mvc.perform(get("/api/clientes/1/relatorio.csv")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        List<String> linhas = csv.lines().toList();
+        String refrigerante = linhas.stream().filter(l -> l.contains(";REFRIGERANTE COLA 2L;22021000;"))
+                .findFirst().orElseThrow();
+        assertThat(refrigerante).contains(";91,40;");
         assertThat(linhas).contains(
                 "Resumo;Débito;Crédito;Líquido",
                 "Hoje (PIS/Cofins);183,62;150,40;33,22",

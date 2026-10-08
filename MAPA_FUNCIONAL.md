@@ -1,0 +1,25 @@
+# MAPA_FUNCIONAL.md
+
+Inventário das funcionalidades e seus estados reais.
+
+| Funcionalidade | Objetivo para o usuário | Implementação frontend | Implementação backend | Integração existente | Problema identificado | Correção necessária | Prioridade |
+|---|---|---|---|---|---|---|---|
+| Autenticação (login/logout) | Permitir acesso seguro ao sistema | Login.tsx uses entrar/sair from api/tribia | AuthController (/api/auth/login, /api/auth/logout) | OK | Nenhum | Manter | Alta |
+| Gestão de clientes (empresas) | Listar, criar, atualizar, desativar, reativar empresas | Empresa pages use listarClientes, buscarCliente, criarCliente, atualizarCliente, desativarCliente, reativarCliente | ClienteController | OK | Nenhum | Manter | Alta |
+| Gestão de usuários por cliente | Criar, listar, remover usuários vinculados a uma empresa | Empresa/ConfiguracoesEmpresa.tsx uses listarUsuarios, criarUsuario, removerUsuario | UsuarioController | OK | Nenhum | Manter | Alta |
+| Upload de notas fiscais (XML) | Importar NF-e para processamento | Documentos.tsx uses enviarNotas (via tribia.ts) | NotaController.upload (/api/clientes/{clienteId}/notas) | OK | Nenhum | Manter | Alta |
+| Listagem de notas | Visualizar notas importadas com filtros | Documentos.tsx uses listarNotas | NotaController.listar (/api/clientes/{clienteId}/notas) | OK | Nenhum | Manter | Alta |
+| Detalhamento de nota | Ver detalhes de uma nota, incluindo itens, classificações e cálculos | NotaDetalhe.tsx uses detalharNota | NotaController.detalhar (/api/notas/{id}) | OK | Nenhum | Manter | Alta |
+| Geração de relatório | Exportar relatório CSV/Excel da empresa | InicioEmpresa.tsx uses gerarRelatorio | RelatorioController.gerar (/api/clientes/{clienteId}/relatorio) e export CSV endpoints | OK | Nenhum | Manter | Alta |
+| Classificação de nota | Classificar itens da nota (CST + cClassTrib) usando XML, cache, IA e regra | **Não invocada pelo frontend** | ApuracaoController.classificar (/api/notas/{id}/classificar) | Backend presente, frontend não chama | Falta de chamada do endpoint de classificação na UI após upload ou via botão | Adicionar botão ou chamada automática após upload; integrar ao fluxo de análise | Alta |
+| Recalculo de nota | Recalcular CBS/IBS/IS de 2027 para itens classificados | **Não utilizada** | ApuracaoController.calcular (/api/notas/{id}/calcular) | Backend presente, frontend não chama | Falta de integração no painel ou após classificação | Adicionar opção de recalculo no detalhe da nota ou no painel | Média |
+| Confirmação de pagamento | Confirmar ou não pagamento de compra para efeito de crédito | **Não utilizada** | ApuracaoController.pagamento (/api/notas/{id}/pagamento) | Backend presente, frontend não chama | Falta de integração no fluxo de compra | Adicionar campo de confirmação no detalhamento de nota para compras | Média |
+| Recalculo em lote de notas | Recalcular todas as notas de um cliente ao mudar cenário de CBS | **Não utilizada** | ApuracaoController.calcularCliente (/api/clientes/{id}/calcular) | Backend presente, frontend não chama | Falta de integração nas configurações da empresa | Adicionar opção nas configurações da empresa para recalcular lote | Baixa |
+| Análise fiscal (inteligência fiscal) | Iniciar análise de mercadoria com documentos, obter NCM sugerida, validação fiscal, relatório | NovaAnalise.tsx, InteligenciaFiscal.tsx, etc. chamam endpoints de /api/clientes/{clienteId}/analises-fiscais (iniciarAnalise, listarAnalises, indicadores, detalharAnalise) | **Endpoints não implementados** | Nenhuma integração | Frontend espera serviço que não existe no backend | Implementar controladores e serviços de análise fiscal, integrando Gemini e JEV AI conforme especificado em frontend/docs/inteligencia-fiscal-api.md | Crítica |
+| Visualização de análise fiscal | Ver detalhes de análise iniciada, incluindo histórico, alternativas, fundamentação | Same as above | **Não implementado** | Nenhuma | Nenhuma | Implementar endpoint de detalhar análise e tela correspondente | Crítica |
+| Indicadores de análise fiscal | Ver resumo de análises em processamento, concluídas, aguardando revisão | InteligenciaFiscal.tsx uses indicadores | **Não implementado** | Nenhuma | Nenhuma | Implementar endpoint de indicadores e exibir no painel | Alta |
+| Admin de análise fiscal | Visualizar análises de todas as empresas (admin) | InteligenciaFiscalAdmin.tsx | **Não implementado** | Nenhuma | Nenhuma | Implementar endpoint admin e tela | Média |
+| Exemplo de análise | Mostrar exemplo de análise para onboarding | ExemploAnalise.tsx estático | Nenhum | OK | Nenhum | Manter | Baixa |
+| Página inicial (landing) | Apresentar produto para visitantes não autenticados | Landing.tsx estático | Nenhum | OK | Nenhum | Manter | Baixa |
+
+Observações: Prioridades baseadas em bloqueio de funcionamento core. Crítica = impede uso principal da plataforma (análise fiscal). Alta = funcionalidades essenciais que faltam (classificação). Média = melhorias de usabilidade. Baixa = itens não essenciais.

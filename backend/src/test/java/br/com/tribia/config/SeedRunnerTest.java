@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.test.context.support.WithUserDetails;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -78,6 +79,7 @@ class SeedRunnerTest {
     /** As notas reservadas para a demo não podem estar no seed, senão o upload ao vivo dá 409. */
     @Test
     @Transactional
+    @WithUserDetails("admin@tribia.local")
     void notasDoUploadAoVivoNaoEstaoNoSeed() throws IOException {
         Path pasta = Path.of("notas-demo-ao-vivo");
         List<Path> xmls;

@@ -92,6 +92,7 @@ class GeminiClientTest {
     void sobrecargaNoPrimeiroModeloPassaParaOSegundo() {
         GeminiClient c = cliente("k");
         servidor.expect(requestTo(PRIMEIRO)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE).body("{}"));
+        servidor.expect(requestTo(PRIMEIRO)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE).body("{}"));
         servidor.expect(requestTo(SEGUNDO)).andRespond(withSuccess(resposta("[1]"), MediaType.APPLICATION_JSON));
 
         assertThat(c.gerarJson("r", "p", ESQUEMA)).isEqualTo("[1]");
@@ -102,6 +103,7 @@ class GeminiClientTest {
     void cotaEsgotadaETimeoutTambemPassamParaOProximo() {
         GeminiClient c = cliente("k");
         servidor.expect(requestTo(PRIMEIRO)).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).body("{}"));
+        servidor.expect(requestTo(PRIMEIRO)).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).body("{}"));
         servidor.expect(requestTo(SEGUNDO)).andRespond(req -> {
             throw new SocketTimeoutException("Read timed out");
         });
@@ -109,6 +111,17 @@ class GeminiClientTest {
         assertThatThrownBy(() -> c.gerarJson("r", "p", ESQUEMA))
                 .isInstanceOfSatisfying(LlmException.class, e -> assertThat(e.getTipo()).isEqualTo(LlmException.Tipo.INDISPONIVEL))
                 .hasMessageContaining("modelo-b");
+        servidor.verify();
+    }
+
+    @Test
+    void recuperacaoNaSegundaTentativaDoMesmoModeloNaoUsaReserva() {
+        GeminiClient c = cliente("k");
+        servidor.expect(requestTo(PRIMEIRO)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("{\"retryDelay\":\"0s\"}"));
+        servidor.expect(requestTo(PRIMEIRO)).andRespond(withSuccess(resposta("[]"), MediaType.APPLICATION_JSON));
+        assertThat(c.gerarJson("r", "p", ESQUEMA)).isEqualTo("[]");
+        servidor.verify();
     }
 
     @Test

@@ -10,8 +10,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * Cache GLOBAL de classificações por NCM + descrição normalizada, compartilhado entre clientes (de propósito:
- * quanto mais clientes, menos chamadas à IA). Alimentado pelo seed (classificacoes.json), pela IA e pela revisão.
+ * Cache de classificações com escopo codificado na chave: EMPRESA (IA e revisão) ou CATALOGO (SEED curado).
+ * O schema legado é preservado; entradas antigas sem escopo só são reutilizadas quando a fonte é SEED.
  */
 @Entity
 public class ClassificacaoCache {
@@ -20,7 +20,7 @@ public class ClassificacaoCache {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** NCM + "|" + descrição normalizada. Ver {@link br.com.tribia.util.ChaveClassificacao}. */
+    /** Namespace + hash do produto, ou chave legada. Ver {@link br.com.tribia.util.ChaveClassificacao}. */
     @Column(nullable = false, unique = true, length = 520)
     private String chave;
 

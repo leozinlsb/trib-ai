@@ -1,11 +1,11 @@
 import { Link, NavLink, useMatch, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, BrainCircuit, Building2, ChartColumn, FileText, FolderKanban, House, LogOut, Settings, X,
+  ArrowLeft, BrainCircuit, Building2, ChartColumn, FileText, FolderKanban, House, ListChecks, LogOut, Settings, ShieldAlert, X,
 } from 'lucide-react'
 import { Logo } from './Logo'
 import { useAuth, useDados } from '../../state/contexts'
 import { iniciais, nomeCliente } from '../../lib/format'
-import { rotaEmpresa } from '../../lib/rotas'
+import { INTELIGENCIA_FISCAL_ATIVA, rotaEmpresa } from '../../lib/rotas'
 
 type Item = { to: string; rotulo: string; icone: typeof House; end?: boolean }
 
@@ -13,7 +13,9 @@ const ADMIN: Item[] = [
   { to: '/dashboard', rotulo: 'Visão Geral', icone: House, end: true },
   { to: '/dashboard/empresas', rotulo: 'Empresas', icone: Building2, end: true },
   { to: '/dashboard/documentos', rotulo: 'Documentos', icone: FileText },
-  { to: '/dashboard/inteligencia-fiscal', rotulo: 'Inteligência Fiscal', icone: BrainCircuit },
+  ...(INTELIGENCIA_FISCAL_ATIVA
+    ? [{ to: '/dashboard/inteligencia-fiscal', rotulo: 'Inteligência Fiscal', icone: BrainCircuit }]
+    : []),
   { to: '/dashboard/relatorios', rotulo: 'Relatórios', icone: FolderKanban },
   { to: '/dashboard/configuracoes', rotulo: 'Configurações', icone: Settings },
 ]
@@ -22,7 +24,11 @@ function menuEmpresa(id: number): Item[] {
   return [
     { to: rotaEmpresa(id), rotulo: 'Início', icone: House, end: true },
     { to: rotaEmpresa(id, 'documentos'), rotulo: 'Documentos', icone: FileText },
-    { to: rotaEmpresa(id, 'inteligencia-fiscal'), rotulo: 'Inteligência Fiscal', icone: BrainCircuit },
+    { to: rotaEmpresa(id, 'alertas'), rotulo: 'Alertas', icone: ShieldAlert },
+    { to: rotaEmpresa(id, 'revisao'), rotulo: 'Revisão', icone: ListChecks },
+    ...(INTELIGENCIA_FISCAL_ATIVA
+      ? [{ to: rotaEmpresa(id, 'inteligencia-fiscal'), rotulo: 'Inteligência Fiscal', icone: BrainCircuit }]
+      : []),
     { to: rotaEmpresa(id, 'analises'), rotulo: 'Análises e Relatórios', icone: ChartColumn },
     { to: rotaEmpresa(id, 'configuracoes'), rotulo: 'Configurações', icone: Settings },
   ]

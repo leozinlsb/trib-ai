@@ -4,12 +4,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -21,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest(properties = "tribia.calculo.modo=SIMPLIFICADA")
 @AutoConfigureMockMvc
+@WithUserDetails("admin@tribia.local")
 class DashboardControllerTest {
 
     @Autowired
@@ -67,7 +70,9 @@ class DashboardControllerTest {
                 .andExpect(jsonPath("$.porRegime[0].regime").value("ALIQUOTA_ZERO"))
                 .andExpect(jsonPath("$.porRegime[0].valor").value(12491.80))
                 .andExpect(jsonPath("$.porRegime[0].percentual").value(78.49))
-                .andExpect(jsonPath("$.porRegime[?(@.regime == 'SUJEITO_IS')].valor").value(959.04))
+                .andExpect(jsonPath("$.porRegime[?(@.regime == 'SUJEITO_IS')]").isEmpty())
+                .andExpect(jsonPath("$.sujeitoIs.valor").value(959.04))
+                .andExpect(jsonPath("$.sujeitoIs.itens").value(1))
                 .andExpect(jsonPath("$.porRegime[?(@.regime == 'REDUZIDA')].valor").value(479.40)); // óleo de soja
     }
 
@@ -140,7 +145,7 @@ class DashboardControllerTest {
     @Test
     @Transactional
     void cenarioDeCbsRecalculadoApareceNoPainel() throws Exception {
-        mvc.perform(post("/api/clientes/1/calcular").param("cbs", "8.8")).andExpect(status().isOk());
+        mvc.perform(post("/api/clientes/1/calcular").param("cbs", "8.8").with(csrf())).andExpect(status().isOk());
 
         mvc.perform(get("/api/clientes/1/dashboard"))
                 .andExpect(jsonPath("$.avisos", hasItem("Cenário simulado: CBS de 8.8% em 2027.")));

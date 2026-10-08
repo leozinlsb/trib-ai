@@ -7,6 +7,7 @@ import br.com.tribia.model.Nota;
 import br.com.tribia.repository.CalculoRepository;
 import br.com.tribia.repository.ClassificacaoRepository;
 import br.com.tribia.repository.ItemRepository;
+import br.com.tribia.security.AcessoService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,22 +30,26 @@ public class DadosApuracao {
     private final ItemRepository itemRepository;
     private final ClassificacaoRepository classificacaoRepository;
     private final CalculoRepository calculoRepository;
+    private final AcessoService acesso;
 
     public DadosApuracao(ItemRepository itemRepository, ClassificacaoRepository classificacaoRepository,
-                         CalculoRepository calculoRepository) {
+                         CalculoRepository calculoRepository, AcessoService acesso) {
         this.itemRepository = itemRepository;
         this.classificacaoRepository = classificacaoRepository;
         this.calculoRepository = calculoRepository;
+        this.acesso = acesso;
     }
 
     /** Competências AAAA-MM; null não filtra. Ordem: data da nota, nota, nItem. */
     @Transactional(readOnly = true)
     public List<Linha> doCliente(Long clienteId, String de, String ate) {
+        acesso.clienteAcessivel(clienteId);
         return montar(itemRepository.doClienteNoPeriodo(clienteId, de, ate));
     }
 
     @Transactional(readOnly = true)
     public List<Linha> daNota(Long notaId) {
+        acesso.notaAcessivel(notaId);
         return montar(itemRepository.daNota(notaId));
     }
 

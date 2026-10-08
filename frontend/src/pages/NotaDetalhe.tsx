@@ -1,29 +1,31 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { Check, ChevronRight, Copy } from 'lucide-react'
+import { Check, ChevronRight, Copy, LoaderCircle, Sparkles } from 'lucide-react'
 import { ApiError } from '../api/client'
 import { detalharNota } from '../api/tribia'
 import type { NotaDetalhe as Detalhe } from '../api/types'
-import { Badge, Card, Carregando, ErroEstado, KpiCard, Vazio } from '../components/ui'
+import { Aviso, Badge, Card, Carregando, ErroEstado, KpiCard, Vazio } from '../components/ui'
 import { BadgeClassificacao, BadgeTipo } from '../components/notas'
+import { CelulaClassificacao } from '../components/classificacao'
 import { itemClassificado } from '../lib/aggregate'
 import {
   capitalizar, fmtChave, fmtCnpj, fmtCompetencia, fmtData, fmtMoeda, fmtNumero, nomeCliente, REGIME_LABEL, tituloNota,
 } from '../lib/format'
-import { useDados } from '../state/contexts'
+import { useAtividades, useDados } from '../state/contexts'
 import { rotaEmpresa, rotaNota } from '../lib/rotas'
 
 export function NotaDetalhe() {
   const { id, empresaId } = useParams()
-  const { clientes } = useDados()
+  const { clientes, versaoFiscal } = useDados()
+  const { processar, processando } = useAtividades()
   const [nota, setNota] = useState<Detalhe | null>(null)
   const [erro, setErro] = useState<{ msg: string; status: number } | null>(null)
   const [tentativa, setTentativa] = useState(0)
   const [copiado, setCopiado] = useState(false)
+  const [processandoNota, setProcessandoNota] = useState(false)
 
   useEffect(() => {
     const ctrl = new AbortController()
-    setNota(null)
     setErro(null)
     detalharNota(Number(id), ctrl.signal)
       .then(setNota)
@@ -32,7 +34,21 @@ export function NotaDetalhe() {
         setErro({ msg: e instanceof Error ? e.message : 'Falha ao carregar.', status: e instanceof ApiError ? e.status : 0 })
       })
     return () => ctrl.abort()
-  }, [id, tentativa])
+    // versaoFiscal: recarrega depois de processar ou revisar (mantém a nota atual na tela enquanto isso)
+  }, [id, tentativa, versaoFiscal])
+
+  // outra nota no endereço: limpa a anterior para não mostrar dados trocados
+  useEffect(() => setNota(null), [id])
+
+  const processarNota = async () => {
+    if (!nota) return
+    setProcessandoNota(true)
+    try {
+      await processar([nota.id])
+    } finally {
+      setProcessandoNota(false)
+    }
+  }
 
   const cliente = nota ? clientes.find((c) => c.id === nota.clienteId) : undefined
 
@@ -96,6 +112,13 @@ export function NotaDetalhe() {
   const pisCofins = somar((i) => (i.vPis ?? 0) + (i.vCofins ?? 0))
   const icms = somar((i) => i.vIcms)
   const classificados = nota.itens.filter(itemClassificado).length
+  const calculados = nota.itens.filter((i) => i.calculo)
+  const hoje = calculados.reduce((s, i) => s + (i.calculo!.impostoHoje ?? 0), 0)
+  const em2027 = calculados.reduce((s, i) => s + (i.calculo!.imposto2027 ?? 0), 0)
+  const simplificado = calculados.some((i) => i.calculo!.origemValores === 'SIMPLIFICADA')
+  const pendentes = nota.itens.filter((i) => !i.classificacao).length
+  const ocupado = processandoNota || processando > 0
+  const lado = nota.tipo === 'SAIDA' ? 'débito' : 'crédito'
 
   return (
     <>
@@ -110,14 +133,41 @@ export function NotaDetalhe() {
             {capitalizar(nota.contraparteNome)} · emitida em {fmtData(nota.dataEmissao)}
           </p>
         </div>
+        {(pendentes > 0 || calculados.length < nota.itens.length) && (
+          <button
+            className="btn btn--primary"
+            onClick={processarNota}
+            disabled={ocupado}
+            title="Classifica os itens pendentes (XML, cache e IA) e calcula 2027"
+          >
+            {ocupado ? <LoaderCircle size={17} className="spin" /> : <Sparkles size={17} />}
+            {ocupado ? 'Processando...' : 'Processar nota'}
+          </button>
+        )}
       </div>
 
       <div className="grid-kpi">
         <KpiCard rotulo="Valor total" valor={fmtMoeda(nota.valorTotal)} dica={`Produtos: ${fmtMoeda(nota.valorProdutos)}`} />
         <KpiCard rotulo="Itens" valor={fmtNumero(nota.itens.length)} dica={`${classificados} com classificação tributária`} />
-        <KpiCard rotulo="PIS + Cofins destacados" valor={fmtMoeda(pisCofins)} dica="soma dos itens" />
-        <KpiCard rotulo="ICMS destacado" valor={fmtMoeda(icms)} dica="soma dos itens" />
+        <KpiCard
+          rotulo={`PIS/Cofins hoje (${lado})`}
+          valor={calculados.length ? fmtMoeda(hoje) : fmtMoeda(pisCofins)}
+          dica={calculados.length ? `${calculados.length} itens calculados` : 'destacado na nota (soma dos itens)'}
+        />
+        <KpiCard
+          rotulo={`CBS/IBS/IS 2027 (${lado})`}
+          valor={calculados.length ? fmtMoeda(em2027) : '—'}
+          dica={calculados.length ? (simplificado ? 'Simulação: cálculo simplificado' : 'Simulação: calculadora oficial') : 'Processe a nota para calcular'}
+          indisponivel={!calculados.length}
+        />
       </div>
+
+      {calculados.length > 0 && (
+        <Aviso tipo="warn" style={{ marginBottom: 'var(--gap)' }}>
+          Valores de 2027 são simulação com alíquota estimada da CBS e dependem da classificação de cada item.
+          ICMS destacado nesta nota: {fmtMoeda(icms)} (não muda em 2027, fica fora do comparativo).
+        </Aviso>
+      )}
 
       <Card titulo="Dados da nota" className="" >
         <dl className="dl">
@@ -164,7 +214,9 @@ export function NotaDetalhe() {
                 <th className="right">PIS</th>
                 <th className="right">Cofins</th>
                 <th>Creditável</th>
-                <th>Classificação</th>
+                <th>Classificação (reforma)</th>
+                <th className="right" title="PIS/Cofins pelas regras de hoje">Hoje</th>
+                <th className="right" title="CBS + IBS + IS simulados para 2027">2027</th>
               </tr>
             </thead>
             <tbody>
@@ -186,14 +238,10 @@ export function NotaDetalhe() {
                   <td className="right num">{fmtMoeda(i.vPis)}</td>
                   <td className="right num">{fmtMoeda(i.vCofins)}</td>
                   <td>{i.creditavel ? <Badge cor="green" sm>Sim</Badge> : <Badge cor="gray" sm>Não</Badge>}</td>
-                  <td>
-                    {i.ibsCbsDestacado && itemClassificado(i) ? (
-                      <span title={`CBS ${fmtMoeda(i.ibsCbsDestacado.vCbs)} · IBS ${fmtMoeda(i.ibsCbsDestacado.vIbs)}`}>
-                        <Badge cor="green" sm>CST {i.ibsCbsDestacado.cst} · {i.ibsCbsDestacado.cClassTrib}</Badge>
-                      </span>
-                    ) : (
-                      <Badge cor="gray" sm title="Item ainda sem classificação tributária">Pendente</Badge>
-                    )}
+                  <td><CelulaClassificacao item={i} /></td>
+                  <td className="right num">{i.calculo ? fmtMoeda(i.calculo.impostoHoje) : '—'}</td>
+                  <td className="right num" title={i.calculo ? `CBS ${fmtMoeda(i.calculo.vCbs)} · IBS ${fmtMoeda((i.calculo.vIbsUf ?? 0) + (i.calculo.vIbsMun ?? 0))} · IS ${fmtMoeda(i.calculo.vIs)}` : undefined}>
+                    {i.calculo ? fmtMoeda(i.calculo.imposto2027) : '—'}
                   </td>
                 </tr>
               ))}

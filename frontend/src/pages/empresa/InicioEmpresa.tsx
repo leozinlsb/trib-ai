@@ -1,24 +1,29 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CalendarDays, CircleCheck, Cpu, FileText, FolderKanban, ListChecks, Upload } from 'lucide-react'
+import {
+  ArrowRight, CalendarDays, CircleCheck, Cpu, FileText, FolderKanban, ListChecks, LoaderCircle, Sparkles, Upload,
+} from 'lucide-react'
 import { gerarRelatorio } from '../../api/tribia'
 import type { Relatorio } from '../../api/types'
 import { CabecalhoEmpresa, EstadoEmpresa } from '../../components/empresas/CabecalhoEmpresa'
 import { EnviosRecentes } from '../../components/EnviosRecentes'
 import { CardRecentes, CardVolume } from '../../components/painel/Blocos'
+import { Comparativo2027 } from '../../components/painel/Comparativo2027'
+import { ResumoAlertas } from '../../components/painel/ResumoAlertas'
 import { Card, Carregando, ErroEstado, KpiCard } from '../../components/ui'
 import { useCobertura } from '../../hooks/useCobertura'
 import { useEmpresa } from '../../hooks/useEmpresa'
 import { competencias, maisRecentes } from '../../lib/aggregate'
 import { capitalizar, fmtCompetencia, fmtData, fmtMoeda, fmtNumero } from '../../lib/format'
 import { rotaEmpresa } from '../../lib/rotas'
-import { useAtividades, useAuth } from '../../state/contexts'
+import { useAtividades, useAuth, useDados } from '../../state/contexts'
 
 /** Dashboard individual da empresa: estado dos documentos, resultado das análises e o próximo passo. */
 export function InicioEmpresa() {
   const { id, empresa, notas, carregando } = useEmpresa()
-  const { abrirUpload } = useAtividades()
+  const { abrirUpload, processar, processando } = useAtividades()
   const { admin } = useAuth()
+  const { detalhes } = useDados()
   const cobertura = useCobertura(notas)
   const comps = useMemo(() => competencias(notas), [notas]) // mais recente primeiro
   const ultima = maisRecentes(notas)[0]
@@ -27,6 +32,13 @@ export function InicioEmpresa() {
 
   const entradas = notas.filter((n) => n.tipo === 'ENTRADA').length
   const pct = cobertura.total ? (cobertura.classificados / cobertura.total) * 100 : 0
+  // notas com item sem classificação ou sem cálculo de 2027 (pelo detalhe já carregado)
+  const aProcessar = notas
+    .filter((n) => {
+      const d = detalhes.get(n.id)
+      return !d || d.itens.some((i) => !i.classificacao || !i.calculo)
+    })
+    .map((n) => n.id)
 
   return (
     <>
@@ -51,7 +63,16 @@ export function InicioEmpresa() {
         semNotas={!carregando && notas.length === 0}
         pendentes={cobertura.completo ? cobertura.pendentes : null}
         onEnviar={() => abrirUpload(id, true)}
+        aProcessar={cobertura.completo ? aProcessar.length : 0}
+        processando={processando}
+        onProcessar={() => void processar(aProcessar)}
       />
+
+      {notas.length > 0 && (
+        <div style={{ marginBottom: 'var(--gap)' }}>
+          <ResumoAlertas empresa={empresa} notas={notas} />
+        </div>
+      )}
 
       <div className="grid-kpi">
         <KpiCard
@@ -84,28 +105,36 @@ export function InicioEmpresa() {
         />
       </div>
 
-      <div className="grid-charts">
-        <CardVolume notas={notas} carregando={carregando} />
-        <ResumoUltimoPeriodo id={id} competencia={comps[0]} />
-      </div>
+      {notas.length > 0 && (
+        <div className="grid-charts">
+          <Comparativo2027 id={id} />
+          <ResumoUltimoPeriodo id={id} competencia={comps[0]} />
+        </div>
+      )}
 
       <div className="grid-charts">
-        <CardRecentes notas={notas} carregando={carregando} verTodos={rotaEmpresa(id, 'documentos')} />
+        <CardVolume notas={notas} carregando={carregando} />
         <Card titulo="Envios recentes" acoes={<Link to={rotaEmpresa(id, 'documentos')} style={{ fontSize: 13, fontWeight: 500 }}>Documentos</Link>}>
           <EnviosRecentes clienteId={id} limite={4} compacto />
         </Card>
       </div>
+
+      <CardRecentes notas={notas} carregando={carregando} verTodos={rotaEmpresa(id, 'documentos')} />
     </>
   )
 }
 
-function ProximoPasso({ id, ativa, admin, semNotas, pendentes, onEnviar }: {
+function ProximoPasso({ id, ativa, admin, semNotas, pendentes, onEnviar, aProcessar, processando, onProcessar }: {
   id: number
   ativa: boolean
   admin: boolean
   semNotas: boolean
   pendentes: number | null
   onEnviar: () => void
+  /** notas com item sem classificação ou sem cálculo de 2027 */
+  aProcessar: number
+  processando: number
+  onProcessar: () => void
 }) {
   let icone = <ListChecks size={20} />
   let titulo: string
@@ -121,14 +150,34 @@ function ProximoPasso({ id, ativa, admin, semNotas, pendentes, onEnviar }: {
     titulo = 'Comece enviando as notas fiscais'
     texto = 'Envie os XMLs das NF-e de compra e de venda. O TribIA organiza tudo por competência e gera o relatório.'
     acao = <button className="btn btn--primary btn--sm" onClick={onEnviar}>Enviar notas</button>
+  } else if (processando > 0) {
+    icone = <LoaderCircle size={20} className="spin" />
+    titulo = `Processando ${fmtNumero(processando)} nota(s)`
+    texto = 'Classificando os itens (XML, cache e IA) e calculando 2027. Notas com produtos novos levam alguns segundos.'
   } else if (pendentes == null) {
     return null
-  } else if (pendentes > 0) {
-    titulo = `${fmtNumero(pendentes)} itens aguardam classificação tributária`
-    texto = 'Veja quais produtos ainda não têm CST e cClassTrib e acompanhe a evolução da classificação.'
+  } else if (aProcessar > 0) {
+    icone = <Sparkles size={20} />
+    titulo = pendentes > 0
+      ? `${fmtNumero(pendentes)} itens aguardam classificação tributária`
+      : `${fmtNumero(aProcessar)} nota(s) ainda sem o cálculo de 2027`
+    texto = 'Processe as notas: o TribIA classifica cada item na tabela oficial (XML, cache e IA) e calcula CBS/IBS/IS de 2027.'
     acao = (
-      <Link to={`${rotaEmpresa(id, 'analises')}?aba=classificacao`} className="btn btn--secondary btn--sm">
-        Ver itens pendentes <ArrowRight size={14} />
+      <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button className="btn btn--primary btn--sm" onClick={onProcessar}>
+          <Sparkles size={14} /> Processar {fmtNumero(aProcessar)} nota(s)
+        </button>
+        <Link to={rotaEmpresa(id, 'revisao')} className="btn btn--secondary btn--sm">
+          Revisão <ArrowRight size={14} />
+        </Link>
+      </span>
+    )
+  } else if (pendentes > 0) {
+    titulo = `${fmtNumero(pendentes)} itens continuam sem classificação`
+    texto = 'A classificação automática não decidiu estes itens. Escolha o código na revisão.'
+    acao = (
+      <Link to={rotaEmpresa(id, 'revisao')} className="btn btn--secondary btn--sm">
+        Abrir revisão <ArrowRight size={14} />
       </Link>
     )
   } else {

@@ -14,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -34,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest(properties = "tribia.calculo.modo=SIMPLIFICADA")
 @AutoConfigureMockMvc
+@WithUserDetails("admin@tribia.local")
 class RevisaoControllerTest {
 
     static final String VITAMINA_C_VENDA = "VITAMINA C 1G 30 COMPRIMIDOS EFERVESCENTES";
@@ -112,7 +115,7 @@ class RevisaoControllerTest {
 
         mvc.perform(get("/api/clientes/2/revisao")).andExpect(jsonPath("$.total").value(12));
 
-        var cache = cacheRepository.findByChave(ChaveClassificacao.de("21069030", VITAMINA_C_VENDA)).orElseThrow();
+        var cache = cacheRepository.findByChave(ChaveClassificacao.daEmpresa(2L, "21069030", VITAMINA_C_VENDA)).orElseThrow();
         assertThat(cache.getCClassTrib()).isEqualTo("200032");
         assertThat(cache.getFonte()).isEqualTo("MANUAL");
         assertThat(cache.isValidada()).isTrue();
@@ -179,7 +182,7 @@ class RevisaoControllerTest {
     @Transactional
     void itemSemClassificacaoNaoPodeSerAceitoMasPodeSerCorrigido() throws Exception {
         String body = mvc.perform(multipart("/api/clientes/1/notas").file(new MockMultipartFile("arquivos",
-                        Fixtures.NFE_SAIDA_HACKATHON, "application/xml", Fixtures.bytes(Fixtures.NFE_SAIDA_HACKATHON))))
+                        Fixtures.NFE_SAIDA_HACKATHON, "application/xml", Fixtures.bytes(Fixtures.NFE_SAIDA_HACKATHON))).with(csrf()))
                 .andReturn().getResponse().getContentAsString();
         long nota = json.readTree(body).get("importadas").get(0).get("id").asLong();
         JsonNode itens = json.readTree(mvc.perform(get("/api/notas/" + nota)).andReturn().getResponse().getContentAsString())
@@ -213,7 +216,7 @@ class RevisaoControllerTest {
     }
 
     private ResultActions revisar(long itemId, String corpo) throws Exception {
-        return mvc.perform(put("/api/itens/" + itemId + "/classificacao").contentType(MediaType.APPLICATION_JSON).content(corpo));
+        return mvc.perform(put("/api/itens/" + itemId + "/classificacao").contentType(MediaType.APPLICATION_JSON).content(corpo).with(csrf()));
     }
 
     /** Primeiro item do cliente com a descrição (na ordem das notas). */

@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,7 @@ import java.math.BigDecimal;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -27,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {"tribia.seed.enabled=false", "tribia.calculo.modo=SIMPLIFICADA"})
 @AutoConfigureMockMvc
 @Transactional
+@WithUserDetails("admin@tribia.local")
 class ApuracaoControllerTest {
 
     @Autowired
@@ -42,14 +46,14 @@ class ApuracaoControllerTest {
     void notaComIbsCbsNoXmlEhClassificadaPeloXmlECalculadaComoCredito() throws Exception {
         long nota = importar(Fixtures.NFE_ENTRADA_IBSCBS);
 
-        mvc.perform(post("/api/notas/" + nota + "/classificar"))
+        mvc.perform(post("/api/notas/" + nota + "/classificar").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.classificados").value(2))
                 .andExpect(jsonPath("$.porOrigem.XML").value(2))
                 .andExpect(jsonPath("$.pendentes", hasSize(0)));
 
         // compra no Lucro Real: hoje 1,65% + 7,6%; em 2027 CBS 9,43% + IBS 0,05% + 0,05%
-        mvc.perform(post("/api/notas/" + nota + "/calcular"))
+        mvc.perform(post("/api/notas/" + nota + "/calcular").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.origem").value("SIMPLIFICADA"))
                 .andExpect(jsonPath("$.simulado").value(true))
@@ -72,20 +76,50 @@ class ApuracaoControllerTest {
     }
 
     @Test
-    void cacheClassificaOQueConheceEOrestoFicaPendenteForaDoCalculo() throws Exception {
+    void cacheERegrasClassificamSomenteProdutosComEvidencia() throws Exception {
         classificacaoService.gravarNoCache("10063021", "Arroz tipo 1 5kg", "200", "200003", "cesta básica",
                 new BigDecimal("0.95"), "SEED", true);
         classificacaoService.gravarNoCache("18063210", "CHOCOLATE AO LEITE 90G", "000", "000001", "integral",
                 new BigDecimal("0.90"), "SEED", true);
         long nota = importar(Fixtures.NFE_SAIDA_HACKATHON);
 
-        mvc.perform(post("/api/notas/" + nota + "/classificar"))
+        mvc.perform(post("/api/notas/" + nota + "/classificar").with(csrf()))
                 .andExpect(jsonPath("$.totalItens").value(8))
                 .andExpect(jsonPath("$.porOrigem.CACHE").value(2))
-                .andExpect(jsonPath("$.pendentes", hasSize(6)));
+                .andExpect(jsonPath("$.porOrigem.REGRA").value(1))
+                .andExpect(jsonPath("$.pendentes", hasSize(5)))
+                .andExpect(jsonPath("$.calculo.itensCalculados").value(3))
+                .andExpect(jsonPath("$.calculo.itensPendentes", hasSize(5)));
+        mvc.perform(get("/api/notas/" + nota))
+                .andExpect(jsonPath("$.itens[0].classificacao.origem").value("CACHE"))
+                .andExpect(jsonPath("$.itens[2].classificacao.origem").value("REGRA"))
+                .andExpect(jsonPath("$.itens[2].classificacao.aceita").value(false))
+                .andExpect(jsonPath("$.itens[2].classificacao.confianca").value(0.40))
+                .andExpect(jsonPath("$.itens[1].classificacao").doesNotExist())
+                .andExpect(jsonPath("$.itens[1].calculo").doesNotExist());
+    }
+
+    /** Preserva a referência fiscal anterior em cenário cache-only, separado do contrato de fallback. */
+    @Test
+    void calculoDoCacheSemIaMantemReferenciaFiscalAnterior() throws Exception {
+        classificacaoService.gravarNoCache("10063021", "Arroz tipo 1 5kg", "200", "200003", "cesta básica",
+                new BigDecimal("0.95"), "SEED", true);
+        classificacaoService.gravarNoCache("18063210", "CHOCOLATE AO LEITE 90G", "000", "000001", "integral",
+                new BigDecimal("0.90"), "SEED", true);
+        var contextoAdmin = SecurityContextHolder.getContext();
+        long nota = importar(Fixtures.NFE_SAIDA_HACKATHON);
+        // MockMvc limpa o contexto da thread; a chamada direta deve conservar o ADMIN real do teste.
+        SecurityContextHolder.setContext(contextoAdmin);
+        try {
+            var resultado = classificacaoService.classificar(nota, false);
+            org.junit.jupiter.api.Assertions.assertEquals(2, resultado.classificados());
+            org.junit.jupiter.api.Assertions.assertEquals(6, resultado.pendentes().size());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
 
         // arroz (1.116,00, alíquota zero) + chocolate (599,00 integral): débito hoje = PIS/Cofins destacados
-        mvc.perform(post("/api/notas/" + nota + "/calcular"))
+        mvc.perform(post("/api/notas/" + nota + "/calcular").with(csrf()))
                 .andExpect(jsonPath("$.itensCalculados").value(2))
                 .andExpect(jsonPath("$.itensPendentes", hasSize(6)))
                 .andExpect(jsonPath("$.comparativo.hoje.debito").value(55.40))   // 0 + 9,88 + 45,52
@@ -103,23 +137,23 @@ class ApuracaoControllerTest {
     @Test
     void cenarioDeCbsRecalculaEOValorInvalidoDa400() throws Exception {
         long nota = importar(Fixtures.NFE_ENTRADA_IBSCBS);
-        mvc.perform(post("/api/notas/" + nota + "/classificar"));
+        mvc.perform(post("/api/notas/" + nota + "/classificar").with(csrf()));
 
-        mvc.perform(post("/api/notas/" + nota + "/calcular").param("cbs", "8.8"))
+        mvc.perform(post("/api/notas/" + nota + "/calcular").param("cbs", "8.8").with(csrf()))
                 .andExpect(jsonPath("$.aliquotaCbs").value(8.8))
                 .andExpect(jsonPath("$.comparativo['2027'].credito").value(69.42)) // 31,68 + 36,96 + 4 x IBS
                 .andExpect(jsonPath("$.avisos", hasItem(containsString("Cenário simulado"))));
 
-        mvc.perform(post("/api/notas/" + nota + "/calcular").param("cbs", "50"))
+        mvc.perform(post("/api/notas/" + nota + "/calcular").param("cbs", "50").with(csrf()))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void recalculaTodasAsNotasDoCliente() throws Exception {
         long entrada = importar(Fixtures.NFE_ENTRADA_IBSCBS);
-        mvc.perform(post("/api/notas/" + entrada + "/classificar"));
+        mvc.perform(post("/api/notas/" + entrada + "/classificar").with(csrf()));
 
-        mvc.perform(post("/api/clientes/1/calcular"))
+        mvc.perform(post("/api/clientes/1/calcular").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.notas").value(1))
                 .andExpect(jsonPath("$.itensCalculados").value(2))
@@ -127,15 +161,24 @@ class ApuracaoControllerTest {
     }
 
     @Test
+    void comparativoAvisaQueNaoEhApuracaoDefinitiva() throws Exception {
+        long nota = importar(Fixtures.NFE_ENTRADA_IBSCBS);
+        mvc.perform(post("/api/notas/" + nota + "/classificar").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.calculo.simulado").value(true))
+                .andExpect(jsonPath("$.calculo.avisos", hasItem(containsString("não é apuração fiscal definitiva"))));
+    }
+
+    @Test
     void notaInexistenteDa404() throws Exception {
-        mvc.perform(post("/api/notas/999/classificar")).andExpect(status().isNotFound());
-        mvc.perform(post("/api/notas/999/calcular")).andExpect(status().isNotFound());
-        mvc.perform(post("/api/clientes/999/calcular")).andExpect(status().isNotFound());
+        mvc.perform(post("/api/notas/999/classificar").with(csrf())).andExpect(status().isNotFound());
+        mvc.perform(post("/api/notas/999/calcular").with(csrf())).andExpect(status().isNotFound());
+        mvc.perform(post("/api/clientes/999/calcular").with(csrf())).andExpect(status().isNotFound());
     }
 
     private long importar(String fixture) throws Exception {
         String body = mvc.perform(multipart("/api/clientes/1/notas")
-                        .file(new MockMultipartFile("arquivos", fixture, "application/xml", Fixtures.bytes(fixture))))
+                        .file(new MockMultipartFile("arquivos", fixture, "application/xml", Fixtures.bytes(fixture))).with(csrf()))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         JsonNode n = json.readTree(body);

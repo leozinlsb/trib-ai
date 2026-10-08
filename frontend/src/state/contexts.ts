@@ -43,8 +43,13 @@ export interface DadosCtx {
   verificarConexao: () => Promise<void>
   /** Busca (com cache) o detalhe das notas pedidas. */
   carregarDetalhes: (ids: number[]) => Promise<void>
+  /** Busca de novo o detalhe das notas (ignora o cache), ex.: depois de classificar ou revisar. */
+  atualizarDetalhes: (ids: number[]) => Promise<void>
   detalhes: ReadonlyMap<number, NotaDetalhe>
   errosDetalhe: ReadonlyMap<number, string>
+  /** Muda sempre que classificação/cálculo mudam no servidor: painéis usam como dependência para recarregar. */
+  versaoFiscal: number
+  marcarAlteracaoFiscal: () => void
 }
 
 export const DadosContext = createContext<DadosCtx | null>(null)
@@ -86,6 +91,25 @@ export interface AtividadeCtx {
   enviar: (clienteId: number, arquivos: File[]) => Promise<ResultadoEnvio>
   /** travado = o seletor de empresa fica fixo (upload dentro do ambiente da empresa) */
   abrirUpload: (clienteId?: number, travado?: boolean) => void
+  /**
+   * Classifica (XML → cache → IA) e calcula 2027 as notas, uma de cada vez. Roda sozinho depois do upload;
+   * também é chamado pelo botão "Processar notas".
+   */
+  processar: (notaIds: number[]) => Promise<ResultadoProcessamento>
+  /** notas sendo processadas agora por esta aba (0 = livre) */
+  processando: number
+}
+
+export interface ResultadoProcessamento {
+  notas: number
+  itens: number
+  classificados: number
+  /** itens que continuaram sem classificação */
+  pendentes: number
+  /** notas que falharam (ex.: backend fora do ar) */
+  falhas: number
+  /** avisos do backend sem repetição (IA indisponível, cálculo simplificado, alíquota estimada...) */
+  avisos: string[]
 }
 
 export const AtividadeContext = createContext<AtividadeCtx | null>(null)

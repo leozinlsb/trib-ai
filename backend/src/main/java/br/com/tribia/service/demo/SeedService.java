@@ -3,6 +3,7 @@ package br.com.tribia.service.demo;
 import br.com.tribia.exception.ApiException;
 import br.com.tribia.model.Cliente;
 import br.com.tribia.repository.ClienteRepository;
+import br.com.tribia.security.AcessoService;
 import br.com.tribia.service.NotaService;
 import br.com.tribia.service.calculo.CalculoService;
 import br.com.tribia.service.classificacao.ClassificacaoService;
@@ -46,19 +47,23 @@ public class SeedService {
     private final ClassificacaoService classificacaoService;
     private final CalculoService calculoService;
     private final boolean calcular;
+    private final AcessoService acesso;
 
     public SeedService(NotaService notaService, ClienteRepository clienteRepository,
                        ClassificacoesSeedLoader classificacoesSeed, ClassificacaoService classificacaoService,
-                       CalculoService calculoService, @Value("${tribia.seed.calcular:true}") boolean calcular) {
+                       CalculoService calculoService, @Value("${tribia.seed.calcular:true}") boolean calcular,
+                       AcessoService acesso) {
         this.notaService = notaService;
         this.clienteRepository = clienteRepository;
         this.classificacoesSeed = classificacoesSeed;
         this.classificacaoService = classificacaoService;
         this.calculoService = calculoService;
         this.calcular = calcular;
+        this.acesso = acesso;
     }
 
     public Resultado carregar() {
+        acesso.exigirAdmin();
         int noCache = classificacoesSeed.carregar();
 
         Resource[] arquivos;

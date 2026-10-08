@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * Carrega os dados de demonstração ({@link SeedService}) na inicialização.
@@ -21,17 +23,27 @@ public class SeedRunner implements SmartInitializingSingleton {
     private static final Logger log = LoggerFactory.getLogger(SeedRunner.class);
 
     private final SeedService seedService;
+    private final AdminSeeder adminSeeder;
 
-    public SeedRunner(SeedService seedService) {
+    public SeedRunner(SeedService seedService, AdminSeeder adminSeeder) {
         this.seedService = seedService;
+        this.adminSeeder = adminSeeder;
     }
 
     @Override
     public void afterSingletonsInstantiated() {
+        var anterior = SecurityContextHolder.getContext();
         try {
+            var principal = adminSeeder.principalInicializacao();
+            var contexto = SecurityContextHolder.createEmptyContext();
+            contexto.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
+                    principal, null, principal.getAuthorities()));
+            SecurityContextHolder.setContext(contexto);
             seedService.carregar();
         } catch (RuntimeException e) {
             log.error("Seed: falhou; a API sobe sem os dados de demonstração", e);
+        } finally {
+            SecurityContextHolder.setContext(anterior);
         }
     }
 }

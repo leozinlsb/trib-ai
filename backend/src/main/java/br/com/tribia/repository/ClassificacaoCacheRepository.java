@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface ClassificacaoCacheRepository extends JpaRepository<ClassificacaoCache, Long> {
 
     Optional<ClassificacaoCache> findByChave(String chave);
+
+    Optional<ClassificacaoCache> findByChaveAndFonte(String chave, String fonte);
 }

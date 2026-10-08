@@ -8,6 +8,7 @@ import br.com.tribia.model.Item;
 import br.com.tribia.model.Natureza;
 import br.com.tribia.model.Nota;
 import br.com.tribia.repository.NotaRepository;
+import br.com.tribia.security.AcessoService;
 import br.com.tribia.service.ClienteService;
 import br.com.tribia.service.apuracao.Apuracao;
 import br.com.tribia.service.apuracao.Comparativo;
@@ -61,11 +62,14 @@ public class RelatorioCsvService {
     private final DadosApuracao dados;
     private final ClienteService clienteService;
     private final NotaRepository notaRepository;
+    private final AcessoService acesso;
 
-    public RelatorioCsvService(DadosApuracao dados, ClienteService clienteService, NotaRepository notaRepository) {
+    public RelatorioCsvService(DadosApuracao dados, ClienteService clienteService, NotaRepository notaRepository,
+                               AcessoService acesso) {
         this.dados = dados;
         this.clienteService = clienteService;
         this.notaRepository = notaRepository;
+        this.acesso = acesso;
     }
 
     public byte[] doCliente(Long clienteId, String de, String ate, Formato formato) {
@@ -77,6 +81,7 @@ public class RelatorioCsvService {
     }
 
     public byte[] daNota(Long notaId, Formato formato) {
+        acesso.notaAcessivel(notaId);
         if (!notaRepository.existsById(notaId)) {
             throw new RecursoNaoEncontradoException("Nota " + notaId + " não encontrada");
         }
