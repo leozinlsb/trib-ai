@@ -28,13 +28,11 @@ Sem commit, sem mudanças fiscais, sem tocar dados reais. Abertos:
 | B3-HISTORICO | Classificações eventualmente contaminadas pelo cache antigo não foram remediadas. | Defeito anterior reproduzido em dados sintéticos; ocorrência real não investigada. | Avaliar histórico somente em ambiente autorizado, aprovar remediação auditável; não inferir dono/apagar automaticamente. Etapa 1. |
 | A1 | Classificação do XML é aceita sem conferir a lista de NCMs do benefício. | `ClassificacaoService.doXml` grava origem XML, confiança 1, aceita. | Motor de alertas sinaliza no front; avaliar no backend marcar como não aceita quando `exigeNcmNaLista` e o NCM não estiver na lista (regra fiscal: validar antes). Etapa 3. |
 | I-FISCAL | Telas de Inteligência Fiscal chamam 4 endpoints inexistentes. | `api/inteligenciaFiscal.ts`. | Ocultas por padrão (`VITE_INTELIGENCIA_FISCAL`); implementar back na Etapa 3. |
-| R1 | Alertas de compra (benefício não aplicado pelo fornecedor) somam o valor em "Oportunidades", mas o imposto destacado a mais vira crédito para empresa do regime regular: o valor real é preço/fluxo de caixa, não imposto recuperável. | `lib/alertas.ts`, ramo `BENEFICIO_NAO_APLICADO` com `propria=false`. | Separar compras do total de oportunidades ou estimar só o efeito no preço. Etapa 3. |
-| R2 | "Corrigir" um alerta de compra recalcula o crédito pelo código corrigido, embora o próprio alerta diga que o crédito acompanha o destaque da nota. | `CorrecaoAlerta` → `PUT /api/itens/{id}/classificacao`; o cálculo do crédito usa a classificação, não o destaque. | Decidir com especialista se o crédito simulado segue o destaque; até lá, avisar na tela. Etapa 3. |
 | F-TABELA | Exceções NCM em linhas repetidas podem reintroduzir associação excluída. | Arroz/feijão retornam múltiplos códigos; fallback agora se abstém. | Conferir extração/semântica com base oficial, Etapa 3; não alterar tabelas sem validação. |
 
 ## Testes do backend (08/10/2026)
 
-**Atual (após a decisão S5, 08/10/2026): 220 testes, 0 falhas, 0 erros, 7 ignorados**, nas duas ordens
+**Atual (após S5 e R2, 08/10/2026): 226 testes, 0 falhas, 0 erros, 7 ignorados**, nas duas ordens
 (`-Dsurefire.runOrder=reversealphabetical`), sem a calculadora no ar (3 contratos RTC + 2 Gemini reais +
 2 geradores opt-in ignorados). Front: build, lint e `npm test` (8) verdes. Histórico abaixo.
 
@@ -61,6 +59,7 @@ restantes era de autenticação (evidências históricas); a execução P0.1 nã
 
 | # | Decisão |
 |---|---------|
+| R2 | 08/10/2026, aprovada pelo responsável (padrão C): numa compra cujo cClassTrib corrigido na revisão difere do destacado pelo fornecedor, o crédito de 2027 é o **menor** entre os dois cálculos (`tribia.calculo.credito-compra-divergente=MENOR`; alternativas `NOTA` e `REVISAO`). Só vale para compras com par CST/cClassTrib válido na nota; sem grupo IBS/CBS segue a classificação do TribIA. A revisão devolve aviso na resposta. **Regra a confirmar com especialista** (LC 214, art. 47): pergunta: "se o fornecedor destaca IBS/CBS com enquadramento errado, o crédito do adquirente é limitado ao destacado, ao devido ou ao menor?". R1 (front): em compras, o alerta mostra "efeito no preço" e não soma em Oportunidades. |
 | S5 | 08/10/2026, aprovada pelo responsável: a base de CBS/IBS de 2027 exclui ICMS, PIS e Cofins (`tribia.calculo.excluir-tributos-da-base=true`). ICMS: LC 214, art. 12, § 2º (excluído da base de 2026 a 2032). PIS/Cofins: extintos em 2027, a projeção supõe o preço sem eles (hipótese de projeção, não artigo específico). Os 15 valores esperados foram atualizados e conferidos à mão (ex.: refrigerante (959,04 − 172,63) × 9,53% = 74,94; biscoito (690,00 − 188,02) → crédito 47,84). Continua estimativa: validação profissional recomendada. |
 
 ## Limitações técnicas

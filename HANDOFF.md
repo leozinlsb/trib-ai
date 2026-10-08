@@ -11,7 +11,7 @@
 Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_MESTRE_TRIBIA.md`).
 
 - **Decisão S5 aprovada:** base 2027 sem ICMS/PIS/Cofins. Os 15 valores esperados foram atualizados e
-  conferidos à mão. **Backend: 220 testes / 0 falhas / 0 erros / 7 ignorados**, nas duas ordens.
+  conferidos à mão. **Backend: 226 testes / 0 falhas / 0 erros / 7 ignorados** (após R2), nas duas ordens.
   Novos resultados: Distribuidora +255,45%, Farmácia −32,63%, Loja −28,24% (antes −1,35%). Front: `npm run build`, `npm run lint` e `npm test` (8/8) verdes.
 - **`.env` na raiz** (fora do Git) agora é lido pelo backend (`spring.config.import`); variável de ambiente
   tem prioridade; testes continuam com a chave vazia (conferido). O1 resolvido pelo responsável.
@@ -20,8 +20,12 @@ Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_
   Números do ensaio (com a base atual): Distribuidora hoje R$ 264,58 → 2027 R$ 378,44, 9 pendentes.
 - **Revisão da Etapa 3 (motor de alertas):** coerente com o backend (mesma lista de códigos por adquirente,
   mesma base, opções completas da tabela). Achados R1 e R2 (alertas de compra) em `PENDENCIAS.md`.
-  Testes novos: `frontend/scripts/alertas.test.ts` (`npm test`, Node 22.6+, sem dependências).
-- Próximo: E2E no navegador; ensaio com calculadora oficial e IA real; R1/R2 na Etapa 3.
+  Testes novos: `frontend/scripts/alertas.test.ts` (`npm test`, 10 testes, Node 22.6+, sem dependências).
+- **R2 resolvido (padrão C):** `CalculoService` calcula também com o código destacado na nota quando a compra foi
+  corrigida e usa o menor crédito (`tribia.calculo.credito-compra-divergente=MENOR|NOTA|REVISAO`); a revisão
+  devolve aviso. **R1 resolvido no front:** compras viram "efeito no preço" (fora do total de oportunidades).
+  Testes: `CreditoCompraDivergenteTest` (6). Regra a confirmar com especialista (ver PENDENCIAS, R2).
+- Próximo: E2E no navegador; ensaio com calculadora oficial e IA real.
 
 ## Registro anterior — Etapa 3 iniciada: motor de alertas (branch `dev/nicolau`, 08/10/2026)
 

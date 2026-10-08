@@ -49,6 +49,11 @@ export interface Alerta {
   candidatas?: OpcaoClassificacao[]
   /** estimativa em R$ do que está em jogo; null quando não dá para estimar */
   impacto: number | null
+  /**
+   * Compras: imposto a mais embutido no preço pelo fornecedor. Não é imposto recuperável (o destaque vira crédito
+   * ou fica limitado, ver R1/R2), então não entra no total de oportunidades; serve para negociar o preço.
+   */
+  efeitoNoPreco?: number | null
   /** alertas agregados (por fornecedor, por empresa): quantos itens/notas */
   quantidade?: number
 }
@@ -212,17 +217,19 @@ export function gerarAlertas({ cnpjEmpresa, notas, opcoesPorNcm, confiancaMinima
           const fNota = opcao ? fatorDe(opcao) : null
           const fRev = fatorDe(c)
           const notaCobraMais = fNota != null && fRev != null && fNota > fRev
+          const valor = fNota != null && fRev != null ? emJogo(i, fNota - fRev) : null
           alertas.push({
             id: `div-${i.id}`,
             tipo: 'DIVERGENCIA_CONFIRMADA',
-            categoria: notaCobraMais ? 'oportunidade' : 'risco',
+            categoria: !propria ? 'conformidade' : notaCobraMais ? 'oportunidade' : 'risco',
             severidade: 'alta',
             titulo: `Nota com ${codigo}; revisão definiu ${c.cClassTrib} (${c.descricaoRegime ?? c.nomeCClassTrib ?? c.regime}).`,
             recomendacao: propria
               ? 'Corrija o cadastro do produto no emissor e avalie nota complementar ou de ajuste.'
               : 'Peça ao fornecedor a correção da classificação (carta de correção não altera valores: pode exigir nova nota).',
             ...doItem,
-            impacto: fNota != null && fRev != null ? emJogo(i, fNota - fRev) : null,
+            impacto: propria ? valor : null,
+            efeitoNoPreco: propria ? null : valor,
           })
         } else if (lista && !opcao && c && !(c.origem === 'XML' && c.cClassTrib === codigo)) {
           // o backend só descarta o código da nota quando o par CST/cClassTrib não confere com a tabela oficial;
@@ -271,7 +278,7 @@ export function gerarAlertas({ cnpjEmpresa, notas, opcoesPorNcm, confiancaMinima
               alertas.push({
                 id: `ben-${i.id}`,
                 tipo: 'BENEFICIO_NAO_APLICADO',
-                categoria: 'oportunidade',
+                categoria: propria ? 'oportunidade' : 'conformidade',
                 severidade: 'alta',
                 titulo: `Nota com ${rotuloCodigo(opcao)}; a lista oficial associa o NCM ${i.ncm ?? '—'} a ${sugeridas.map(rotuloCodigo).join(', ')}.`,
                 recomendacao: propria
@@ -281,7 +288,8 @@ export function gerarAlertas({ cnpjEmpresa, notas, opcoesPorNcm, confiancaMinima
                 sugestao: melhor.o,
                 // as candidatas mais vantajosas primeiro; o valor em jogo usa a mais conservadora
                 candidatas: [...sugeridas].sort((a, b) => fatorDe(a)! - fatorDe(b)!),
-                impacto: emJogo(i, fNota - melhor.f),
+                impacto: propria ? emJogo(i, fNota - melhor.f) : null,
+                efeitoNoPreco: propria ? null : emJogo(i, fNota - melhor.f),
               })
             }
           }

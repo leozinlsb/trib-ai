@@ -94,6 +94,8 @@ export function Alertas() {
       <Aviso style={{ marginBottom: 'var(--gap)' }}>
         Valores em jogo são <strong>estimativas</strong>: base do item sem ICMS, PIS e Cofins × alíquota de referência ×
         diferença de carga entre os códigos. Servem para priorizar a conferência, não substituem a análise do contador.
+        Em compras, o valor aparece como efeito no preço e fica fora do total de oportunidades: o crédito de 2027 usa o
+        menor valor entre o que o fornecedor destacou e a correção.
       </Aviso>
 
       {notasComErro > 0 && (
@@ -194,6 +196,10 @@ function LinhaAlerta({ empresaId, alerta: a, corrigindo, onCorrigir }: {
         <td className="right num">
           {a.impacto != null && a.impacto > 0 ? (
             <b style={{ color: COR_VALOR[a.categoria] }}>{fmtMoeda(a.impacto)}</b>
+          ) : a.efeitoNoPreco != null && a.efeitoNoPreco > 0 ? (
+            <span className="muted" title="Imposto a mais embutido no preço pelo fornecedor; não é imposto recuperável">
+              ~{fmtMoeda(a.efeitoNoPreco)} no preço
+            </span>
           ) : (
             <span className="muted">—</span>
           )}
@@ -248,6 +254,7 @@ function CorrecaoAlerta({ alerta: a, onConcluir }: { alerta: Alerta; onConcluir:
           r.itensAtualizados > 1 ? `${r.itensAtualizados} itens idênticos atualizados.` : '',
           r.notasRecalculadas.length ? `${r.notasRecalculadas.length} nota(s) recalculada(s).` : '',
           'A divergência com a nota fica registrada para cobrar a correção na origem.',
+          ...(r.avisos ?? []),
         ].filter(Boolean).join(' '),
       })
       await atualizarDetalhes(r.notasRecalculadas)

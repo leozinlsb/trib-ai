@@ -74,9 +74,9 @@ tratados; testes fiscais e de isolamento; custos/chamadas externas previamente a
 
 **Estado:** PARCIAL, revisada em 08/10/2026 (sem aprovação de conclusão). Feito: motor de alertas
 no front (`frontend/src/lib/alertas.ts`), agora com 8 testes automáticos (`npm test`). Revisão encontrou
-R1 (alertas de compra somam como "oportunidade" um valor que o crédito compensa) e R2 ("Corrigir" numa
-compra recalcula o crédito pelo código corrigido, embora o crédito acompanhe o destaque da nota).
-**Pendências:** A1, R1, R2, I-FISCAL, V1–V6 (S5 decidida em 08/10: base sem ICMS/PIS/Cofins),
+R1 e R2 (alertas e crédito de compras), ambos resolvidos em 08/10/2026 (R2: crédito = menor entre a nota e a
+correção, a confirmar com especialista; R1: compras viram "efeito no preço").
+**Pendências:** A1, I-FISCAL, V1–V6 (S5 decidida em 08/10: base sem ICMS/PIS/Cofins),
 validação profissional. Detalhes em `PENDENCIAS.md`.
 
 ## Etapa 4 — Testes completos, refinamento e preparação do produto
@@ -93,7 +93,7 @@ ou chamadas pagas não autorizadas. Testes são obrigatórios também nas etapas
 **Estado:** INICIADA em 08/10/2026 com aprovação do responsável. Primeiro incremento:
 ensaio da demo adaptado a login ADMIN + CSRF (3 de 3 verdes em API isolada, banco em memória, sem IA real);
 `.env` da raiz lido pelo backend (chave fora do Git, testes nunca a usam); testes do motor de alertas.
-Suíte do backend verde após a decisão S5: 220 testes, 0 falhas, 0 erros, 7 ignorados, nas duas ordens.
+Suíte do backend verde após S5 e R2: 226 testes, 0 falhas, 0 erros, 7 ignorados, nas duas ordens.
 **Pendências:** E2E de perfis e erros no navegador,
 ensaio com a calculadora oficial e com a IA real (chave nova), revisão de segurança para o deploy
 (console H2 e `/api/demo` desligados fora da demo).

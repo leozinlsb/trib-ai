@@ -146,7 +146,11 @@ public class RevisaoService {
 
         alvos.forEach(a -> notasAfetadas.add(a.getNota().getId()));
         for (Long notaId : notasAfetadas) {
-            calculoService.recalcular(notaId);
+            // avisa na própria resposta quando o crédito de uma compra ficou limitado pela divergência com a nota (R2)
+            calculoService.recalcular(notaId).avisos().stream()
+                    .filter(v -> v.startsWith(CalculoService.AVISO_CREDITO_DIVERGENTE))
+                    .filter(v -> !avisos.contains(v))
+                    .forEach(avisos::add);
         }
 
         Classificacao c = classificacaoRepository.findByItemId(itemId).orElse(null);
