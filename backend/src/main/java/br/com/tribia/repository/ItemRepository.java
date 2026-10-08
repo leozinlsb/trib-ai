@@ -21,4 +21,11 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     @Query("select i from Item i join fetch i.nota n join fetch n.cliente where n.id = :notaId order by i.nItem")
     List<Item> daNota(@Param("notaId") Long notaId);
+
+    /** Candidatos a "idênticos" (o filtro fino por descrição normalizada é feito em memória). */
+    @Query("select i from Item i join fetch i.nota n join fetch n.cliente where i.ncm = :ncm")
+    List<Item> doNcm(@Param("ncm") String ncm);
+
+    @Query("select i from Item i join fetch i.nota n join fetch n.cliente where i.ncm is null")
+    List<Item> semNcm();
 }

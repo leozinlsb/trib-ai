@@ -11,8 +11,11 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Cliente da API Gemini (generateContent) com saída JSON estruturada e temperatura zero.
@@ -45,35 +48,75 @@ public class GeminiClient implements LlmClient {
 
         String ultimaFalha = "nenhum modelo configurado";
         for (String modelo : props.modelos()) {
-            try {
-                Resposta r = http.post().uri("/models/{modelo}:generateContent", modelo)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("x-goog-api-key", props.apiKey())
-                        .body(req)
-                        .retrieve()
-                        .body(Resposta.class);
-                return texto(r, modelo);
-            } catch (RestClientResponseException e) {
-                int status = e.getStatusCode().value();
-                if (status == 401 || status == 403) {
-                    throw new LlmException(LlmException.Tipo.NAO_CONFIGURADO,
-                            "A API de IA recusou a chave (HTTP " + status + "). Confira a variável GEMINI_API_KEY.", e);
+            boolean novaTentativa = !props.esperaMaxima().isZero();
+            for (int tentativa = 1; ; tentativa++) {
+                try {
+                    Resposta r = http.post().uri("/models/{modelo}:generateContent", modelo)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .header("x-goog-api-key", props.apiKey())
+                            .body(req)
+                            .retrieve()
+                            .body(Resposta.class);
+                    return texto(r, modelo);
+                } catch (RestClientResponseException e) {
+                    int status = e.getStatusCode().value();
+                    if (status == 401 || status == 403) {
+                        throw new LlmException(LlmException.Tipo.NAO_CONFIGURADO,
+                                "A API de IA recusou a chave (HTTP " + status + "). Confira a variável GEMINI_API_KEY.", e);
+                    }
+                    ultimaFalha = modelo + ": HTTP " + status;
+                    // cota (429) e sobrecarga (503) costumam passar em segundos: espera e tenta o mesmo modelo uma vez
+                    if ((status == 429 || status == 503) && novaTentativa && tentativa == 1) {
+                        Duration espera = espera(e);
+                        log.warn("IA: {} respondeu HTTP {}; nova tentativa em {} ms", modelo, status, espera.toMillis());
+                        dormir(espera);
+                        continue;
+                    }
+                    log.warn("IA: {} falhou (HTTP {}); tentando o próximo modelo", modelo, status);
+                } catch (RestClientException e) {
+                    ultimaFalha = modelo + ": " + e.getClass().getSimpleName();
+                    log.warn("IA: {} indisponível ({}); tentando o próximo modelo", modelo, e.getMessage());
+                } catch (LlmException e) {
+                    if (e.getTipo() != LlmException.Tipo.RESPOSTA_INVALIDA) {
+                        throw e;
+                    }
+                    ultimaFalha = modelo + ": " + e.getMessage();
+                    log.warn("IA: {} deu resposta inutilizável ({}); tentando o próximo modelo", modelo, e.getMessage());
                 }
-                ultimaFalha = modelo + ": HTTP " + status;
-                log.warn("IA: {} falhou (HTTP {}); tentando o próximo modelo", modelo, status);
-            } catch (RestClientException e) {
-                ultimaFalha = modelo + ": " + e.getClass().getSimpleName();
-                log.warn("IA: {} indisponível ({}); tentando o próximo modelo", modelo, e.getMessage());
-            } catch (LlmException e) {
-                if (e.getTipo() != LlmException.Tipo.RESPOSTA_INVALIDA) {
-                    throw e;
-                }
-                ultimaFalha = modelo + ": " + e.getMessage();
-                log.warn("IA: {} deu resposta inutilizável ({}); tentando o próximo modelo", modelo, e.getMessage());
+                break;
             }
         }
         throw new LlmException(LlmException.Tipo.INDISPONIVEL,
                 "A IA está indisponível no momento (" + ultimaFalha + "). Tente novamente em instantes.");
+    }
+
+    private static final Pattern RETRY_DELAY = Pattern.compile("\"retryDelay\"\\s*:\\s*\"(\\d+(?:\\.\\d+)?)s\"");
+
+    /** O que a API pediu (cabeçalho Retry-After ou "retryDelay" no corpo), limitado a tribia.llm.espera-maxima. */
+    private Duration espera(RestClientResponseException e) {
+        Duration pedida = Duration.ofMillis(1500);
+        String retryAfter = e.getResponseHeaders() == null ? null : e.getResponseHeaders().getFirst("Retry-After");
+        try {
+            if (retryAfter != null && retryAfter.matches("\\d+")) {
+                pedida = Duration.ofSeconds(Long.parseLong(retryAfter));
+            } else {
+                Matcher m = RETRY_DELAY.matcher(e.getResponseBodyAsString());
+                if (m.find()) {
+                    pedida = Duration.ofMillis((long) (Double.parseDouble(m.group(1)) * 1000));
+                }
+            }
+        } catch (NumberFormatException ignorada) {
+            // fica a espera padrão
+        }
+        return pedida.compareTo(props.esperaMaxima()) > 0 ? props.esperaMaxima() : pedida;
+    }
+
+    private static void dormir(Duration d) {
+        try {
+            Thread.sleep(d.toMillis());
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private static String texto(Resposta r, String modelo) {

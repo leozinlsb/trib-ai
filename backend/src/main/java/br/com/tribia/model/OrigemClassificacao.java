@@ -8,6 +8,11 @@ public enum OrigemClassificacao {
     CACHE,
     /** Sugestão da IA. */
     IA,
+    /**
+     * Sugestão automática pela regra oficial do NCM, quando a IA não está disponível: confiança baixa, sempre vai
+     * para a revisão.
+     */
+    REGRA,
     /** Informada ou corrigida pelo usuário na revisão. */
     MANUAL
 }

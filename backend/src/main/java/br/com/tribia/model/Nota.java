@@ -1,6 +1,7 @@
 package br.com.tribia.model;
 
 import br.com.tribia.service.nfe.NfeLida;
+import br.com.tribia.util.CnpjUtil;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -40,9 +41,34 @@ public class Nota {
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
 
+    /** Sentido da mercadoria em relação ao cliente. Derivado de {@link #operacao}. */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private TipoNota tipo;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Operacao operacao;
+
+    /** finNFe: 1 normal, 2 complementar, 4 devolução. */
+    private Integer finalidade;
+
+    /** CRT do emitente (1, 2 e 4 = Simples Nacional/MEI). */
+    private Integer emitenteCrt;
+
+    /** UF e município (IBGE) de destino da mercadoria: onde o IBS é devido. */
+    @Column(length = 2)
+    private String ufDestino;
+
+    @Column(length = 7)
+    private String municipioDestino;
+
+    /**
+     * Pagamento ao fornecedor confirmado. A LC 214 (art. 47) condiciona o crédito de 2027 à extinção do débito do
+     * fornecedor; sem a confirmação, a compra não gera crédito na simulação. Padrão: true.
+     */
+    @Column(nullable = false)
+    private boolean pagamentoConfirmado = true;
 
     @Column(nullable = false, length = 44)
     private String chave;
@@ -91,10 +117,13 @@ public class Nota {
     protected Nota() {
     }
 
-    public static Nota de(Cliente cliente, TipoNota tipo, NfeLida lida) {
+    public static Nota de(Cliente cliente, Operacao operacao, NfeLida lida) {
         Nota n = new Nota();
         n.cliente = cliente;
-        n.tipo = tipo;
+        n.operacao = operacao;
+        n.tipo = operacao.tipo();
+        n.finalidade = lida.finalidade();
+        n.emitenteCrt = lida.crtEmitente();
         n.chave = lida.chave();
         n.numero = lida.numero();
         n.serie = lida.serie();
@@ -106,11 +135,18 @@ public class Nota {
             n.destinatarioDocumento = lida.destinatario().documento();
             n.destinatarioNome = lida.destinatario().nome();
         }
-        NfeLida.Participante contraparte = tipo == TipoNota.SAIDA ? lida.destinatario() : lida.emitente();
+        // contraparte = a outra parte da nota (quem não é o cliente)
+        boolean emitidaPeloCliente = CnpjUtil.somenteDigitos(cliente.getCnpj()).equals(lida.emitente().documento());
+        NfeLida.Participante contraparte = emitidaPeloCliente ? lida.destinatario() : lida.emitente();
         if (contraparte != null) {
             n.contraparteCnpj = contraparte.documento();
             n.contraparteNome = contraparte.nome();
         }
+        // destino da mercadoria: quem a recebe (cliente nas entradas; contraparte nas saídas)
+        NfeLida.Participante destino = operacao.tipo() == TipoNota.SAIDA ? contraparte : null;
+        n.ufDestino = destino != null && destino.uf() != null ? destino.uf() : cliente.getUf();
+        n.municipioDestino = destino != null && destino.codigoMunicipio() != null
+                ? destino.codigoMunicipio() : cliente.getCodigoMunicipio();
         n.valorProdutos = lida.valorProdutos();
         n.valorTotal = lida.valorTotal();
         n.importadaEm = Instant.now();
@@ -120,6 +156,39 @@ public class Nota {
 
     public Long getId() {
         return id;
+    }
+
+    public Operacao getOperacao() {
+        return operacao;
+    }
+
+    public Integer getFinalidade() {
+        return finalidade;
+    }
+
+    public Integer getEmitenteCrt() {
+        return emitenteCrt;
+    }
+
+    /** Emitente do Simples Nacional (CRT 1, 2 ou 4). */
+    public boolean emitenteDoSimples() {
+        return emitenteCrt != null && (emitenteCrt == 1 || emitenteCrt == 2 || emitenteCrt == 4);
+    }
+
+    public String getUfDestino() {
+        return ufDestino;
+    }
+
+    public String getMunicipioDestino() {
+        return municipioDestino;
+    }
+
+    public boolean isPagamentoConfirmado() {
+        return pagamentoConfirmado;
+    }
+
+    public void setPagamentoConfirmado(boolean pagamentoConfirmado) {
+        this.pagamentoConfirmado = pagamentoConfirmado;
     }
 
     public Cliente getCliente() {

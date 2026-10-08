@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -46,6 +47,14 @@ public class ApuracaoController {
                                            + "Vazio usa a configurada.")
                                    @RequestParam(required = false) BigDecimal cbs) {
         return calculoService.calcular(id, cbs);
+    }
+
+    @Operation(summary = "Confirma (ou não) o pagamento de uma compra ao fornecedor e recalcula a nota",
+            description = "LC 214, art. 47: o crédito de 2027 depende da extinção do débito do fornecedor. Com "
+                    + "confirmado=false, a compra deixa de gerar crédito na simulação. Padrão das notas: confirmado.")
+    @PutMapping("/api/notas/{id}/pagamento")
+    public CalculoNotaDto pagamento(@PathVariable Long id, @RequestParam boolean confirmado) {
+        return calculoService.definirPagamento(id, confirmado);
     }
 
     @Operation(summary = "Recalcula todas as notas do cliente (ex.: para trocar o cenário da CBS)")

@@ -61,13 +61,13 @@ public class ClassificadorIa {
     private final Set<String> opcoesValidas;
 
     public ClassificadorIa(LlmClient llm, LlmProperties props, TabelaCClassTrib tabela, TabelaNcmAplicavel regrasNcm,
-                           ObjectMapper json) {
+                           OpcoesClassificacao opcoesPermitidas, ObjectMapper json) {
         this.llm = llm;
         this.props = props;
         this.tabela = tabela;
         this.regrasNcm = regrasNcm;
         this.json = json;
-        List<CClassTrib> opcoes = tabela.opcoesNfe();
+        List<CClassTrib> opcoes = opcoesPermitidas.todas();
         this.opcoesValidas = opcoes.stream().map(CClassTrib::codigo).collect(Collectors.toUnmodifiableSet());
         this.instrucoes = carregarPrompt().replace("{{OPCOES}}", opcoes.stream()
                 .map(o -> o.codigo() + " | " + o.cst() + " | " + o.descricaoRegime() + " | " + abreviar(o.nome(), 110)

@@ -51,6 +51,18 @@ public class Item {
     private BigDecimal valorTotal;
 
     @Column(precision = 15, scale = 2)
+    private BigDecimal vDesc;
+
+    @Column(precision = 15, scale = 2)
+    private BigDecimal vFrete;
+
+    @Column(precision = 15, scale = 2)
+    private BigDecimal vSeg;
+
+    @Column(precision = 15, scale = 2)
+    private BigDecimal vOutro;
+
+    @Column(precision = 15, scale = 2)
     private BigDecimal vIcms;
 
     @Column(precision = 15, scale = 2)
@@ -86,6 +98,10 @@ public class Item {
         i.quantidade = lido.quantidade();
         i.valorUnitario = lido.valorUnitario();
         i.valorTotal = lido.valorTotal();
+        i.vDesc = lido.vDesc();
+        i.vFrete = lido.vFrete();
+        i.vSeg = lido.vSeg();
+        i.vOutro = lido.vOutro();
         i.vIcms = lido.vIcms();
         i.vPis = lido.vPis();
         i.vCofins = lido.vCofins();
@@ -140,6 +156,31 @@ public class Item {
 
     public BigDecimal getVIcms() {
         return vIcms;
+    }
+
+    public BigDecimal getVDesc() {
+        return nz(vDesc);
+    }
+
+    public BigDecimal getVFrete() {
+        return nz(vFrete);
+    }
+
+    public BigDecimal getVSeg() {
+        return nz(vSeg);
+    }
+
+    public BigDecimal getVOutro() {
+        return nz(vOutro);
+    }
+
+    /** Valor da operação do item: produto - desconto + frete + seguro + outras despesas (LC 214, art. 12, § 1º). */
+    public BigDecimal valorDaOperacao() {
+        return nz(valorTotal).subtract(getVDesc()).add(getVFrete()).add(getVSeg()).add(getVOutro());
+    }
+
+    private static BigDecimal nz(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO.setScale(2) : v;
     }
 
     public BigDecimal getVPis() {

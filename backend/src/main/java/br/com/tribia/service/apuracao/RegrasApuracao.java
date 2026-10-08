@@ -1,6 +1,7 @@
 package br.com.tribia.service.apuracao;
 
 import br.com.tribia.config.AliquotasProperties;
+import br.com.tribia.model.Operacao;
 import br.com.tribia.model.Regime;
 import br.com.tribia.model.TipoNota;
 import org.springframework.stereotype.Component;
@@ -57,16 +58,57 @@ public class RegrasApuracao {
     }
 
     /**
+     * PIS + Cofins de hoje para qualquer operação, em valor absoluto (o sinal do estorno é aplicado por quem chama).
+     * <ul>
+     *   <li>Venda e compra: as regras de {@link #pisCofinsHoje(Regime, TipoNota, ItemTributavel)}.</li>
+     *   <li>Devolução de compra: estorna o crédito da compra, pela mesma regra do crédito (zero no Presumido).</li>
+     *   <li>Devolução de venda: estorna o débito da venda. Se o próprio cliente emitiu a nota de devolução, usa o
+     *       PIS/Cofins destacado nela; se foi o comprador, usa a alíquota do regime do cliente sobre itens
+     *       tributados (Real: 1,65% + 7,6%; Presumido: 0,65% + 3%).</li>
+     * </ul>
+     */
+    public BigDecimal pisCofinsHoje(Regime regime, Operacao operacao, ItemTributavel item, boolean emitidaPeloCliente) {
+        return switch (operacao) {
+            case VENDA -> pisCofinsHoje(regime, TipoNota.SAIDA, item);
+            case COMPRA, DEVOLUCAO_DE_COMPRA -> pisCofinsHoje(regime, TipoNota.ENTRADA, item);
+            case DEVOLUCAO_DE_VENDA -> {
+                if (emitidaPeloCliente) {
+                    yield nz(item.vPis()).add(nz(item.vCofins()));
+                }
+                if (!aliquotas.hoje().cstComCredito().contains(item.cstPisCofins())) {
+                    yield ZERO;
+                }
+                boolean real = regime == Regime.LUCRO_REAL;
+                yield percentual(item.valor(), real ? aliquotas.hoje().pisNaoCumulativo() : aliquotas.hoje().pisCumulativo())
+                        .add(percentual(item.valor(),
+                                real ? aliquotas.hoje().cofinsNaoCumulativo() : aliquotas.hoje().cofinsCumulativo()));
+            }
+        };
+    }
+
+    /**
+     * Base do IBS/CBS de 2027: valor da operação menos os tributos que não a integram de 2026 a 2032
+     * (LC 214, art. 12, § 2º, V: ICMS, ISS, PIS e Cofins incidentes na operação). Nunca negativa.
+     */
+    public static BigDecimal base2027(BigDecimal valorDaOperacao, BigDecimal vIcms, BigDecimal vPis, BigDecimal vCofins,
+                                      boolean excluirTributos) {
+        BigDecimal base = valorDaOperacao;
+        if (excluirTributos) {
+            base = base.subtract(nz(vIcms)).subtract(nz(vPis)).subtract(nz(vCofins));
+        }
+        return base.max(ZERO);
+    }
+
+    /**
      * Cálculo simplificado de CBS, IBS e IS de 2027 (plano B quando a calculadora oficial não responde).
      * Alíquota efetiva = alíquota de referência x (100 - redução) / 100.
      * O IS integra a base da CBS e do IBS (conferido contra a calculadora oficial 1.5.4).
      *
-     * TODO base de cálculo: hoje é o valor do item. Conferir na LC 214 o que sai da base na transição
-     * (ICMS, ISS, PIS/Cofins); a calculadora oficial recebe a base pronta e também não a ajusta.
+     * A base chega pronta (ver {@link #base2027}), igual à que a calculadora oficial recebe.
      */
     public Tributos2027 tributos2027(BigDecimal base, ParametrosClassificacao p) {
         AliquotasProperties.Ano2027 a = aliquotas.ano2027();
-        return tributos2027(base, p, a.cbs(), a.ibsUf(), a.ibsMun());
+        return tributos2027(base, p, a.cbsEfetiva(), a.ibsUf(), a.ibsMun());
     }
 
     /** Mesmo cálculo, com alíquotas nominais informadas (ex.: cenário de CBS diferente da configurada). */

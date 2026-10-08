@@ -22,26 +22,33 @@ import br.com.tribia.model.Cliente;
 import br.com.tribia.model.Item;
 import br.com.tribia.model.Natureza;
 import br.com.tribia.model.Nota;
+import br.com.tribia.model.Operacao;
+import br.com.tribia.model.Regime;
 import br.com.tribia.repository.CalculoRepository;
 import br.com.tribia.repository.ClassificacaoRepository;
+import br.com.tribia.repository.ItemRepository;
 import br.com.tribia.repository.NotaRepository;
 import br.com.tribia.service.ClienteService;
 import br.com.tribia.service.apuracao.Apuracao;
 import br.com.tribia.service.apuracao.Comparativo;
 import br.com.tribia.service.apuracao.ItemTributavel;
 import br.com.tribia.service.apuracao.RegrasApuracao;
+import br.com.tribia.service.apuracao.Tributos2027;
 import br.com.tribia.service.tabelas.TabelaImpostoSeletivo;
+import br.com.tribia.util.CnpjUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -50,19 +57,22 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Calcula 2027 para os itens classificados de uma nota e grava um {@link Calculo} por item, com o imposto
- * de hoje e o de 2027 já na coluna certa (débito na saída, crédito na entrada).
+ * Calcula 2027 para os itens classificados de uma nota e grava um {@link Calculo} por item, com o imposto de hoje e
+ * o de 2027 já como débito ou crédito (e com sinal negativo nas devoluções, que estornam).
  *
- * Modo AUTO: tenta a calculadora oficial; se ela estiver fora do ar ou recusar a operação, usa a simplificada
- * e registra o motivo nos avisos. Recalcular é idempotente: os cálculos anteriores da nota são substituídos.
+ * Três fases, para a chamada à calculadora oficial não segurar uma transação aberta: (1) lê a nota e monta a
+ * operação; (2) calcula, fora de transação; (3) grava. Modo AUTO: se a oficial falhar, usa a simplificada e avisa.
+ * Recalcular é idempotente: os cálculos anteriores da nota são substituídos.
  */
 @Service
 public class CalculoService {
 
     private static final Logger log = LoggerFactory.getLogger(CalculoService.class);
     private static final ZoneOffset BRASILIA = ZoneOffset.ofHours(-3);
+    private static final BigDecimal ZERO = BigDecimal.ZERO.setScale(2);
 
     private final NotaRepository notaRepository;
+    private final ItemRepository itemRepository;
     private final ClassificacaoRepository classificacaoRepository;
     private final CalculoRepository calculoRepository;
     private final ClienteService clienteService;
@@ -72,13 +82,16 @@ public class CalculoService {
     private final TabelaImpostoSeletivo tabelaIs;
     private final AliquotasProperties aliquotas;
     private final CalculoProperties props;
+    private final TransactionTemplate tx;
 
-    public CalculoService(NotaRepository notaRepository, ClassificacaoRepository classificacaoRepository,
-                          CalculoRepository calculoRepository, ClienteService clienteService,
-                          CalculadoraOficialClient oficial, CalculadoraSimplificadaClient simplificada,
-                          RegrasApuracao regras, TabelaImpostoSeletivo tabelaIs, AliquotasProperties aliquotas,
-                          CalculoProperties props) {
+    public CalculoService(NotaRepository notaRepository, ItemRepository itemRepository,
+                          ClassificacaoRepository classificacaoRepository, CalculoRepository calculoRepository,
+                          ClienteService clienteService, CalculadoraOficialClient oficial,
+                          CalculadoraSimplificadaClient simplificada, RegrasApuracao regras,
+                          TabelaImpostoSeletivo tabelaIs, AliquotasProperties aliquotas, CalculoProperties props,
+                          PlatformTransactionManager transacoes) {
         this.notaRepository = notaRepository;
+        this.itemRepository = itemRepository;
         this.classificacaoRepository = classificacaoRepository;
         this.calculoRepository = calculoRepository;
         this.clienteService = clienteService;
@@ -88,58 +101,42 @@ public class CalculoService {
         this.tabelaIs = tabelaIs;
         this.aliquotas = aliquotas;
         this.props = props;
+        this.tx = new TransactionTemplate(transacoes);
+    }
+
+    /** Tudo o que a fase 3 precisa da nota, lido na fase 1 (sem depender de entidades carregadas). */
+    private record Preparo(Long notaId, OperacaoCalculo operacaoCalculo, List<Long> idsItens, List<Integer> pendentes,
+                           Map<Integer, ItemPreparado> porNumero, Operacao operacao, Regime regime,
+                           boolean emitidaPeloCliente, boolean fornecedorSimples, boolean pagamentoConfirmado) {
+    }
+
+    private record ItemPreparado(Long itemId, ItemTributavel tributavel, boolean sujeitoIs) {
     }
 
     /**
-     * @param cbsCenario alíquota da CBS (%) para simular um cenário; null usa tribia.aliquotas.ano2027.cbs
+     * @param cbsCenario alíquota da CBS (%) para simular um cenário; null usa a configurada
      */
-    @Transactional
     public CalculoNotaDto calcular(Long notaId, BigDecimal cbsCenario) {
-        Nota nota = notaRepository.buscarComItens(notaId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Nota " + notaId + " não encontrada"));
         AliquotasNominais nominais = nominais(cbsCenario);
-
-        List<Long> idsItens = nota.getItens().stream().map(Item::getId).toList();
-        Map<Long, Classificacao> classificacoes = classificacaoRepository.findByItemIdIn(idsItens).stream()
-                .collect(Collectors.toMap(c -> c.getItem().getId(), Function.identity()));
-        List<Item> calculaveis = nota.getItens().stream().filter(i -> classificacoes.containsKey(i.getId())).toList();
-        List<Integer> pendentes = nota.getItens().stream().filter(i -> !classificacoes.containsKey(i.getId()))
-                .map(Item::getNItem).toList();
+        Preparo p = tx.execute(s -> preparar(notaId, nominais));
 
         Set<String> avisos = new LinkedHashSet<>(avisosDeAliquota(nominais, cbsCenario));
-        if (!pendentes.isEmpty()) {
-            avisos.add(pendentes.size() + " item(ns) sem classificação ficaram fora do cálculo: classifique a nota antes.");
+        if (!p.pendentes().isEmpty()) {
+            avisos.add(p.pendentes().size() + " item(ns) sem classificação ficaram fora do cálculo: classifique a nota antes.");
         }
-        calculoRepository.apagarDosItens(idsItens);
-        if (calculaveis.isEmpty()) {
-            return new CalculoNotaDto(notaId, null, false, nominais.cbs(), 0, pendentes, List.copyOf(avisos),
-                    ComparativoDto.de(Comparativo.ZERO));
-        }
+        ResultadoCalculo r = p.operacaoCalculo().itens().isEmpty() ? null : executar(p.operacaoCalculo(), avisos);
 
-        Cliente cliente = nota.getCliente();
-        OperacaoCalculo op = new OperacaoCalculo("nota-" + notaId, dataFatoGerador(), cliente.getCodigoMunicipio(),
-                cliente.getUf(), calculaveis.stream().map(i -> itemCalculo(i, classificacoes.get(i.getId()))).toList(),
-                nominais);
-        ResultadoCalculo r = executar(op, avisos);
-
-        Map<Integer, Item> porNumero = calculaveis.stream().collect(Collectors.toMap(Item::getNItem, Function.identity()));
-        Comparativo total = Comparativo.ZERO;
-        for (ItemCalculado ic : r.itens()) {
-            Item item = porNumero.get(ic.numero());
-            Calculo c = calculoRepository.save(novoCalculo(nota, item, ic, r));
-            total = total.somar(comparativo(c));
-        }
-        return new CalculoNotaDto(notaId, r.origem(), r.simulado(), nominais.cbs(), r.itens().size(), pendentes,
-                List.copyOf(avisos), ComparativoDto.de(total));
+        Comparativo total = tx.execute(s -> gravar(p, r, avisos));
+        return new CalculoNotaDto(notaId, r == null ? null : r.origem(), r != null && r.simulado(), nominais.cbs(),
+                r == null ? 0 : r.itens().size(), p.pendentes(), List.copyOf(avisos), ComparativoDto.de(total));
     }
 
     /**
      * Recalcula a nota mantendo o cenário de CBS com que ela foi calculada da última vez (se havia um).
      * Usado depois de classificar ou revisar, para o painel refletir a mudança sem perder o cenário escolhido.
      */
-    @Transactional
     public CalculoNotaDto recalcular(Long notaId) {
-        BigDecimal configurada = aliquotas.ano2027().cbs();
+        BigDecimal configurada = aliquotas.ano2027().cbsEfetiva();
         BigDecimal cenario = calculoRepository.findByNota(notaId).stream()
                 .map(Calculo::getPCbs)
                 .filter(p -> p != null && p.compareTo(configurada) != 0)
@@ -147,17 +144,16 @@ public class CalculoService {
         return calcular(notaId, cenario);
     }
 
-    /** Recalcula todas as notas do cliente (ex.: para trocar o cenário da CBS). */
-    @Transactional
+    /** Recalcula todas as notas do cliente (ex.: para trocar o cenário da CBS). Uma transação por nota. */
     public CalculoClienteDto calcularCliente(Long clienteId, BigDecimal cbsCenario) {
         clienteService.buscar(clienteId);
-        List<Nota> notas = notaRepository.buscar(clienteId, null, null);
+        List<Long> notas = notaRepository.buscar(clienteId, null, null).stream().map(Nota::getId).toList();
         Set<String> avisos = new LinkedHashSet<>();
         Comparativo total = Comparativo.ZERO;
         int calculados = 0;
         int pendentes = 0;
-        for (Nota n : notas) {
-            CalculoNotaDto r = calcular(n.getId(), cbsCenario);
+        for (Long id : notas) {
+            CalculoNotaDto r = calcular(id, cbsCenario);
             avisos.addAll(r.avisos());
             calculados += r.itensCalculados();
             pendentes += r.itensPendentes().size();
@@ -166,6 +162,64 @@ public class CalculoService {
         return new CalculoClienteDto(clienteId, nominais(cbsCenario).cbs(), notas.size(), calculados, pendentes,
                 List.copyOf(avisos), ComparativoDto.de(total));
     }
+
+    /**
+     * Marca se a compra foi paga ao fornecedor. Sem pagamento confirmado, a compra não gera crédito de 2027
+     * (LC 214, art. 47: o crédito depende da extinção do débito do fornecedor). Recalcula a nota.
+     */
+    public CalculoNotaDto definirPagamento(Long notaId, boolean confirmado) {
+        tx.executeWithoutResult(s -> {
+            Nota n = notaRepository.findById(notaId)
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Nota " + notaId + " não encontrada"));
+            if (n.getOperacao().natureza() != Natureza.CREDITO) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "Operação inválida",
+                        "Só compras (e devoluções de compra) geram crédito: o pagamento não se aplica a esta nota.");
+            }
+            n.setPagamentoConfirmado(confirmado);
+        });
+        return recalcular(notaId);
+    }
+
+    // ---------------- fase 1: lê e monta a operação ----------------
+
+    private Preparo preparar(Long notaId, AliquotasNominais nominais) {
+        Nota nota = notaRepository.buscarComItens(notaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Nota " + notaId + " não encontrada"));
+        Cliente cliente = nota.getCliente();
+        List<Long> ids = nota.getItens().stream().map(Item::getId).toList();
+        Map<Long, Classificacao> classificacoes = classificacaoRepository.findByItemIdIn(ids).stream()
+                .collect(Collectors.toMap(c -> c.getItem().getId(), Function.identity()));
+
+        Operacao operacao = nota.getOperacao();
+        // IS monofásico: só o fabricante paga, e só quando vende
+        boolean cobraIs = cliente.isFabricante() && operacao == Operacao.VENDA;
+        List<ItemCalculo> itensCalculo = new ArrayList<>();
+        Map<Integer, ItemPreparado> porNumero = new LinkedHashMap<>();
+        List<Integer> pendentes = new ArrayList<>();
+        for (Item i : nota.getItens()) {
+            Classificacao c = classificacoes.get(i.getId());
+            if (c == null) {
+                pendentes.add(i.getNItem());
+                continue;
+            }
+            boolean sujeitoIs = tabelaIs.aliquota(i.getNcm(), props.dataFatoGerador()).isPresent();
+            ImpostoSeletivo is = !sujeitoIs ? null : cobraIs ? new ImpostoSeletivo("000", "000001") : ImpostoSeletivo.REVENDA;
+            BigDecimal base = RegrasApuracao.base2027(i.valorDaOperacao(), i.getVIcms(), i.getVPis(), i.getVCofins(),
+                    props.excluirTributosDaBase());
+            itensCalculo.add(new ItemCalculo(i.getNItem(), i.getNcm(), i.getQuantidade(), i.getUnidade(), base,
+                    c.getCst(), c.getCClassTrib(), is));
+            porNumero.put(i.getNItem(), new ItemPreparado(i.getId(), ItemTributavel.de(i), sujeitoIs));
+        }
+        // IBS é devido no destino: município de quem recebe a mercadoria (ver Nota.municipioDestino)
+        String municipio = nota.getMunicipioDestino() != null ? nota.getMunicipioDestino() : cliente.getCodigoMunicipio();
+        String uf = nota.getUfDestino() != null ? nota.getUfDestino() : cliente.getUf();
+        OperacaoCalculo op = new OperacaoCalculo("nota-" + notaId, dataFatoGerador(), municipio, uf, itensCalculo, nominais);
+        boolean emitidaPeloCliente = CnpjUtil.somenteDigitos(cliente.getCnpj()).equals(nota.getEmitenteCnpj());
+        return new Preparo(notaId, op, ids, pendentes, porNumero, operacao, cliente.getRegime(), emitidaPeloCliente,
+                !emitidaPeloCliente && nota.emitenteDoSimples(), nota.isPagamentoConfirmado());
+    }
+
+    // ---------------- fase 2: calcula (fora de transação) ----------------
 
     private ResultadoCalculo executar(OperacaoCalculo op, Set<String> avisos) {
         ResultadoCalculo r = switch (props.modo()) {
@@ -195,30 +249,51 @@ public class CalculoService {
         return r;
     }
 
-    private ItemCalculo itemCalculo(Item i, Classificacao c) {
-        // TODO os 3 clientes de demo são revendedores: no IS (monofásico) o fabricante paga e a revenda usa CST 200 /
-        // cClassTrib 200007 (IS zero). Para um cliente fabricante, usar CST 000 / 000001.
-        ImpostoSeletivo is = sujeitoIs(i) ? ImpostoSeletivo.REVENDA : null;
-        return new ItemCalculo(i.getNItem(), i.getNcm(), i.getQuantidade(), i.getUnidade(), i.getValorTotal(),
-                c.getCst(), c.getCClassTrib(), is);
+    // ---------------- fase 3: grava ----------------
+
+    private Comparativo gravar(Preparo p, ResultadoCalculo r, Set<String> avisos) {
+        calculoRepository.apagarDosItens(p.idsItens());
+        if (r == null) {
+            return Comparativo.ZERO;
+        }
+        boolean credito = p.operacao().natureza() == Natureza.CREDITO;
+        boolean semCreditoPorSimples = credito && p.fornecedorSimples()
+                && props.creditoFornecedorSimples() == CalculoProperties.CreditoSimples.SEM_CREDITO;
+        boolean semCreditoPorPagamento = credito && !p.pagamentoConfirmado();
+        if (semCreditoPorSimples) {
+            avisos.add("Fornecedor do Simples Nacional: o crédito de 2027 não foi considerado, porque é limitado ao que "
+                    + "ele recolheu no Simples (LC 214, art. 47) e esse valor não vem na nota.");
+        }
+        if (semCreditoPorPagamento) {
+            avisos.add("Pagamento ao fornecedor não confirmado: sem crédito de 2027 (LC 214, art. 47).");
+        }
+        BigDecimal sinal = BigDecimal.valueOf(p.operacao().sinal());
+
+        Comparativo total = Comparativo.ZERO;
+        for (ItemCalculado ic : r.itens()) {
+            ItemPreparado ip = p.porNumero().get(ic.numero());
+            ItemTributavel it = ip.tributavel();
+            Tributos2027 t = ic.tributos();
+            BigDecimal hoje = regras.pisCofinsHoje(p.regime(), p.operacao(), it, p.emitidaPeloCliente());
+            BigDecimal ano2027 = semCreditoPorSimples || semCreditoPorPagamento ? ZERO
+                    : (p.operacao().natureza() == Natureza.DEBITO ? t.totalDebito()
+                    : (it.creditavel() ? t.totalCredito() : ZERO));
+            var a = ic.aliquotas();
+            Calculo c = calculoRepository.save(new Calculo(itemRepository.getReferenceById(ip.itemId()),
+                    p.operacao().natureza(), r.origem(), t.vCbs(), t.vIbsUf(), t.vIbsMun(), t.vIs(), a.pCbs(), a.pIbsUf(),
+                    a.pIbsMun(), a.reducaoCbs(), a.reducaoIbs(), a.pIs(), ip.sujeitoIs(),
+                    hoje.multiply(sinal), ano2027.multiply(sinal), r.simulado()));
+            total = total.somar(comparativo(c));
+        }
+        return total;
     }
 
-    private Calculo novoCalculo(Nota nota, Item item, ItemCalculado ic, ResultadoCalculo r) {
-        ItemTributavel it = ItemTributavel.de(item);
-        BigDecimal hoje = regras.pisCofinsHoje(nota.getCliente().getRegime(), nota.getTipo(), it);
-        BigDecimal ano2027 = regras.imposto2027(nota.getTipo(), ic.tributos(), item.isCreditavel());
-        var a = ic.aliquotas();
-        var t = ic.tributos();
-        return new Calculo(item, Natureza.de(nota.getTipo()), r.origem(), t.vCbs(), t.vIbsUf(), t.vIbsMun(), t.vIs(),
-                a.pCbs(), a.pIbsUf(), a.pIbsMun(), a.reducaoCbs(), a.reducaoIbs(), a.pIs(), sujeitoIs(item),
-                hoje, ano2027, r.simulado());
-    }
+    // ---------------- apoio ----------------
 
-    private boolean sujeitoIs(Item i) {
-        return tabelaIs.aliquota(i.getNcm(), props.dataFatoGerador()).isPresent();
-    }
-
-    /** Contribuição de um item para o comparativo: hoje e 2027 na coluna de débito (saída) ou de crédito (entrada). */
+    /**
+     * Contribuição de um item para o comparativo: hoje e 2027 na coluna de débito (venda e devolução de venda) ou de
+     * crédito (compra e devolução de compra). Nas devoluções o valor gravado já é negativo (estorno).
+     */
     public static Comparativo comparativo(Calculo c) {
         BigDecimal zero = BigDecimal.ZERO.setScale(2);
         return c.getNatureza() == Natureza.DEBITO
@@ -236,16 +311,21 @@ public class CalculoService {
         if (cbsCenario != null && (cbsCenario.signum() <= 0 || cbsCenario.compareTo(BigDecimal.valueOf(30)) > 0)) {
             throw ApiException.requisicaoInvalida("Cenário de CBS deve estar entre 0 e 30 (%): " + cbsCenario);
         }
-        return new AliquotasNominais(cbsCenario != null ? cbsCenario : a.cbs(), a.ibsUf(), a.ibsMun());
+        return new AliquotasNominais(cbsCenario != null ? cbsCenario : a.cbsEfetiva(), a.ibsUf(), a.ibsMun());
     }
 
     private List<String> avisosDeAliquota(AliquotasNominais n, BigDecimal cbsCenario) {
         List<String> avisos = new ArrayList<>();
+        AliquotasProperties.Ano2027 a = aliquotas.ano2027();
         if (cbsCenario != null) {
             avisos.add("Cenário simulado: CBS de " + cbsCenario.stripTrailingZeros().toPlainString() + "% em 2027.");
-        } else if (aliquotas.ano2027().cbsEstimativa()) {
+        } else if (a.cbsEstimativa()) {
             avisos.add("Alíquota da CBS 2027 (" + n.cbs().stripTrailingZeros().toPlainString()
                     + "%) é estimativa: o valor oficial ainda não foi fixado.");
+        }
+        if (cbsCenario == null && a.reducaoCbsTransicao() != null && a.reducaoCbsTransicao().signum() > 0) {
+            avisos.add("CBS reduzida em " + a.reducaoCbsTransicao().stripTrailingZeros().toPlainString()
+                    + " p.p. pela regra de transição de 2027-2028.");
         }
         return avisos;
     }

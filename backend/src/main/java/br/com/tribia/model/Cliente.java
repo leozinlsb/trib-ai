@@ -43,6 +43,13 @@ public class Cliente {
     @Column(length = 7)
     private String codigoMunicipio;
 
+    /**
+     * Fabrica (ou importa) o que vende. O Imposto Seletivo é monofásico: incide no primeiro fornecimento, pelo
+     * fabricante (CST 000 / 000001); quem só revende usa CST 200 / 200007 e não paga IS.
+     */
+    @Column(nullable = false)
+    private boolean fabricante;
+
     protected Cliente() {
     }
 
@@ -80,5 +87,9 @@ public class Cliente {
 
     public String getCodigoMunicipio() {
         return codigoMunicipio;
+    }
+
+    public boolean isFabricante() {
+        return fabricante;
     }
 }

@@ -2,11 +2,13 @@ package br.com.tribia.controller;
 
 import br.com.tribia.dto.NotaDetalheDto;
 import br.com.tribia.dto.NotaResumoDto;
+import br.com.tribia.dto.ResumoNotaDto;
 import br.com.tribia.dto.UploadNotasDto;
 import br.com.tribia.exception.ApiException;
 import br.com.tribia.exception.NotaRejeitadaException;
 import br.com.tribia.model.TipoNota;
 import br.com.tribia.service.ClienteService;
+import br.com.tribia.service.DashboardService;
 import br.com.tribia.service.NotaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,14 +33,17 @@ public class NotaController {
 
     private final NotaService notaService;
     private final ClienteService clienteService;
+    private final DashboardService dashboardService;
 
-    public NotaController(NotaService notaService, ClienteService clienteService) {
+    public NotaController(NotaService notaService, ClienteService clienteService, DashboardService dashboardService) {
         this.notaService = notaService;
         this.clienteService = clienteService;
+        this.dashboardService = dashboardService;
     }
 
     @Operation(summary = "Upload de um ou mais XMLs de NF-e para o cliente",
-            description = "Detecta ENTRADA (cliente é o destinatário) ou SAIDA (cliente é o emitente). "
+            description = "Detecta a operação pelo CNPJ do cliente, pelo tpNF e pela finalidade: VENDA, COMPRA, "
+                    + "DEVOLUCAO_DE_VENDA ou DEVOLUCAO_DE_COMPRA (complementares contam como a operação de origem). "
                     + "Cada arquivo é processado de forma independente. Responde 201 se ao menos um foi importado; "
                     + "se nenhum foi, responde com o erro do arquivo (422 ou 409) ou 422 com a lista de rejeições.")
     @PostMapping(path = "/api/clientes/{clienteId}/notas", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -87,6 +92,12 @@ public class NotaController {
     @GetMapping("/api/notas/{id}")
     public NotaDetalheDto detalhar(@PathVariable Long id) {
         return notaService.detalhar(id);
+    }
+
+    @Operation(summary = "Resumo da nota: comparativo hoje x 2027, regimes e o efeito de cada produto")
+    @GetMapping("/api/notas/{id}/resumo")
+    public ResumoNotaDto resumo(@PathVariable Long id) {
+        return dashboardService.resumoDaNota(id);
     }
 
     private static byte[] ler(MultipartFile arquivo) {

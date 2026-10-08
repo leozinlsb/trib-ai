@@ -48,7 +48,13 @@ public class ClienteController {
                                   @Parameter(description = "Competência inicial AAAA-MM (opcional)")
                                   @RequestParam(required = false) String de,
                                   @Parameter(description = "Competência final AAAA-MM (opcional)")
-                                  @RequestParam(required = false) String ate) {
-        return dashboardService.dashboard(id, de, ate);
+                                  @RequestParam(required = false) String ate,
+                                  @Parameter(description = "Ranking topItens por PRODUTO (padrão) ou por NCM")
+                                  @RequestParam(defaultValue = "PRODUTO") DashboardDto.Agrupamento agrupar,
+                                  @Parameter(description = "Tamanho do topItens (1 a 50)")
+                                  @RequestParam(defaultValue = "10") int limiteItens,
+                                  @Parameter(description = "Tamanho do topFornecedores (1 a 50)")
+                                  @RequestParam(defaultValue = "5") int limiteFornecedores) {
+        return dashboardService.dashboard(id, de, ate, agrupar, limiteItens, limiteFornecedores);
     }
 }

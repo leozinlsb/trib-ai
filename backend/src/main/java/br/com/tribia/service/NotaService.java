@@ -13,6 +13,7 @@ import br.com.tribia.model.Classificacao;
 import br.com.tribia.model.Cliente;
 import br.com.tribia.model.Item;
 import br.com.tribia.model.Nota;
+import br.com.tribia.model.Operacao;
 import br.com.tribia.model.TipoNota;
 import br.com.tribia.repository.CalculoRepository;
 import br.com.tribia.repository.ClassificacaoRepository;
@@ -61,36 +62,31 @@ public class NotaService {
         NfeLida lida = parser.ler(xml);
 
         validarEscopo(lida);
-        TipoNota tipo = detectarTipo(cliente, lida);
+        Operacao operacao = detectarOperacao(cliente, lida);
 
         if (repository.existsByClienteIdAndChave(clienteId, lida.chave())) {
             throw NotaRejeitadaException.duplicada("A nota " + lida.chave() + " já foi importada para este cliente.");
         }
-        return repository.save(Nota.de(cliente, tipo, lida));
+        return repository.save(Nota.de(cliente, operacao, lida));
     }
 
-    /** Somente NF-e modelo 55, finalidade normal, emitida como saída pelo emitente. */
+    /**
+     * NF-e modelo 55 normal (1), complementar (2) ou de devolução (4), de saída ou de entrada (tpNF 0 ou 1).
+     * Nota de ajuste (3) fica de fora: é lançamento fiscal sem circulação de mercadoria.
+     */
     private void validarEscopo(NfeLida lida) {
         if (!"55".equals(lida.modelo())) {
             throw NotaRejeitadaException.invalida(
                     "Somente NF-e modelo 55 é aceita (modelo recebido: " + lida.modelo() + ").");
         }
         Integer fin = lida.finalidade();
-        if (fin == null || fin != 1) {
-            String nome = switch (fin == null ? 0 : fin) {
-                case 2 -> "complementar";
-                case 3 -> "de ajuste";
-                case 4 -> "de devolução";
-                default -> "com finalidade " + fin;
-            };
-            throw NotaRejeitadaException.invalida(
-                    "Notas " + nome + " (finNFe=" + fin + ") ainda não são suportadas. Envie apenas notas normais.");
+        if (fin == null || (fin != 1 && fin != 2 && fin != 4)) {
+            String nome = fin != null && fin == 3 ? "de ajuste" : "com finalidade " + fin;
+            throw NotaRejeitadaException.invalida("Notas " + nome + " (finNFe=" + fin + ") não são suportadas: "
+                    + "elas não movimentam mercadoria. Envie notas normais, complementares ou de devolução.");
         }
-        // tpNF=0 é nota de entrada emitida pelo próprio emitente (importação, compra de produtor etc.).
-        // Pelo CNPJ ela seria lida ao contrário (o emitente é quem compra), então fica fora do MVP.
-        if (lida.tipoOperacao() == null || lida.tipoOperacao() != 1) {
-            throw NotaRejeitadaException.invalida(
-                    "Notas de entrada emitidas pelo próprio emitente (tpNF=0) ainda não são suportadas.");
+        if (lida.tipoOperacao() == null || (lida.tipoOperacao() != 0 && lida.tipoOperacao() != 1)) {
+            throw NotaRejeitadaException.invalida("Tipo de operação (tpNF) inválido: " + lida.tipoOperacao());
         }
         if (lida.emitente() == null || lida.emitente().documento() == null) {
             throw NotaRejeitadaException.invalida("Emitente sem CNPJ/CPF.");
@@ -98,22 +94,21 @@ public class NotaService {
         if (lida.dataEmissao() == null || lida.valorTotal() == null) {
             throw NotaRejeitadaException.invalida("Nota sem data de emissão ou sem valor total (vNF).");
         }
-        // TODO conferir se a chave bate com emitente/modelo/série/número; hoje o parser só valida o dígito verificador
     }
 
     /**
-     * Emitente = cliente: SAIDA. Destinatário = cliente: ENTRADA. Nenhum dos dois: 422.
-     * Se emitente e destinatário forem o próprio cliente (transferência), vale SAIDA.
+     * O cliente tem de ser o emitente ou o destinatário (senão, 422). A operação sai do sentido da mercadoria
+     * (tpNF + quem emitiu) e da finalidade: venda, compra, devolução de venda ou devolução de compra.
+     * Se emitente e destinatário forem o próprio cliente (transferência), vale como emitida por ele.
      */
-    static TipoNota detectarTipo(Cliente cliente, NfeLida lida) {
+    static Operacao detectarOperacao(Cliente cliente, NfeLida lida) {
         String cnpjCliente = CnpjUtil.somenteDigitos(cliente.getCnpj());
-        if (cnpjCliente.equals(lida.emitente().documento())) {
-            return TipoNota.SAIDA;
+        boolean emitente = cnpjCliente.equals(lida.emitente().documento());
+        boolean destinatario = lida.destinatario() != null && cnpjCliente.equals(lida.destinatario().documento());
+        if (!emitente && !destinatario) {
+            throw NotaRejeitadaException.invalida("Esta nota não pertence ao cliente");
         }
-        if (lida.destinatario() != null && cnpjCliente.equals(lida.destinatario().documento())) {
-            return TipoNota.ENTRADA;
-        }
-        throw NotaRejeitadaException.invalida("Esta nota não pertence ao cliente");
+        return Operacao.de(emitente, lida.tipoOperacao(), lida.finalidade() == 4);
     }
 
     @Transactional(readOnly = true)

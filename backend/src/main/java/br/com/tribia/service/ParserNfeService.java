@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -81,7 +82,7 @@ public class ParserNfeService {
             throw NotaRejeitadaException.invalida("A NF-e não tem itens (det).");
         }
 
-        return new NfeLida(
+        NfeLida lida = new NfeLida(
                 chave,
                 x.texto(inf, "nfe:ide/nfe:mod"),
                 x.inteiro(inf, "nfe:ide/nfe:serie"),
@@ -92,9 +93,41 @@ public class ParserNfeService {
                 dataEmissao(inf, x),
                 participante(inf, x, "nfe:emit", "nfe:enderEmit"),
                 participante(inf, x, "nfe:dest", "nfe:enderDest"),
+                x.inteiro(inf, "nfe:emit/nfe:CRT"),
                 x.valor(inf, "nfe:total/nfe:ICMSTot/nfe:vProd"),
                 x.valor(inf, "nfe:total/nfe:ICMSTot/nfe:vNF"),
                 itens);
+        conferirChave(lida);
+        return lida;
+    }
+
+    /**
+     * A chave (cUF, AAMM, CNPJ/CPF, modelo, série, número...) tem de bater com os dados da própria nota:
+     * chave de uma nota colada em outra é sinal de XML adulterado ou montado errado.
+     */
+    private static void conferirChave(NfeLida n) {
+        String c = n.chave();
+        List<String> divergencias = new ArrayList<>();
+        if (n.dataEmissao() != null && !c.substring(2, 6).equals(n.dataEmissao().format(DateTimeFormatter.ofPattern("yyMM")))) {
+            divergencias.add("ano/mês (" + c.substring(2, 6) + ")");
+        }
+        String doc = n.emitente() == null ? null : n.emitente().documento();
+        if (doc != null && !c.substring(6, 20).equals("0".repeat(Math.max(0, 14 - doc.length())) + doc)) {
+            divergencias.add("CNPJ/CPF do emitente (" + c.substring(6, 20) + ")");
+        }
+        if (n.modelo() != null && !c.substring(20, 22).equals(n.modelo())) {
+            divergencias.add("modelo (" + c.substring(20, 22) + ")");
+        }
+        if (n.serie() != null && Integer.parseInt(c.substring(22, 25)) != n.serie()) {
+            divergencias.add("série (" + c.substring(22, 25) + ")");
+        }
+        if (n.numero() != null && Long.parseLong(c.substring(25, 34)) != n.numero()) {
+            divergencias.add("número (" + c.substring(25, 34) + ")");
+        }
+        if (!divergencias.isEmpty()) {
+            throw NotaRejeitadaException.invalida("A chave de acesso não confere com os dados da nota: "
+                    + String.join(", ", divergencias) + ".");
+        }
     }
 
     private String chave(Element inf, Leitor x, Document doc) {
@@ -132,7 +165,8 @@ public class ParserNfeService {
         if (doc == null) {
             doc = x.texto(no, "nfe:CPF");
         }
-        return new Participante(doc, x.texto(no, "nfe:xNome"), x.texto(no, endereco + "/nfe:UF"));
+        return new Participante(doc, x.texto(no, "nfe:xNome"), x.texto(no, endereco + "/nfe:UF"),
+                x.texto(no, endereco + "/nfe:cMun"));
     }
 
     private List<ItemLido> itens(Element inf, Leitor x) {
@@ -151,6 +185,10 @@ public class ParserNfeService {
                     x.valor(det, "nfe:prod/nfe:qCom"),
                     x.valor(det, "nfe:prod/nfe:vUnCom"),
                     x.valor(det, "nfe:prod/nfe:vProd"),
+                    x.valorOuZero(det, "nfe:prod/nfe:vDesc"),
+                    x.valorOuZero(det, "nfe:prod/nfe:vFrete"),
+                    x.valorOuZero(det, "nfe:prod/nfe:vSeg"),
+                    x.valorOuZero(det, "nfe:prod/nfe:vOutro"),
                     // qualquer grupo de ICMS (ICMS00, ICMS20, ICMS40...) e de PIS/COFINS (Aliq, NT, Outr, Qtde)
                     x.valorOuZero(det, "nfe:imposto/nfe:ICMS/*/nfe:vICMS"),
                     x.texto(det, "nfe:imposto/nfe:PIS/*/nfe:CST"),

@@ -8,12 +8,20 @@ import java.util.List;
 /**
  * API de IA (Gemini). A chave vem SEMPRE de variável de ambiente (GEMINI_API_KEY): nunca vai para arquivo do projeto.
  *
- * @param modelos        em ordem de preferência; se um falhar (sobrecarga, cota, indisponível), tenta o próximo
- * @param itensPorChamada máximo de produtos por chamada; notas maiores são divididas em lotes
+ * @param modelos          em ordem de preferência; se um falhar (sobrecarga, cota, indisponível), tenta o próximo
+ * @param itensPorChamada  máximo de produtos por chamada; notas maiores são divididas em lotes
+ * @param esperaMaxima     em cota estourada (429) ou sobrecarga (503), espera o que a API pedir, até este limite, e
+ *                         tenta o mesmo modelo de novo antes de passar ao próximo. Zero desliga a nova tentativa.
  */
 @ConfigurationProperties(prefix = "tribia.llm")
 public record LlmProperties(String url, List<String> modelos, String apiKey, Duration timeoutConexao,
-                            Duration timeoutResposta, int itensPorChamada) {
+                            Duration timeoutResposta, int itensPorChamada, Duration esperaMaxima) {
+
+    public LlmProperties {
+        if (esperaMaxima == null) {
+            esperaMaxima = Duration.ofSeconds(5);
+        }
+    }
 
     public boolean configurada() {
         return apiKey != null && !apiKey.isBlank();
