@@ -10,12 +10,14 @@ import java.util.Map;
  *
  * @param porOrigem quantos itens estão classificados por origem (XML, CACHE, IA, MANUAL)
  * @param pendentes nItem dos itens ainda sem classificação
+ * @param avisos    ex.: IA indisponível ou item que a IA não conseguiu classificar
  */
 public record ClassificacaoNotaDto(
         Long notaId,
         int totalItens,
         int classificados,
         Map<OrigemClassificacao, Long> porOrigem,
-        List<Integer> pendentes
+        List<Integer> pendentes,
+        List<String> avisos
 ) {
 }

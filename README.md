@@ -44,6 +44,22 @@ Observações:
   o resultado traz um aviso.
 - O teste `CalculadoraOficialContratoTest` roda contra a calculadora real quando ela está no ar; senão, é pulado.
 
+### IA (Gemini)
+
+A classificação dos itens que o XML e o cache não resolvem é feita pelo Gemini (`tribia.llm.*`). A chave **nunca**
+fica em arquivo do projeto: defina a variável de ambiente antes de subir a API.
+
+```powershell
+setx GEMINI_API_KEY "sua-chave"      # uma vez; abra um novo terminal (e reinicie o VS Code) depois
+```
+
+- Modelos em ordem de preferência (`tribia.llm.modelos`): se o primeiro estiver sobrecarregado ou sem cota,
+  o segundo é tentado sozinho. O `gemini-2.5-*` não está mais disponível para chaves novas.
+- A IA só escolhe entre as opções da tabela oficial de cClassTrib. Benefícios de anexo (ex.: cesta básica) só são
+  aceitos se o NCM constar da lista oficial do código; senão a resposta é recusada e reenviada uma vez.
+- Sem chave ou com a IA fora do ar, `POST /api/notas/{id}/classificar` responde 200 com os itens pendentes e um aviso.
+- `GeminiContratoTest` usa a IA de verdade (gasta cota) e só roda com `GEMINI_API_KEY` definida.
+
 ### Dados de demonstração
 
 Na inicialização, o backend importa as notas de `src/main/resources/seed/{cnpj}/` (3 saídas e 3 entradas

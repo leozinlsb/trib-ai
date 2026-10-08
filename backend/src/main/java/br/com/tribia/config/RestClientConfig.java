@@ -18,4 +18,13 @@ public class RestClientConfig {
         fabrica.setReadTimeout(props.timeoutResposta());
         return builder.baseUrl(props.url()).requestFactory(fabrica).build();
     }
+
+    /** RestClient da API de IA. A chave segue no cabeçalho x-goog-api-key (nunca na URL, que costuma ir para logs). */
+    @Bean
+    public RestClient llmRestClient(RestClient.Builder builder, LlmProperties props) {
+        HttpClient http = HttpClient.newBuilder().connectTimeout(props.timeoutConexao()).build();
+        JdkClientHttpRequestFactory fabrica = new JdkClientHttpRequestFactory(http);
+        fabrica.setReadTimeout(props.timeoutResposta());
+        return builder.baseUrl(props.url()).requestFactory(fabrica).build();
+    }
 }

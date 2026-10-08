@@ -93,7 +93,7 @@ public class SeedRunner implements ApplicationRunner {
         int pendentes = 0;
         String origem = null;
         for (Long id : notas) {
-            pendentes += classificacaoService.classificar(id).pendentes().size();
+            pendentes += classificacaoService.classificar(id, false).pendentes().size();
             try {
                 var r = calculoService.calcular(id, null);
                 origem = r.origem() == null ? origem : r.origem().name();

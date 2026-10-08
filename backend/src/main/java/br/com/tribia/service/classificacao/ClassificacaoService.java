@@ -1,5 +1,6 @@
 package br.com.tribia.service.classificacao;
 
+import br.com.tribia.client.llm.LlmException;
 import br.com.tribia.dto.ClassificacaoNotaDto;
 import br.com.tribia.exception.RecursoNaoEncontradoException;
 import br.com.tribia.model.Classificacao;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,9 +33,9 @@ import java.util.stream.Collectors;
  * Classifica os itens de uma nota, nesta ordem:
  * 1. grupo IBS/CBS do XML (só CST + cClassTrib);
  * 2. cache global por NCM + descrição normalizada;
- * 3. (etapa 5) IA para o que sobrar.
+ * 3. IA para o que sobrar (uma chamada por nota, produtos repetidos agrupados).
  * Itens já classificados não são tocados: reclassificar é papel da revisão (correção manual).
- * Todo código passa pela tabela oficial: o que não estiver nela é ignorado.
+ * Todo código passa pela tabela oficial: o que não estiver nela é ignorado ou rejeitado.
  */
 @Service
 public class ClassificacaoService {
@@ -44,33 +46,96 @@ public class ClassificacaoService {
     private final ClassificacaoRepository classificacaoRepository;
     private final ClassificacaoCacheRepository cacheRepository;
     private final TabelaCClassTrib tabela;
+    private final ClassificadorIa ia;
 
     public ClassificacaoService(NotaRepository notaRepository, ClassificacaoRepository classificacaoRepository,
-                                ClassificacaoCacheRepository cacheRepository, TabelaCClassTrib tabela) {
+                                ClassificacaoCacheRepository cacheRepository, TabelaCClassTrib tabela,
+                                ClassificadorIa ia) {
         this.notaRepository = notaRepository;
         this.classificacaoRepository = classificacaoRepository;
         this.cacheRepository = cacheRepository;
         this.tabela = tabela;
+        this.ia = ia;
     }
 
+    /**
+     * Classifica os itens ainda sem classificação: XML, depois cache e, para o que sobrar, IA.
+     *
+     * @param usarIa false para só aplicar XML e cache (ex.: seed da inicialização, que nunca chama a IA)
+     */
     @Transactional
-    public ClassificacaoNotaDto classificar(Long notaId) {
+    public ClassificacaoNotaDto classificar(Long notaId, boolean usarIa) {
         Nota nota = notaRepository.buscarComItens(notaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Nota " + notaId + " não encontrada"));
         Map<Long, Classificacao> existentes = classificacaoRepository
                 .findByItemIdIn(nota.getItens().stream().map(Item::getId).toList()).stream()
                 .collect(Collectors.toMap(c -> c.getItem().getId(), Function.identity()));
 
+        List<Item> pendentes = new ArrayList<>();
         for (Item item : nota.getItens()) {
             if (existentes.containsKey(item.getId())) {
                 continue;
             }
             Optional<Classificacao> nova = doXml(item).or(() -> doCache(item));
-            nova.ifPresent(c -> existentes.put(item.getId(), classificacaoRepository.save(c)));
+            if (nova.isPresent()) {
+                existentes.put(item.getId(), classificacaoRepository.save(nova.get()));
+            } else {
+                pendentes.add(item);
+            }
         }
-        // TODO etapa 5: IA para os itens que continuam sem classificação
 
-        return resumo(nota, existentes);
+        List<String> avisos = new ArrayList<>();
+        if (usarIa && !pendentes.isEmpty()) {
+            // A chamada à IA fica dentro da transação (poucos segundos). Aceitável no MVP, com H2 em memória.
+            classificarComIa(pendentes, existentes, avisos);
+        }
+        return resumo(nota, existentes, avisos);
+    }
+
+    @Transactional
+    public ClassificacaoNotaDto classificar(Long notaId) {
+        return classificar(notaId, true);
+    }
+
+    /**
+     * Agrupa os itens pelo produto (NCM + descrição normalizada) para a IA classificar cada produto uma vez só
+     * e grava o resultado no cache global. A IA nunca aceita sozinha: a classificação nasce com aceita=false.
+     */
+    private void classificarComIa(List<Item> pendentes, Map<Long, Classificacao> existentes, List<String> avisos) {
+        Map<String, List<Item>> porProduto = new LinkedHashMap<>();
+        for (Item i : pendentes) {
+            porProduto.computeIfAbsent(ChaveClassificacao.de(i.getNcm(), i.getDescricao()), k -> new ArrayList<>()).add(i);
+        }
+        List<ClassificadorIa.ProdutoParaClassificar> pedido = new ArrayList<>();
+        Map<Integer, List<Item>> grupos = new LinkedHashMap<>();
+        int id = 1;
+        for (List<Item> grupo : porProduto.values()) {
+            Item rep = grupo.get(0);
+            pedido.add(new ClassificadorIa.ProdutoParaClassificar(id, rep.getNcm(), rep.getDescricao(), rep.getUnidade(),
+                    rep.getValorUnitario()));
+            grupos.put(id++, grupo);
+        }
+
+        ClassificadorIa.ResultadoIa r;
+        try {
+            r = ia.classificar(pedido);
+        } catch (LlmException e) {
+            log.warn("IA não classificou {} produto(s): {}", pedido.size(), e.getMessage());
+            avisos.add(e.getMessage() + " Os itens ficam pendentes.");
+            return;
+        }
+        avisos.addAll(r.avisos());
+        r.sugestoes().forEach((idProduto, s) -> {
+            List<Item> grupo = grupos.get(idProduto);
+            for (Item item : grupo) {
+                Classificacao c = nova(item, s.cst(), s.cClassTrib(), s.justificativa(), s.confianca(),
+                        OrigemClassificacao.IA, false);
+                existentes.put(item.getId(), classificacaoRepository.save(c));
+            }
+            Item rep = grupo.get(0);
+            gravarNoCache(rep.getNcm(), rep.getDescricao(), s.cst(), s.cClassTrib(), s.justificativa(), s.confianca(),
+                    "IA", false);
+        });
     }
 
     private Optional<Classificacao> doXml(Item item) {
@@ -115,7 +180,7 @@ public class ClassificacaoService {
         cacheRepository.save(e);
     }
 
-    private static ClassificacaoNotaDto resumo(Nota nota, Map<Long, Classificacao> classificacoes) {
+    private static ClassificacaoNotaDto resumo(Nota nota, Map<Long, Classificacao> classificacoes, List<String> avisos) {
         Map<OrigemClassificacao, Long> porOrigem = new EnumMap<>(OrigemClassificacao.class);
         classificacoes.values().forEach(c -> porOrigem.merge(c.getOrigem(), 1L, Long::sum));
         List<Integer> pendentes = new ArrayList<>();
@@ -125,6 +190,6 @@ public class ClassificacaoService {
             }
         }
         return new ClassificacaoNotaDto(nota.getId(), nota.getItens().size(), classificacoes.size(), porOrigem,
-                pendentes);
+                pendentes, List.copyOf(avisos));
     }
 }
