@@ -15,6 +15,7 @@ de 2027 sem ICMS/PIS/Cofins (decisão S5). Dados 100% fictícios.
    ```
    O banco em memória não toca `backend/data/`: cada subida começa limpa.
 3. **Front** (janela 3): `cd frontend; npm run dev` → http://localhost:5173.
+   Na versão hospedada (Render) não há janela 3: abra a URL pública (e acorde a API uns 5 minutos antes).
 4. **Ensaio** (janela 4, mesma senha): `powershell -ExecutionPolicy Bypass -File backend\ferramentas\ensaio-demo.ps1 -Vezes 1`.
    Tem que terminar em "OK". Ele deixa os dados no estado inicial.
 5. Deixe aberto o Explorer em `backend\notas-demo-ao-vivo\` para arrastar os XMLs.

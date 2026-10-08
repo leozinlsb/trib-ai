@@ -35,7 +35,13 @@ Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_
   15 min. Dockerfile roda como usuário sem privilégios. Testes: `PerfilProducaoTest`, `LimiteTentativasLoginTest`.
   Suíte: 233 / 0 falhas / 7 ignorados nas duas ordens. `docker build` NÃO executado (Docker Desktop parado).
 - **Roteiro da apresentação:** `docs/ROTEIRO_DEMO.md` (preparação, passos com números, plano B, ressalvas).
-- Próximo: `docker build` e deploy de demonstração; ensaio final com quem apresenta.
+- **Deploy em serviço único (Vercel indisponível sem plano pago):** `Dockerfile` na RAIZ (3 estágios: Node compila o
+  front, Maven empacota o front em `classpath:/static`, JRE roda). `FrontendConfig` serve as telas e devolve
+  `index.html` nas rotas do React; `/api`, console H2 e docs seguem dando 404. Imagem construída (≈1 min) e
+  validada em container: sobe em ~11 s, login com sessão, rotas fechadas 404 como ADMIN, E2E 11/11 contra a imagem.
+  `backend/Dockerfile` e `backend/.dockerignore` removidos; `frontend/vercel.json` não é mais usado.
+  Suíte: 236 / 0 falhas / 7 ignorados nas duas ordens.
+- Próximo: deploy no Render (Root Directory vazio), checklist na URL pública, ensaio final com quem apresenta.
 
 ## Registro anterior — Etapa 3 iniciada: motor de alertas (branch `dev/nicolau`, 08/10/2026)
 
@@ -80,7 +86,7 @@ Somente frontend alterado; nenhuma regra fiscal, teste, backend ou configuraçã
 - Relatório (back): `RelatorioService` passa a contar classificações persistidas (B6). Não compilado
   no ambiente de desenvolvimento; rodar `.\mvnw.cmd test`.
 - Deploy de demonstração preparado: `frontend/vercel.json` (rewrite `/api` → backend, fallback SPA)
-  e `backend/Dockerfile` (Render). Mesmo domínio para o navegador por causa do cookie de sessão/CSRF;
+  e `backend/Dockerfile` (Render; substituídos pelo Dockerfile da raiz em 08/10/2026). Mesmo domínio para o navegador por causa do cookie de sessão/CSRF;
   no backend definir `TRIBIA_ADMIN_SENHA` (12+ caracteres). CORS não é necessário: o rewrite deixa tudo na mesma origem. H2 do
   container zera a cada deploy (seed recria as empresas fictícias); calculadora RTC não sobe lá
   (cálculo cai no modo simplificado, com aviso).
