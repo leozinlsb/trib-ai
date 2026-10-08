@@ -1,20 +1,32 @@
 package br.com.tribia.service;
 
+import br.com.tribia.dto.CalculoDto;
+import br.com.tribia.dto.ClassificacaoDto;
+import br.com.tribia.dto.ItemDto;
 import br.com.tribia.dto.NotaDetalheDto;
 import br.com.tribia.dto.NotaResumoDto;
 import br.com.tribia.exception.ApiException;
 import br.com.tribia.exception.NotaRejeitadaException;
 import br.com.tribia.exception.RecursoNaoEncontradoException;
+import br.com.tribia.model.Calculo;
+import br.com.tribia.model.Classificacao;
 import br.com.tribia.model.Cliente;
+import br.com.tribia.model.Item;
 import br.com.tribia.model.Nota;
 import br.com.tribia.model.TipoNota;
+import br.com.tribia.repository.CalculoRepository;
+import br.com.tribia.repository.ClassificacaoRepository;
 import br.com.tribia.repository.NotaRepository;
 import br.com.tribia.service.nfe.NfeLida;
+import br.com.tribia.service.tabelas.TabelaCClassTrib;
 import br.com.tribia.util.CnpjUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class NotaService {
@@ -22,11 +34,19 @@ public class NotaService {
     private final NotaRepository repository;
     private final ClienteService clienteService;
     private final ParserNfeService parser;
+    private final ClassificacaoRepository classificacaoRepository;
+    private final CalculoRepository calculoRepository;
+    private final TabelaCClassTrib tabela;
 
-    public NotaService(NotaRepository repository, ClienteService clienteService, ParserNfeService parser) {
+    public NotaService(NotaRepository repository, ClienteService clienteService, ParserNfeService parser,
+                       ClassificacaoRepository classificacaoRepository, CalculoRepository calculoRepository,
+                       TabelaCClassTrib tabela) {
         this.repository = repository;
         this.clienteService = clienteService;
         this.parser = parser;
+        this.classificacaoRepository = classificacaoRepository;
+        this.calculoRepository = calculoRepository;
+        this.tabela = tabela;
     }
 
     /**
@@ -107,8 +127,17 @@ public class NotaService {
 
     @Transactional(readOnly = true)
     public NotaDetalheDto detalhar(Long notaId) {
-        return repository.buscarComItens(notaId)
-                .map(NotaDetalheDto::de)
+        Nota nota = repository.buscarComItens(notaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Nota " + notaId + " não encontrada"));
+        List<Long> ids = nota.getItens().stream().map(Item::getId).toList();
+        Map<Long, Classificacao> classificacoes = classificacaoRepository.findByItemIdIn(ids).stream()
+                .collect(Collectors.toMap(c -> c.getItem().getId(), Function.identity()));
+        Map<Long, Calculo> calculos = calculoRepository.findByItemIdIn(ids).stream()
+                .collect(Collectors.toMap(c -> c.getItem().getId(), Function.identity()));
+        List<ItemDto> itens = nota.getItens().stream()
+                .map(i -> ItemDto.de(i, ClassificacaoDto.de(classificacoes.get(i.getId()), tabela),
+                        CalculoDto.de(calculos.get(i.getId()))))
+                .toList();
+        return NotaDetalheDto.de(nota, itens);
     }
 }

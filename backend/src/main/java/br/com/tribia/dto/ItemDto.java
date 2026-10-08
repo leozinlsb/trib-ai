@@ -5,6 +5,10 @@ import br.com.tribia.model.Item;
 
 import java.math.BigDecimal;
 
+/**
+ * @param classificacao null enquanto o item não for classificado
+ * @param calculo       null enquanto a nota não for calculada (ou se o item estiver sem classificação)
+ */
 public record ItemDto(
         Long id,
         Integer nItem,
@@ -21,13 +25,15 @@ public record ItemDto(
         BigDecimal vPis,
         BigDecimal vCofins,
         boolean creditavel,
-        IbsCbsDestacadoDto ibsCbsDestacado
+        IbsCbsDestacadoDto ibsCbsDestacado,
+        ClassificacaoDto classificacao,
+        CalculoDto calculo
 ) {
-    public static ItemDto de(Item i) {
+    public static ItemDto de(Item i, ClassificacaoDto classificacao, CalculoDto calculo) {
         return new ItemDto(i.getId(), i.getNItem(), i.getCodigo(), i.getDescricao(), i.getNcm(), i.getCfop(),
                 i.getUnidade(), i.getQuantidade(), i.getValorUnitario(), i.getValorTotal(), i.getVIcms(),
                 i.getCstPisCofins(), i.getVPis(), i.getVCofins(), i.isCreditavel(),
-                IbsCbsDestacadoDto.de(i.getIbsCbsDestacado()));
+                IbsCbsDestacadoDto.de(i.getIbsCbsDestacado()), classificacao, calculo);
     }
 
     /** null quando a nota não trouxe o grupo IBS/CBS no item. */

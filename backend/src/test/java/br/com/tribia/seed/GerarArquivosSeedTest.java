@@ -2,6 +2,7 @@ package br.com.tribia.seed;
 
 import br.com.tribia.Fixtures;
 import br.com.tribia.seed.CatalogoSeed.NotaSeed;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
@@ -12,12 +13,14 @@ import java.nio.file.Path;
 import java.util.stream.Stream;
 
 /**
- * Regrava os XMLs de seed a partir do {@link CatalogoSeed}. Não roda no build normal.
+ * Regrava os arquivos de seed a partir do {@link CatalogoSeed} e do {@link ClassificacoesSeed}.
+ * Não roda no build normal.
  * <pre>
  * mvnw test -Dtest=GerarArquivosSeedTest -Dseed.gerar=true
  * </pre>
  * Saída:
  * - src/main/resources/seed/{cnpjCliente}/AAAA-MM-DD_{saida|entrada}_{numero}.xml (importados na inicialização)
+ * - src/main/resources/seed/classificacoes.json (cache de classificação inicial)
  * - notas-demo-ao-vivo/{cliente}_nf{numero}.xml (para o upload na apresentação)
  */
 @EnabledIfSystemProperty(named = "seed.gerar", matches = "true")
@@ -48,6 +51,10 @@ class GerarArquivosSeedTest {
         // a nota ao vivo da distribuidora é a própria nota de teste do hackathon
         Files.write(AO_VIVO.resolve("1-distribuidora_" + Fixtures.NFE_SAIDA_HACKATHON),
                 Fixtures.bytes(Fixtures.NFE_SAIDA_HACKATHON));
+
+        Files.writeString(SEED.resolve("classificacoes.json"),
+                new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(ClassificacoesSeed.entradasDoSeed()),
+                StandardCharsets.UTF_8);
     }
 
     /** Apaga só XMLs gerados antes, para não deixar arquivo velho para trás. */

@@ -1,6 +1,5 @@
 package br.com.tribia.client.calculadora;
 
-import br.com.tribia.Fixtures;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
@@ -20,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CalculadoraOficialContratoTest {
 
     final CalculadoraOficialClient client = new CalculadoraOficialClient(
-            RestClient.builder().baseUrl("http://localhost:8080/api").build(), Fixtures.ALIQUOTAS, new ObjectMapper());
+            RestClient.builder().baseUrl("http://localhost:8080/api").build(), new ObjectMapper());
 
     @Test
     void calculaNaCalculadoraRealOsMesmosValoresDoMotorSimplificado() {
@@ -41,7 +40,7 @@ class CalculadoraOficialContratoTest {
         assertThat(r.avisos()).hasSize(1);
     }
 
-    static boolean calculadoraNoAr() {
+    public static boolean calculadoraNoAr() {
         try (Socket s = new Socket()) {
             s.connect(new InetSocketAddress("localhost", 8080), 300);
             return true;

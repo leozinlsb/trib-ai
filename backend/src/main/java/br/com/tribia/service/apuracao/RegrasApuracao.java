@@ -66,12 +66,18 @@ public class RegrasApuracao {
      */
     public Tributos2027 tributos2027(BigDecimal base, ParametrosClassificacao p) {
         AliquotasProperties.Ano2027 a = aliquotas.ano2027();
+        return tributos2027(base, p, a.cbs(), a.ibsUf(), a.ibsMun());
+    }
+
+    /** Mesmo cálculo, com alíquotas nominais informadas (ex.: cenário de CBS diferente da configurada). */
+    public Tributos2027 tributos2027(BigDecimal base, ParametrosClassificacao p,
+                                     BigDecimal cbs, BigDecimal ibsUf, BigDecimal ibsMun) {
         BigDecimal vIs = percentual(base, p.aliquotaIs());
         BigDecimal baseIbsCbs = base.add(vIs);
         return new Tributos2027(
-                comReducao(baseIbsCbs, a.cbs(), p.reducaoCbs()),
-                comReducao(baseIbsCbs, a.ibsUf(), p.reducaoIbs()),
-                comReducao(baseIbsCbs, a.ibsMun(), p.reducaoIbs()),
+                comReducao(baseIbsCbs, cbs, p.reducaoCbs()),
+                comReducao(baseIbsCbs, ibsUf, p.reducaoIbs()),
+                comReducao(baseIbsCbs, ibsMun, p.reducaoIbs()),
                 vIs);
     }
 

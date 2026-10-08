@@ -4,6 +4,10 @@ import br.com.tribia.exception.ApiException;
 import br.com.tribia.model.Cliente;
 import br.com.tribia.repository.ClienteRepository;
 import br.com.tribia.service.NotaService;
+import br.com.tribia.service.calculo.CalculoService;
+import br.com.tribia.service.classificacao.ClassificacaoService;
+import br.com.tribia.service.classificacao.ClassificacoesSeedLoader;
+import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -14,14 +18,18 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Comparator;
 import java.util.Optional;
 
 /**
- * Importa as notas de demonstração na inicialização, para o painel não abrir vazio (adendo, seção 7).
- * Lê classpath:seed/{cnpjCliente}/*.xml e usa o mesmo fluxo do upload ({@link NotaService#importar}).
- * Os XMLs são gerados pelo GerarArquivosSeedTest. Desligue com tribia.seed.enabled=false.
+ * Prepara os dados de demonstração na inicialização, para o painel não abrir vazio (adendo, seção 7):
+ * 1. carrega seed/classificacoes.json no cache global (sem chamar a IA);
+ * 2. importa classpath:seed/{cnpjCliente}/*.xml pelo mesmo fluxo do upload ({@link NotaService#importar});
+ * 3. classifica (cache) e calcula cada nota, se tribia.seed.calcular=true.
+ * Os arquivos são gerados pelo GerarArquivosSeedTest. Desligue tudo com tribia.seed.enabled=false.
  */
 @Component
 @ConditionalOnProperty(name = "tribia.seed.enabled", havingValue = "true", matchIfMissing = true)
@@ -32,20 +40,33 @@ public class SeedRunner implements ApplicationRunner {
 
     private final NotaService notaService;
     private final ClienteRepository clienteRepository;
+    private final ClassificacoesSeedLoader classificacoesSeed;
+    private final ClassificacaoService classificacaoService;
+    private final CalculoService calculoService;
+    private final boolean calcular;
 
-    public SeedRunner(NotaService notaService, ClienteRepository clienteRepository) {
+    public SeedRunner(NotaService notaService, ClienteRepository clienteRepository,
+                      ClassificacoesSeedLoader classificacoesSeed, ClassificacaoService classificacaoService,
+                      CalculoService calculoService, @Value("${tribia.seed.calcular:true}") boolean calcular) {
         this.notaService = notaService;
         this.clienteRepository = clienteRepository;
+        this.classificacoesSeed = classificacoesSeed;
+        this.classificacaoService = classificacaoService;
+        this.calculoService = calculoService;
+        this.calcular = calcular;
     }
 
     @Override
     public void run(ApplicationArguments args) throws IOException {
+        classificacoesSeed.carregar();
+
         Resource[] arquivos = new PathMatchingResourcePatternResolver().getResources(PADRAO);
         // pasta do cliente + nome do arquivo (que começa pela data): ordem cronológica e ids estáveis
         Arrays.sort(arquivos, Comparator.comparing(SeedRunner::caminho));
 
         int importadas = 0;
         int falhas = 0;
+        List<Long> notas = new ArrayList<>();
         for (Resource arquivo : arquivos) {
             String cnpj = pastaDoCliente(arquivo);
             Optional<Cliente> cliente = clienteRepository.findByCnpj(cnpj);
@@ -55,7 +76,7 @@ public class SeedRunner implements ApplicationRunner {
                 continue;
             }
             try {
-                notaService.importar(cliente.get().getId(), arquivo.getContentAsByteArray());
+                notas.add(notaService.importar(cliente.get().getId(), arquivo.getContentAsByteArray()).getId());
                 importadas++;
             } catch (ApiException e) {
                 log.warn("Seed: {} rejeitado: {}", arquivo.getFilename(), e.getMessage());
@@ -63,6 +84,25 @@ public class SeedRunner implements ApplicationRunner {
             }
         }
         log.info("Seed: {} notas importadas, {} com falha", importadas, falhas);
+        if (calcular) {
+            classificarECalcular(notas);
+        }
+    }
+
+    private void classificarECalcular(List<Long> notas) {
+        int pendentes = 0;
+        String origem = null;
+        for (Long id : notas) {
+            pendentes += classificacaoService.classificar(id).pendentes().size();
+            try {
+                var r = calculoService.calcular(id, null);
+                origem = r.origem() == null ? origem : r.origem().name();
+            } catch (ApiException e) {
+                log.warn("Seed: nota {} não calculada: {}", id, e.getMessage());
+            }
+        }
+        log.info("Seed: {} notas classificadas e calculadas (origem: {}); {} itens sem classificação",
+                notas.size(), origem, pendentes);
     }
 
     private static String caminho(Resource r) {

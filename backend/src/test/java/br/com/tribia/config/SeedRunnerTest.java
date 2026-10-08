@@ -2,7 +2,11 @@ package br.com.tribia.config;
 
 import br.com.tribia.Fixtures;
 import br.com.tribia.model.Nota;
+import br.com.tribia.model.OrigemClassificacao;
 import br.com.tribia.model.TipoNota;
+import br.com.tribia.repository.CalculoRepository;
+import br.com.tribia.repository.ClassificacaoRepository;
+import br.com.tribia.repository.ItemRepository;
 import br.com.tribia.repository.NotaRepository;
 import br.com.tribia.service.NotaService;
 import org.junit.jupiter.api.Test;
@@ -19,8 +23,8 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Sobe a aplicação com o seed ligado (padrão). */
-@SpringBootTest
+/** Sobe a aplicação com o seed ligado (padrão), calculando pelo método simplificado (determinístico). */
+@SpringBootTest(properties = "tribia.calculo.modo=SIMPLIFICADA")
 class SeedRunnerTest {
 
     @Autowired
@@ -28,6 +32,26 @@ class SeedRunnerTest {
 
     @Autowired
     NotaService notaService;
+
+    @Autowired
+    ItemRepository itemRepository;
+
+    @Autowired
+    ClassificacaoRepository classificacaoRepository;
+
+    @Autowired
+    CalculoRepository calculoRepository;
+
+    @Test
+    void todoItemDoSeedFoiClassificadoPeloCacheECalculado() {
+        long itens = itemRepository.count();
+
+        assertThat(itens).isGreaterThan(50);
+        assertThat(classificacaoRepository.count()).as("classificações").isEqualTo(itens);
+        assertThat(calculoRepository.count()).as("cálculos").isEqualTo(itens);
+        assertThat(classificacaoRepository.findAll()).allSatisfy(c ->
+                assertThat(c.getOrigem()).isEqualTo(OrigemClassificacao.CACHE));
+    }
 
     @Test
     void todosOsXmlsDoSeedForamImportados() throws IOException {

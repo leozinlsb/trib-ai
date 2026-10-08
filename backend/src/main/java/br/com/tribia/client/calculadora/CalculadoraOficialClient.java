@@ -12,7 +12,6 @@ import br.com.tribia.client.calculadora.RegimeGeralApi.Requisicao;
 import br.com.tribia.client.calculadora.RegimeGeralApi.Resposta;
 import br.com.tribia.client.calculadora.ResultadoCalculo.AliquotasAplicadas;
 import br.com.tribia.client.calculadora.ResultadoCalculo.ItemCalculado;
-import br.com.tribia.config.AliquotasProperties;
 import br.com.tribia.service.apuracao.Tributos2027;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -35,7 +34,7 @@ import java.util.regex.Pattern;
 /**
  * Cliente da Calculadora RTC oficial (POST /calculadora/regime-geral).
  *
- * - Envia as alíquotas nominais de 2027 (tribia.aliquotas.ano2027), que a calculadora exige a partir de 01/01/2027;
+ * - Envia as alíquotas nominais da operação, que a calculadora exige a partir de 01/01/2027;
  *   por isso o resultado vem marcado como simulado.
  * - Se a calculadora não conhecer um NCM (ex.: 34022000, extinto na revisão de 2022), reenvia o item sem NCM
  *   e devolve um aviso: uma nota antiga não derruba o cálculo da nota inteira.
@@ -49,19 +48,18 @@ public class CalculadoraOficialClient implements CalculadoraClient {
     private static final Pattern NCM_NO_DETALHE = Pattern.compile("NCM de código (\\d+)");
 
     private final RestClient http;
-    private final AliquotasProperties aliquotas;
     private final ObjectMapper json;
 
-    public CalculadoraOficialClient(@Qualifier("calculadoraRestClient") RestClient http,
-                                    AliquotasProperties aliquotas, ObjectMapper json) {
+    public CalculadoraOficialClient(@Qualifier("calculadoraRestClient") RestClient http, ObjectMapper json) {
         this.http = http;
-        this.aliquotas = aliquotas;
         this.json = json;
     }
 
     @Override
     public ResultadoCalculo calcular(OperacaoCalculo op) {
-        List<ItemRequisicao> itens = op.itens().stream().map(this::paraRequisicao).toList();
+        AliquotasNominais nominais = new AliquotasNominais(op.aliquotas().cbs(), op.aliquotas().ibsUf(),
+                op.aliquotas().ibsMun());
+        List<ItemRequisicao> itens = op.itens().stream().map(i -> paraRequisicao(i, nominais)).toList();
         List<String> avisos = new ArrayList<>();
         Set<String> ncmsRemovidos = new HashSet<>();
 
@@ -94,13 +92,12 @@ public class CalculadoraOficialClient implements CalculadoraClient {
         }
     }
 
-    private ItemRequisicao paraRequisicao(ItemCalculo i) {
-        AliquotasProperties.Ano2027 a = aliquotas.ano2027();
+    private static ItemRequisicao paraRequisicao(ItemCalculo i, AliquotasNominais nominais) {
         ImpostoSeletivoRequisicao is = i.impostoSeletivo() == null ? null
                 : new ImpostoSeletivoRequisicao(i.impostoSeletivo().cst(), i.impostoSeletivo().cClassTrib(),
                 i.baseCalculo(), i.unidade(), i.quantidade());
         return new ItemRequisicao(i.numero(), i.ncm(), i.quantidade(), i.unidade(), i.cst(), i.cClassTrib(),
-                i.baseCalculo(), is, new AliquotasNominais(a.cbs(), a.ibsUf(), a.ibsMun()));
+                i.baseCalculo(), is, nominais);
     }
 
     private ResultadoCalculo converter(Resposta resp, OperacaoCalculo op, List<String> avisos) {

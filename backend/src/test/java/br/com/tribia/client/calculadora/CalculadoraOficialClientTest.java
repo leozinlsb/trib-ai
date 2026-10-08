@@ -40,7 +40,7 @@ class CalculadoraOficialClientTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder().baseUrl("http://calculadora.teste/api");
         servidor = MockRestServiceServer.bindTo(builder).build();
-        client = new CalculadoraOficialClient(builder.build(), Fixtures.ALIQUOTAS, new ObjectMapper());
+        client = new CalculadoraOficialClient(builder.build(), new ObjectMapper());
     }
 
     @Test
@@ -165,7 +165,8 @@ class CalculadoraOficialClientTest {
                         new ItemCalculo(3, "22021000", bd("48"), "UN", bd("479.52"), "000", "000001",
                                 ImpostoSeletivo.REVENDA),
                         new ItemCalculo(4, "22021000", bd("48"), "UN", bd("479.52"), "000", "000001",
-                                new ImpostoSeletivo("000", "000001"))));
+                                new ImpostoSeletivo("000", "000001"))),
+                new OperacaoCalculo.AliquotasNominais(bd("9.43"), bd("0.05"), bd("0.05")));
     }
 
     static BigDecimal bd(String v) {

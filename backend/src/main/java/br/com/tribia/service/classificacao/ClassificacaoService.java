@@ -1,0 +1,130 @@
+package br.com.tribia.service.classificacao;
+
+import br.com.tribia.dto.ClassificacaoNotaDto;
+import br.com.tribia.exception.RecursoNaoEncontradoException;
+import br.com.tribia.model.Classificacao;
+import br.com.tribia.model.ClassificacaoCache;
+import br.com.tribia.model.Item;
+import br.com.tribia.model.Nota;
+import br.com.tribia.model.OrigemClassificacao;
+import br.com.tribia.repository.ClassificacaoCacheRepository;
+import br.com.tribia.repository.ClassificacaoRepository;
+import br.com.tribia.repository.NotaRepository;
+import br.com.tribia.service.apuracao.ClassificacaoXml;
+import br.com.tribia.service.tabelas.TabelaCClassTrib;
+import br.com.tribia.util.ChaveClassificacao;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+/**
+ * Classifica os itens de uma nota, nesta ordem:
+ * 1. grupo IBS/CBS do XML (só CST + cClassTrib);
+ * 2. cache global por NCM + descrição normalizada;
+ * 3. (etapa 5) IA para o que sobrar.
+ * Itens já classificados não são tocados: reclassificar é papel da revisão (correção manual).
+ * Todo código passa pela tabela oficial: o que não estiver nela é ignorado.
+ */
+@Service
+public class ClassificacaoService {
+
+    private static final Logger log = LoggerFactory.getLogger(ClassificacaoService.class);
+
+    private final NotaRepository notaRepository;
+    private final ClassificacaoRepository classificacaoRepository;
+    private final ClassificacaoCacheRepository cacheRepository;
+    private final TabelaCClassTrib tabela;
+
+    public ClassificacaoService(NotaRepository notaRepository, ClassificacaoRepository classificacaoRepository,
+                                ClassificacaoCacheRepository cacheRepository, TabelaCClassTrib tabela) {
+        this.notaRepository = notaRepository;
+        this.classificacaoRepository = classificacaoRepository;
+        this.cacheRepository = cacheRepository;
+        this.tabela = tabela;
+    }
+
+    @Transactional
+    public ClassificacaoNotaDto classificar(Long notaId) {
+        Nota nota = notaRepository.buscarComItens(notaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Nota " + notaId + " não encontrada"));
+        Map<Long, Classificacao> existentes = classificacaoRepository
+                .findByItemIdIn(nota.getItens().stream().map(Item::getId).toList()).stream()
+                .collect(Collectors.toMap(c -> c.getItem().getId(), Function.identity()));
+
+        for (Item item : nota.getItens()) {
+            if (existentes.containsKey(item.getId())) {
+                continue;
+            }
+            Optional<Classificacao> nova = doXml(item).or(() -> doCache(item));
+            nova.ifPresent(c -> existentes.put(item.getId(), classificacaoRepository.save(c)));
+        }
+        // TODO etapa 5: IA para os itens que continuam sem classificação
+
+        return resumo(nota, existentes);
+    }
+
+    private Optional<Classificacao> doXml(Item item) {
+        return ClassificacaoXml.de(item).flatMap(x -> {
+            if (!tabela.validoParaNfe(x.cst(), x.cClassTrib())) {
+                log.warn("Item {} da nota {}: CST/cClassTrib {}/{} do XML não está na tabela oficial; ignorado",
+                        item.getNItem(), item.getNota().getId(), x.cst(), x.cClassTrib());
+                return Optional.empty();
+            }
+            return Optional.of(nova(item, x.cst(), x.cClassTrib(),
+                    "Classificação informada pelo emitente no grupo IBS/CBS da nota.",
+                    BigDecimal.ONE, OrigemClassificacao.XML, true));
+        });
+    }
+
+    private Optional<Classificacao> doCache(Item item) {
+        String chave = ChaveClassificacao.de(item.getNcm(), item.getDescricao());
+        return cacheRepository.findByChave(chave)
+                .filter(c -> tabela.validoParaNfe(c.getCst(), c.getCClassTrib()))
+                .map(c -> nova(item, c.getCst(), c.getCClassTrib(), c.getJustificativa(), c.getConfianca(),
+                        OrigemClassificacao.CACHE, c.isValidada()));
+    }
+
+    private Classificacao nova(Item item, String cst, String cClassTrib, String justificativa, BigDecimal confianca,
+                               OrigemClassificacao origem, boolean aceita) {
+        Classificacao c = new Classificacao(item);
+        c.definir(cst, cClassTrib, tabela.buscar(cClassTrib).orElseThrow().regime(), justificativa, confianca,
+                origem, aceita);
+        return c;
+    }
+
+    /** Grava (ou atualiza) uma entrada do cache global. Usado pelo seed e, depois, pela IA e pela revisão. */
+    @Transactional
+    public void gravarNoCache(String ncm, String descricao, String cst, String cClassTrib, String justificativa,
+                              BigDecimal confianca, String fonte, boolean validada) {
+        if (!tabela.validoParaNfe(cst, cClassTrib)) {
+            throw new IllegalArgumentException("CST/cClassTrib fora da tabela oficial: " + cst + "/" + cClassTrib);
+        }
+        String chave = ChaveClassificacao.de(ncm, descricao);
+        ClassificacaoCache e = cacheRepository.findByChave(chave).orElseGet(() -> new ClassificacaoCache(chave, ncm));
+        e.definir(cst, cClassTrib, justificativa, confianca, fonte, validada);
+        cacheRepository.save(e);
+    }
+
+    private static ClassificacaoNotaDto resumo(Nota nota, Map<Long, Classificacao> classificacoes) {
+        Map<OrigemClassificacao, Long> porOrigem = new EnumMap<>(OrigemClassificacao.class);
+        classificacoes.values().forEach(c -> porOrigem.merge(c.getOrigem(), 1L, Long::sum));
+        List<Integer> pendentes = new ArrayList<>();
+        for (Item i : nota.getItens()) {
+            if (!classificacoes.containsKey(i.getId())) {
+                pendentes.add(i.getNItem());
+            }
+        }
+        return new ClassificacaoNotaDto(nota.getId(), nota.getItens().size(), classificacoes.size(), porOrigem,
+                pendentes);
+    }
+}

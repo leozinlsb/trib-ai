@@ -8,9 +8,13 @@ import java.util.List;
  * Operação a calcular. A data define as regras aplicadas: para simular 2027, use uma data de 2027.
  *
  * @param codigoMunicipio código IBGE (7 dígitos) do local da operação
+ * @param aliquotas       alíquotas nominais (%) de CBS e IBS: a lei ainda não fixou as de 2027
  */
 public record OperacaoCalculo(String id, OffsetDateTime dataFatoGerador, String codigoMunicipio, String uf,
-                              List<ItemCalculo> itens) {
+                              List<ItemCalculo> itens, AliquotasNominais aliquotas) {
+
+    public record AliquotasNominais(BigDecimal cbs, BigDecimal ibsUf, BigDecimal ibsMun) {
+    }
 
     /**
      * @param numero         número do item na nota (nItem); volta igual no resultado

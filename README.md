@@ -33,6 +33,10 @@ ferramentas\iniciar-calculadora.bat
 O script consulta as APIs públicas `dados-abertos/versao` e `download/url?platform=jar` do portal
 piloto-cbs.tributos.gov.br e guarda a versão instalada em `versao.json`.
 
+Modo de cálculo (`tribia.calculo.modo`): `AUTO` (padrão: oficial e, se ela falhar, o cálculo simplificado com
+aviso), `OFICIAL` ou `SIMPLIFICADA`. O simplificado usa as mesmas fórmulas e tabelas oficiais e é conferido contra
+a calculadora real pelo `SimplificadaVsOficialContratoTest`.
+
 Observações:
 - A partir de 2027 a calculadora exige as alíquotas nominais; o TribIA envia as de `tribia.aliquotas.ano2027.*`,
   por isso o resultado vem marcado como **simulado**.

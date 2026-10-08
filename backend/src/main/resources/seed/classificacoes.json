@@ -1,0 +1,309 @@
+[ {
+  "ncm" : "10063021",
+  "descricao" : "ARROZ TIPO 1 5KG",
+  "cst" : "200",
+  "cClassTrib" : "200003",
+  "justificativa" : "Cesta Básica Nacional (Anexo I da LC 214/2025): alíquota zero de CBS e IBS. A regra oficial por NCM aponta o cClassTrib 200003 para este código.",
+  "confianca" : 0.95
+}, {
+  "ncm" : "07133319",
+  "descricao" : "FEIJAO CARIOCA 1KG",
+  "cst" : "200",
+  "cClassTrib" : "200003",
+  "justificativa" : "Cesta Básica Nacional (Anexo I da LC 214/2025): alíquota zero de CBS e IBS. A regra oficial por NCM aponta o cClassTrib 200003 para este código.",
+  "confianca" : 0.95
+}, {
+  "ncm" : "15079011",
+  "descricao" : "OLEO DE SOJA 900ML",
+  "cst" : "200",
+  "cClassTrib" : "200034",
+  "justificativa" : "Óleo de soja não integra a Cesta Básica Nacional: está no Anexo VII da LC 214/2025 (alimentos destinados ao consumo humano), com redução de 60% (cClassTrib 200034).",
+  "confianca" : 0.90
+}, {
+  "ncm" : "17019900",
+  "descricao" : "ACUCAR CRISTAL 1KG",
+  "cst" : "200",
+  "cClassTrib" : "200003",
+  "justificativa" : "Cesta Básica Nacional (Anexo I da LC 214/2025): alíquota zero de CBS e IBS. A regra oficial por NCM aponta o cClassTrib 200003 para este código.",
+  "confianca" : 0.95
+}, {
+  "ncm" : "19053100",
+  "descricao" : "BISCOITO RECHEADO CHOCOLATE 130G",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.85
+}, {
+  "ncm" : "18063210",
+  "descricao" : "CHOCOLATE AO LEITE 90G",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.90
+}, {
+  "ncm" : "04012010",
+  "descricao" : "LEITE UHT INTEGRAL 1L",
+  "cst" : "200",
+  "cClassTrib" : "200003",
+  "justificativa" : "Cesta Básica Nacional (Anexo I da LC 214/2025): alíquota zero de CBS e IBS. A regra oficial por NCM aponta o cClassTrib 200003 para este código.",
+  "confianca" : 0.95
+}, {
+  "ncm" : "09012100",
+  "descricao" : "CAFE TORRADO E MOIDO 500G",
+  "cst" : "200",
+  "cClassTrib" : "200003",
+  "justificativa" : "Cesta Básica Nacional (Anexo I da LC 214/2025): alíquota zero de CBS e IBS. A regra oficial por NCM aponta o cClassTrib 200003 para este código.",
+  "confianca" : 0.95
+}, {
+  "ncm" : "19021900",
+  "descricao" : "MACARRAO ESPAGUETE 500G",
+  "cst" : "200",
+  "cClassTrib" : "200003",
+  "justificativa" : "Cesta Básica Nacional (Anexo I da LC 214/2025): alíquota zero de CBS e IBS. A regra oficial por NCM aponta o cClassTrib 200003 para este código.",
+  "confianca" : 0.95
+}, {
+  "ncm" : "22021000",
+  "descricao" : "REFRIGERANTE COLA 2L",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "Bebida açucarada: CBS e IBS com tributação integral. Está no campo do Imposto Seletivo (10% em 2027), mas o IS é monofásico: cobrado do fabricante, não na revenda.",
+  "confianca" : 0.90
+}, {
+  "ncm" : "34025000",
+  "descricao" : "DETERGENTE LIQUIDO NEUTRO 500ML",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.80
+}, {
+  "ncm" : "10063021",
+  "descricao" : "ARROZ BRANCO TIPO 1 PACOTE 5KG",
+  "cst" : "200",
+  "cClassTrib" : "200003",
+  "justificativa" : "Cesta Básica Nacional (Anexo I da LC 214/2025): alíquota zero de CBS e IBS. A regra oficial por NCM aponta o cClassTrib 200003 para este código.",
+  "confianca" : 0.95
+}, {
+  "ncm" : "07133319",
+  "descricao" : "FEIJAO CARIOCA TIPO 1 1KG",
+  "cst" : "200",
+  "cClassTrib" : "200003",
+  "justificativa" : "Cesta Básica Nacional (Anexo I da LC 214/2025): alíquota zero de CBS e IBS. A regra oficial por NCM aponta o cClassTrib 200003 para este código.",
+  "confianca" : 0.95
+}, {
+  "ncm" : "04012010",
+  "descricao" : "LEITE UHT INTEGRAL CAIXA 1L",
+  "cst" : "200",
+  "cClassTrib" : "200003",
+  "justificativa" : "Cesta Básica Nacional (Anexo I da LC 214/2025): alíquota zero de CBS e IBS. A regra oficial por NCM aponta o cClassTrib 200003 para este código.",
+  "confianca" : 0.95
+}, {
+  "ncm" : "19053100",
+  "descricao" : "BISCOITO RECHEADO SABOR CHOCOLATE 130G",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.85
+}, {
+  "ncm" : "18063210",
+  "descricao" : "CHOCOLATE AO LEITE BARRA 90G",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.90
+}, {
+  "ncm" : "30049069",
+  "descricao" : "DIPIRONA SODICA 500MG 10 COMPRIMIDOS",
+  "cst" : "200",
+  "cClassTrib" : "200032",
+  "justificativa" : "Medicamento registrado na Anvisa: redução de 60% (art. 133 da LC 214/2025, cClassTrib 200032). Pode ter alíquota zero se o princípio ativo constar do Anexo XIV (200009): confirmar na revisão.",
+  "confianca" : 0.65
+}, {
+  "ncm" : "30049069",
+  "descricao" : "PARACETAMOL 750MG 20 COMPRIMIDOS",
+  "cst" : "200",
+  "cClassTrib" : "200032",
+  "justificativa" : "Medicamento registrado na Anvisa: redução de 60% (art. 133 da LC 214/2025, cClassTrib 200032). Pode ter alíquota zero se o princípio ativo constar do Anexo XIV (200009): confirmar na revisão.",
+  "confianca" : 0.65
+}, {
+  "ncm" : "30049069",
+  "descricao" : "IBUPROFENO 400MG 10 CAPSULAS",
+  "cst" : "200",
+  "cClassTrib" : "200032",
+  "justificativa" : "Medicamento registrado na Anvisa: redução de 60% (art. 133 da LC 214/2025, cClassTrib 200032). Pode ter alíquota zero se o princípio ativo constar do Anexo XIV (200009): confirmar na revisão.",
+  "confianca" : 0.65
+}, {
+  "ncm" : "21069030",
+  "descricao" : "VITAMINA C 1G 30 COMPRIMIDOS EFERVESCENTES",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "Suplemento alimentar: as únicas regras oficiais para o NCM (200043/200044) tratam de fornecimento à administração pública. Na venda a uma clínica, tributação integral. Se o produto tiver registro de medicamento na Anvisa, seria 200032 (60%): confirmar na revisão.",
+  "confianca" : 0.60
+}, {
+  "ncm" : "30059090",
+  "descricao" : "ALGODAO HIDROFILO 500G",
+  "cst" : "200",
+  "cClassTrib" : "200030",
+  "justificativa" : "Algodão hidrófilo: dispositivo médico do Anexo IV da LC 214/2025 (item 35), com redução de 60% (cClassTrib 200030). O 200005 (100%) vale só para compras da administração pública.",
+  "confianca" : 0.85
+}, {
+  "ncm" : "96190000",
+  "descricao" : "FRALDA GERIATRICA G 8 UNIDADES",
+  "cst" : "200",
+  "cClassTrib" : "200035",
+  "justificativa" : "Fraldas: produto de higiene pessoal do Anexo VIII da LC 214/2025 (item 7), com redução de 60% (cClassTrib 200035).",
+  "confianca" : 0.90
+}, {
+  "ncm" : "30049099",
+  "descricao" : "LOSARTANA POTASSICA 50MG 30 COMPRIMIDOS",
+  "cst" : "200",
+  "cClassTrib" : "200032",
+  "justificativa" : "Medicamento registrado na Anvisa: redução de 60% (art. 133 da LC 214/2025, cClassTrib 200032). Pode ter alíquota zero se o princípio ativo constar do Anexo XIV (200009): confirmar na revisão.",
+  "confianca" : 0.65
+}, {
+  "ncm" : "40151900",
+  "descricao" : "LUVA DE PROCEDIMENTO LATEX M CX 100",
+  "cst" : "200",
+  "cClassTrib" : "200030",
+  "justificativa" : "Luvas de procedimento: dispositivo médico do Anexo IV da LC 214/2025 (item 58), com redução de 60% (cClassTrib 200030).",
+  "confianca" : 0.85
+}, {
+  "ncm" : "30049069",
+  "descricao" : "DIPIRONA SODICA 500MG CX 10 COMP",
+  "cst" : "200",
+  "cClassTrib" : "200032",
+  "justificativa" : "Medicamento registrado na Anvisa: redução de 60% (art. 133 da LC 214/2025, cClassTrib 200032). Pode ter alíquota zero se o princípio ativo constar do Anexo XIV (200009): confirmar na revisão.",
+  "confianca" : 0.65
+}, {
+  "ncm" : "30049069",
+  "descricao" : "PARACETAMOL 750MG CX 20 COMP",
+  "cst" : "200",
+  "cClassTrib" : "200032",
+  "justificativa" : "Medicamento registrado na Anvisa: redução de 60% (art. 133 da LC 214/2025, cClassTrib 200032). Pode ter alíquota zero se o princípio ativo constar do Anexo XIV (200009): confirmar na revisão.",
+  "confianca" : 0.65
+}, {
+  "ncm" : "30049069",
+  "descricao" : "IBUPROFENO 400MG CX 10 CAPS",
+  "cst" : "200",
+  "cClassTrib" : "200032",
+  "justificativa" : "Medicamento registrado na Anvisa: redução de 60% (art. 133 da LC 214/2025, cClassTrib 200032). Pode ter alíquota zero se o princípio ativo constar do Anexo XIV (200009): confirmar na revisão.",
+  "confianca" : 0.65
+}, {
+  "ncm" : "96190000",
+  "descricao" : "FRALDA GERIATRICA TAMANHO G PCT 8",
+  "cst" : "200",
+  "cClassTrib" : "200035",
+  "justificativa" : "Fraldas: produto de higiene pessoal do Anexo VIII da LC 214/2025 (item 7), com redução de 60% (cClassTrib 200035).",
+  "confianca" : 0.90
+}, {
+  "ncm" : "21069030",
+  "descricao" : "VITAMINA C 1G EFERVESCENTE 30 COMP",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "Suplemento alimentar: as únicas regras oficiais para o NCM (200043/200044) tratam de fornecimento à administração pública. Na venda a uma clínica, tributação integral. Se o produto tiver registro de medicamento na Anvisa, seria 200032 (60%): confirmar na revisão.",
+  "confianca" : 0.60
+}, {
+  "ncm" : "30059090",
+  "descricao" : "ALGODAO HIDROFILO ROLO 500G",
+  "cst" : "200",
+  "cClassTrib" : "200030",
+  "justificativa" : "Algodão hidrófilo: dispositivo médico do Anexo IV da LC 214/2025 (item 35), com redução de 60% (cClassTrib 200030). O 200005 (100%) vale só para compras da administração pública.",
+  "confianca" : 0.85
+}, {
+  "ncm" : "30049099",
+  "descricao" : "LOSARTANA POTASSICA 50MG CX 30 COMP",
+  "cst" : "200",
+  "cClassTrib" : "200032",
+  "justificativa" : "Medicamento registrado na Anvisa: redução de 60% (art. 133 da LC 214/2025, cClassTrib 200032). Pode ter alíquota zero se o princípio ativo constar do Anexo XIV (200009): confirmar na revisão.",
+  "confianca" : 0.65
+}, {
+  "ncm" : "40151900",
+  "descricao" : "LUVA PROCEDIMENTO LATEX M CX 100",
+  "cst" : "200",
+  "cClassTrib" : "200030",
+  "justificativa" : "Luvas de procedimento: dispositivo médico do Anexo IV da LC 214/2025 (item 58), com redução de 60% (cClassTrib 200030).",
+  "confianca" : 0.85
+}, {
+  "ncm" : "28289011",
+  "descricao" : "AGUA SANITARIA 5L",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.75
+}, {
+  "ncm" : "38089419",
+  "descricao" : "DESINFETANTE LAVANDA 2L",
+  "cst" : "200",
+  "cClassTrib" : "200035",
+  "justificativa" : "Desinfetante: produto de limpeza do Anexo VIII da LC 214/2025 (item 5), com redução de 60% (cClassTrib 200035).",
+  "confianca" : 0.85
+}, {
+  "ncm" : "39232190",
+  "descricao" : "SACO DE LIXO 100L ROLO 20 UNIDADES",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.90
+}, {
+  "ncm" : "96039000",
+  "descricao" : "VASSOURA DE NYLON",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.90
+}, {
+  "ncm" : "48182000",
+  "descricao" : "PAPEL TOALHA 2 ROLOS",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral. O Anexo VIII (higiene e limpeza) alcança o papel higiênico, não as toalhas de papel.",
+  "confianca" : 0.85
+}, {
+  "ncm" : "39249000",
+  "descricao" : "ESPONJA DUPLA FACE",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.90
+}, {
+  "ncm" : "39249000",
+  "descricao" : "BALDE PLASTICO 10L",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.90
+}, {
+  "ncm" : "34025000",
+  "descricao" : "DETERGENTE NEUTRO 500ML",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.80
+}, {
+  "ncm" : "96039000",
+  "descricao" : "VASSOURA NYLON CABO 1,20M",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.90
+}, {
+  "ncm" : "39249000",
+  "descricao" : "BALDE PLASTICO 10 LITROS",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.90
+}, {
+  "ncm" : "39232190",
+  "descricao" : "SACO LIXO 100L RL 20UN",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral.",
+  "confianca" : 0.90
+}, {
+  "ncm" : "48182000",
+  "descricao" : "PAPEL TOALHA PCT 2 ROLOS",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "NCM sem regra de redução na base oficial (NCM aplicável) e produto sem tratamento diferenciado na LC 214/2025: tributação integral. O Anexo VIII (higiene e limpeza) alcança o papel higiênico, não as toalhas de papel.",
+  "confianca" : 0.85
+} ]

@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-/** Nota com itens. Classificações e cálculos entram nas próximas etapas. */
+/** Nota com itens, cada um com sua classificação e seu cálculo (quando houver). */
 public record NotaDetalheDto(
         Long id,
         Long clienteId,
@@ -27,11 +27,10 @@ public record NotaDetalheDto(
         BigDecimal valorTotal,
         List<ItemDto> itens
 ) {
-    public static NotaDetalheDto de(Nota n) {
+    public static NotaDetalheDto de(Nota n, List<ItemDto> itens) {
         return new NotaDetalheDto(n.getId(), n.getCliente().getId(), n.getTipo(), n.getChave(), n.getNumero(),
                 n.getSerie(), n.getDataEmissao(), n.getCompetencia(), n.getEmitenteCnpj(), n.getEmitenteNome(),
                 n.getDestinatarioDocumento(), n.getDestinatarioNome(), n.getContraparteCnpj(),
-                n.getContraparteNome(), n.getValorProdutos(), n.getValorTotal(),
-                n.getItens().stream().map(ItemDto::de).toList());
+                n.getContraparteNome(), n.getValorProdutos(), n.getValorTotal(), itens);
     }
 }

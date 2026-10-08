@@ -112,7 +112,10 @@ def ncm_aplicavel(db, codigos_ibs_cbs):
             from NCM_APLICAVEL n
             join CLASSIFICACAO_TRIBUTARIA c on c.CLTR_ID = n.NCMA_CLTR_ID
             left join ANEXO a on a.ANXO_ID = n.NCMA_ANXO_ID
-            where n.NCMA_FIM_VIGENCIA is null or n.NCMA_FIM_VIGENCIA >= ?
+            where (n.NCMA_FIM_VIGENCIA is null or n.NCMA_FIM_VIGENCIA >= ?)
+              -- só classificações de CBS/IBS: as do Imposto Seletivo usam a mesma numeração (000001, 200007...)
+              and exists (select 1 from TRIBUTO_SITUACAO_TRIBUTARIA ts join TRIBUTO t on t.TBTO_ID = ts.TRST_TBTO_ID
+                          where ts.TRST_SITR_ID = c.CLTR_SITR_ID and t.TBTO_SIGLA = 'CBS')
             order by n.NCMA_NCM_CD, c.CLTR_CD""", (VIGENTE_EM,)):
         if cclass in codigos_ibs_cbs:
             linhas.append([str(ncm), cclass, anexo or "", item or "", "|".join(sorted(excecoes.get(ncma_id, [])))])
