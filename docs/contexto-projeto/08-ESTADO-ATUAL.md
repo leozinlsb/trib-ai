@@ -1,5 +1,10 @@
 # 08 — Estado exato do projeto (08/10/2026)
 
+## Atualização de 08/10/2026 (Etapa 4 iniciada)
+
+Etapa 2 concluída (aprovada), Etapa 3 parcial e revisada, Etapa 4 iniciada. Decisão S5 aprovada: base 2027
+sem ICMS/PIS/Cofins; suíte 220 testes / 0 falhas / 0 erros / 7 ignorados. Detalhes em `HANDOFF.md`.
+
 ## Atualização após P0.1 autorizada
 
 ### Evidência mais recente: execução autônoma da Etapa 1

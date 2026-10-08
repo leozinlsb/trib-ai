@@ -54,20 +54,20 @@ class RelatorioControllerTest {
         assertThat(linhas).anySatisfy(l -> assertThat(l).contains(";ENTRADA;COMPRA;"));
     }
 
-    /** Mantém os valores anteriores visíveis: contrato CSV não deve mascarar a divergência de base fiscal. */
+    /** Base 2027 sem ICMS/PIS/Cofins (LC 214, art. 12, § 2º; decisão S5 de 08/10/2026). Refrigerante: (959,04 − ICMS 172,63) × 9,53%. */
     @Test
-    void comparativoFiscalDoCsvMantemReferenciaPendenteDeValidacao() throws Exception {
+    void comparativoFiscalDoCsvUsaABaseSemTributos() throws Exception {
         String csv = mvc.perform(get("/api/clientes/1/relatorio.csv")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         List<String> linhas = csv.lines().toList();
         String refrigerante = linhas.stream().filter(l -> l.contains(";REFRIGERANTE COLA 2L;22021000;"))
                 .findFirst().orElseThrow();
-        assertThat(refrigerante).contains(";91,40;");
+        assertThat(refrigerante).contains(";74,94;");
         assertThat(linhas).contains(
                 "Resumo;Débito;Crédito;Líquido",
                 "Hoje (PIS/Cofins);183,62;150,40;33,22",
-                "2027 (CBS/IBS/IS);298,85;154,95;143,90",
-                "Variação do líquido (%);333,17",
+                "2027 (CBS/IBS/IS);230,81;112,73;118,08",
+                "Variação do líquido (%);255,45",
                 "Itens no relatório;23",
                 "Itens sem cálculo (fora do resumo);0");
     }

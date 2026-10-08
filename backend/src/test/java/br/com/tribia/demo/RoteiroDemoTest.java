@@ -68,8 +68,8 @@ class RoteiroDemoTest {
 
         // 1. tela inicial: clientes com indicadores
         mvc.perform(get("/api/clientes"))
-                .andExpect(jsonPath("$[0].indicadores.liquido2027").value(143.90))
-                .andExpect(jsonPath("$[1].indicadores.variacaoPct").value(-20.33));
+                .andExpect(jsonPath("$[0].indicadores.liquido2027").value(118.08))
+                .andExpect(jsonPath("$[1].indicadores.variacaoPct").value(-32.63));
 
         // 2. upload ao vivo de produtos novos: a IA classifica (aqui, pelas respostas gravadas) e a nota é recalculada
         long novos = upload(1, "1-distribuidora_nf1004.xml");

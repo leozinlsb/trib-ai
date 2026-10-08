@@ -10,9 +10,9 @@
 
 Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_MESTRE_TRIBIA.md`).
 
-- **Estado verificado:** backend 220 testes / 15 falhas / 0 erros / 7 ignorados (sem calculadora no ar).
-  As 15 são todas S5 (base 2027 sem ICMS/PIS/Cofins × valores esperados antigos); **decisão do responsável
-  pendente**, nenhuma expectativa alterada. Front: `npm run build`, `npm run lint` e `npm test` (8/8) verdes.
+- **Decisão S5 aprovada:** base 2027 sem ICMS/PIS/Cofins. Os 15 valores esperados foram atualizados e
+  conferidos à mão. **Backend: 220 testes / 0 falhas / 0 erros / 7 ignorados**, nas duas ordens.
+  Novos resultados: Distribuidora +255,45%, Farmácia −32,63%, Loja −28,24% (antes −1,35%). Front: `npm run build`, `npm run lint` e `npm test` (8/8) verdes.
 - **`.env` na raiz** (fora do Git) agora é lido pelo backend (`spring.config.import`); variável de ambiente
   tem prioridade; testes continuam com a chave vazia (conferido). O1 resolvido pelo responsável.
 - **Ensaio da demo** (`backend/ferramentas/ensaio-demo.ps1`) entra como ADMIN com CSRF. Executado 3/3 verde
@@ -21,7 +21,7 @@ Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_
 - **Revisão da Etapa 3 (motor de alertas):** coerente com o backend (mesma lista de códigos por adquirente,
   mesma base, opções completas da tabela). Achados R1 e R2 (alertas de compra) em `PENDENCIAS.md`.
   Testes novos: `frontend/scripts/alertas.test.ts` (`npm test`, Node 22.6+, sem dependências).
-- Próximo: decisão S5 → suíte verde; E2E no navegador; ensaio com calculadora oficial e IA real.
+- Próximo: E2E no navegador; ensaio com calculadora oficial e IA real; R1/R2 na Etapa 3.
 
 ## Registro anterior — Etapa 3 iniciada: motor de alertas (branch `dev/nicolau`, 08/10/2026)
 

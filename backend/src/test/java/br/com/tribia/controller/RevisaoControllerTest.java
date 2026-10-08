@@ -110,8 +110,9 @@ class RevisaoControllerTest {
                 .andExpect(jsonPath("$.item.classificacao.confianca").value(1))
                 .andExpect(jsonPath("$.item.classificacao.revisada").value(true))
                 .andExpect(jsonPath("$.item.calculo.reducaoCbs").value(60))
-                // nota 501: 45 x 24,90 = 1.120,50. CBS 9,43% x 40% = 42,265 -> 42,27; IBS 0,02% = 0,22 + 0,22
-                .andExpect(jsonPath("$.item.calculo.imposto2027").value(42.71));
+                // nota 501: base 1.120,50 − ICMS 201,69 − PIS 7,28 − Cofins 33,62 = 877,91.
+                // CBS 9,43% x 40% = 33,114 -> 33,11; IBS 0,02% = 0,18 + 0,18
+                .andExpect(jsonPath("$.item.calculo.imposto2027").value(33.47));
 
         mvc.perform(get("/api/clientes/2/revisao")).andExpect(jsonPath("$.total").value(12));
 
@@ -147,7 +148,7 @@ class RevisaoControllerTest {
     @Test
     @Transactional
     void usoEConsumoTiraOCreditoDaCompra() throws Exception {
-        // compra de biscoitos da distribuidora: 690,00 -> crédito 2027 de 65,07 + 0,34 + 0,34
+        // compra de biscoitos: base 690,00 − 124,20 − 11,38 − 52,44 = 501,98 -> crédito 2027 de 47,34 + 0,25 + 0,25
         long id = itemId(1, "BISCOITO RECHEADO SABOR CHOCOLATE 130G");
 
         revisar(id, "{\"creditavel\": false}")
@@ -157,7 +158,7 @@ class RevisaoControllerTest {
                 .andExpect(jsonPath("$.item.calculo.imposto2027").value(0));
 
         mvc.perform(get("/api/clientes/1/dashboard"))
-                .andExpect(jsonPath("$.indicadores.credito2027").value(89.20)); // 154,95 - 65,75
+                .andExpect(jsonPath("$.indicadores.credito2027").value(64.89)); // 112,73 - 47,84
     }
 
     @Test
@@ -200,7 +201,8 @@ class RevisaoControllerTest {
         revisar(detergente, "{\"cClassTrib\": \"000001\"}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.item.classificacao.origem").value("MANUAL"))
-                .andExpect(jsonPath("$.item.calculo.imposto2027").value(19.14));
+                // base 200,88 − 36,16 − 3,31 − 15,27 = 146,14: CBS 13,78 + IBS 0,07 + 0,07
+                .andExpect(jsonPath("$.item.calculo.imposto2027").value(13.92));
     }
 
     @Test

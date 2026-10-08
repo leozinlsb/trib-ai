@@ -40,27 +40,27 @@ class DashboardControllerTest {
                 .andExpect(jsonPath("$.indicadores.faturamento").value(15915.32))
                 .andExpect(jsonPath("$.indicadores.compras").value(9092.00))
                 .andExpect(jsonPath("$.indicadores.liquidoHoje").value(33.22))
-                .andExpect(jsonPath("$.indicadores.liquido2027").value(143.90))
-                .andExpect(jsonPath("$.indicadores.variacaoPct").value(333.17))
-                .andExpect(jsonPath("$.indicadores.credito2027").value(154.95))
+                .andExpect(jsonPath("$.indicadores.liquido2027").value(118.08))
+                .andExpect(jsonPath("$.indicadores.variacaoPct").value(255.45))
+                .andExpect(jsonPath("$.indicadores.credito2027").value(112.73))
                 .andExpect(jsonPath("$.indicadores.saldoCredor").value(false))
                 .andExpect(jsonPath("$.indicadores.pendentesRevisao").value(0))
                 .andExpect(jsonPath("$.comparativo.hoje.debito").value(183.62))
                 .andExpect(jsonPath("$.comparativo.hoje.credito").value(150.40))
-                .andExpect(jsonPath("$.comparativo['2027'].debito").value(298.85))
-                .andExpect(jsonPath("$.comparativo['2027'].credito").value(154.95))
+                .andExpect(jsonPath("$.comparativo['2027'].debito").value(230.81))
+                .andExpect(jsonPath("$.comparativo['2027'].credito").value(112.73))
                 .andExpect(jsonPath("$.avisos", hasItem(containsString("estimativa"))));
     }
 
     @Test
     void impostoLiquidoPorMes() throws Exception {
-        // agosto: débito 2027 = biscoito 39,91 + chocolate 45,67 + óleo 18,28 (cesta básica zero); compras só de cesta
+        // agosto: débito 2027 = biscoito 29,03 + chocolate 33,21 + óleo 18,28 (cesta básica zero); compras só de cesta
         mvc.perform(get("/api/clientes/1/dashboard"))
                 .andExpect(jsonPath("$.porMes", hasSize(3)))
                 .andExpect(jsonPath("$.porMes[0].competencia").value("2026-08"))
                 .andExpect(jsonPath("$.porMes[0].faturamento").value(4687.90))
                 .andExpect(jsonPath("$.porMes[0].liquidoHoje").value(83.07))
-                .andExpect(jsonPath("$.porMes[0].liquido2027").value(103.86))
+                .andExpect(jsonPath("$.porMes[0].liquido2027").value(80.52))
                 .andExpect(jsonPath("$.porMes[2].competencia").value("2026-10"));
     }
 
@@ -81,15 +81,16 @@ class DashboardControllerTest {
         mvc.perform(get("/api/clientes/1/dashboard"))
                 .andExpect(jsonPath("$.topItens[0].descricao").value("REFRIGERANTE COLA 2L"))
                 .andExpect(jsonPath("$.topItens[0].impostoHoje").value(0))
-                .andExpect(jsonPath("$.topItens[0].imposto2027").value(91.40))
-                .andExpect(jsonPath("$.topItens[0].diferenca").value(91.40))
+                .andExpect(jsonPath("$.topItens[0].imposto2027").value(74.94))
+                .andExpect(jsonPath("$.topItens[0].diferenca").value(74.94))
                 .andExpect(jsonPath("$.topItens[0].regime").value("INTEGRAL"))
-                .andExpect(jsonPath("$.topItens[1].descricao").value("OLEO DE SOJA 900ML"))
-                .andExpect(jsonPath("$.topItens[1].diferenca").value(18.28))
+                .andExpect(jsonPath("$.topItens[1].descricao").value("CHOCOLATE AO LEITE 90G"))
+                .andExpect(jsonPath("$.topItens[1].diferenca").value(-24.99))
+                .andExpect(jsonPath("$.topItens[?(@.descricao == 'OLEO DE SOJA 900ML')].diferenca").value(18.28))
                 .andExpect(jsonPath("$.topFornecedores[0].nome").value("INDUSTRIA FICTICIA DE DOCES E BISCOITOS LTDA"))
                 .andExpect(jsonPath("$.topFornecedores[0].compras").value(1626.00))
                 .andExpect(jsonPath("$.topFornecedores[0].creditoHoje").value(150.40))
-                .andExpect(jsonPath("$.topFornecedores[0].credito2027").value(154.95))
+                .andExpect(jsonPath("$.topFornecedores[0].credito2027").value(112.73))
                 .andExpect(jsonPath("$.topFornecedores", hasSize(3)));
     }
 
@@ -109,21 +110,21 @@ class DashboardControllerTest {
                 .andExpect(jsonPath("$.indicadores.compras").value(9211.00))
                 .andExpect(jsonPath("$.comparativo.hoje.credito").value(0))
                 .andExpect(jsonPath("$.indicadores.liquidoHoje").value(374.66))
-                .andExpect(jsonPath("$.indicadores.credito2027").value(419.29))
-                .andExpect(jsonPath("$.indicadores.liquido2027").value(298.49))
-                .andExpect(jsonPath("$.indicadores.variacaoPct").value(-20.33))
+                .andExpect(jsonPath("$.indicadores.credito2027").value(316.48))
+                .andExpect(jsonPath("$.indicadores.liquido2027").value(252.40))
+                .andExpect(jsonPath("$.indicadores.variacaoPct").value(-32.63))
                 // medicamentos (0,65) e vitamina C (0,60) ficam abaixo de 0,70
                 .andExpect(jsonPath("$.indicadores.pendentesRevisao").value(14))
                 .andExpect(jsonPath("$.avisos", hasItem(containsString("14 item(ns) aguardando revisão"))));
     }
 
     @Test
-    void lojaFicaPraticamenteEstavel() throws Exception {
+    void lojaPagaMenosEm2027() throws Exception {
         mvc.perform(get("/api/clientes/3/dashboard"))
                 .andExpect(jsonPath("$.indicadores.faturamento").value(14395.80))
                 .andExpect(jsonPath("$.indicadores.liquidoHoje").value(552.57))
-                .andExpect(jsonPath("$.indicadores.liquido2027").value(545.10))
-                .andExpect(jsonPath("$.indicadores.variacaoPct").value(-1.35));
+                .andExpect(jsonPath("$.indicadores.liquido2027").value(396.55))
+                .andExpect(jsonPath("$.indicadores.variacaoPct").value(-28.24));
     }
 
     @Test
@@ -157,8 +158,8 @@ class DashboardControllerTest {
                 .andExpect(jsonPath("$", hasSize(3)))
                 .andExpect(jsonPath("$[0].cnpj").value("10433218000193"))
                 .andExpect(jsonPath("$[0].notas").value(6))
-                .andExpect(jsonPath("$[0].indicadores.liquido2027").value(143.90))
-                .andExpect(jsonPath("$[1].indicadores.variacaoPct").value(-20.33))
+                .andExpect(jsonPath("$[0].indicadores.liquido2027").value(118.08))
+                .andExpect(jsonPath("$[1].indicadores.variacaoPct").value(-32.63))
                 .andExpect(jsonPath("$[1].indicadores.pendentesRevisao").value(14))
                 .andExpect(jsonPath("$[2].indicadores.faturamento").value(14395.80));
     }

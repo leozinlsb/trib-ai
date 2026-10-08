@@ -34,6 +34,11 @@ Sem commit, sem mudanças fiscais, sem tocar dados reais. Abertos:
 
 ## Testes do backend (08/10/2026)
 
+**Atual (após a decisão S5, 08/10/2026): 220 testes, 0 falhas, 0 erros, 7 ignorados**, nas duas ordens
+(`-Dsurefire.runOrder=reversealphabetical`), sem a calculadora no ar (3 contratos RTC + 2 Gemini reais +
+2 geradores opt-in ignorados). Front: build, lint e `npm test` (8) verdes. Histórico abaixo.
+
+
 Histórico anterior: 156 testes, 40 falhas + 1 erro → 23 falhas, 0 erros, 7 ignorados.
 Resultado inicial reproduzido: 172 testes, 22 falhas, 0 erros, 7 ignorados.
 Resultado ampliado anterior: 178 testes, 148 passaram, 23 falhas, 0 erros, 7 ignorados.
@@ -52,11 +57,11 @@ em 6 classes: Apuração, ClassificaçãoIA, Dashboard, Relatório, Revisão e R
 não mudou. Desses 36, 18 passaram; os outros 18 agora mostram a falha real que o 401 escondia. Nenhuma das 23
 restantes era de autenticação (evidências históricas); a execução P0.1 não mudou esses testes:
 
-## Divergências fiscais restantes
+## Decisões fiscais registradas
 
-| Falhas | Causa comprovada | Decisão pendente |
-|--------|------------------|------------------|
-| 15 (Apuração 4, Dashboard 6, Revisão 3, Roteiro 1, CSV 1) | Padrão `excluir-tributos-da-base=true` subtrai ICMS/PIS/Cofins; referências antigas usam base cheia. Experimento causal em H2 apenas com base antiga: 15/15 aprovados. Ex.: crédito 74,34 esperado / 54,07 atual. Não é solução de produção. | Validar incidência na operação projetada, dados necessários e exclusões; só então corrigir implementação/fixtures/gabarito. Auditoria e fontes no relatório, Etapa 3. |
+| # | Decisão |
+|---|---------|
+| S5 | 08/10/2026, aprovada pelo responsável: a base de CBS/IBS de 2027 exclui ICMS, PIS e Cofins (`tribia.calculo.excluir-tributos-da-base=true`). ICMS: LC 214, art. 12, § 2º (excluído da base de 2026 a 2032). PIS/Cofins: extintos em 2027, a projeção supõe o preço sem eles (hipótese de projeção, não artigo específico). Os 15 valores esperados foram atualizados e conferidos à mão (ex.: refrigerante (959,04 − 172,63) × 9,53% = 74,94; biscoito (690,00 − 188,02) → crédito 47,84). Continua estimativa: validação profissional recomendada. |
 
 ## Limitações técnicas
 
@@ -90,7 +95,7 @@ restantes era de autenticação (evidências históricas); a execução P0.1 nã
 | S2 | Compras de fornecedor do Simples Nacional: padrão `SEM_CREDITO` (conservador), porque a nota não traz o valor recolhido no Simples (`tribia.calculo.credito-fornecedor-simples`). |
 | S3 | Comparativo atual não inclui apuração de ICMS/ISS; não representa carga tributária total. |
 | S4 | A alíquota da CBS 2027 é estimativa (9,43%, configurável). TODO: confirmar se haverá a redução de 0,1 p.p. de compensação do IBS. |
-| S5 | Código subtrai ICMS/PIS/Cofins do valor da operação; não recebe ISS nessa função. LC 214 art. 12 consultado confirma direção das exclusões, não o motor/projeção temporal inteira. 15 referências antigas preservadas; validação profissional antes de mudar fórmula/gabarito. Avisos de estimativa na UI/API; não usar como apuração definitiva. |
+| S5 | Base 2027 sem ICMS/PIS/Cofins: ver "Decisões fiscais registradas". O comparativo não inclui o ICMS (S3), que segue igual nos dois cenários. |
 | S6 | Imposto Seletivo: a empresa pode ser marcada como fabricante (campo `fabricante`); as demais são tratadas como revendedoras (CST 200 / 200007, IS zero). |
 | S7 | Código prioriza município/UF de destino da nota; usa cliente como fallback se ausente. Correspondência com local fiscal da operação ainda precisa de validação. |
 | S8 | Crédito de PIS/Cofins hoje (Lucro Real) pela alíquota do comprador (1,65% + 7,6%), não pelo destacado pelo fornecedor. |
@@ -105,7 +110,7 @@ restantes era de autenticação (evidências históricas); a execução P0.1 nã
 | V2 | Vitamina C (NCM 2106.90.30): integral ou medicamento (200032)? Seed usa integral com confiança 0,60. |
 | V3 | Detergente (NCM 3402.50): a IA chegou a sugerir o Anexo VIII (60%); a lista oficial por NCM não inclui esse código. Hoje: integral. |
 | V4 | Água sanitária (2828.90.11) e papel toalha (4818.20): fora do Anexo VIII pela lista oficial; confirmar. |
-| V5 | Resultado da Distribuidora (+333% em 2027: refrigerante deixa de ser monofásico na revenda; óleo de soja sai da alíquota zero para redução de 60%). |
+| V5 | Resultados com a base sem tributos (S5): Distribuidora +255,45% em 2027 (refrigerante deixa de ser monofásico na revenda; óleo de soja sai da alíquota zero para redução de 60%), Farmácia −32,63%, Loja −28,24% (antes −1,35% com a base cheia). |
 | V6 | Códigos de "insumos agropecuários" (200038, 515001) aparecem nas regras oficiais de capítulos inteiros (ex.: 15, óleos): o `flash-lite` escolheu 200038 para azeite de varejo. Avaliar trava extra: esses códigos só valem na venda para produtor rural. |
 
 ## Operacional / segurança
