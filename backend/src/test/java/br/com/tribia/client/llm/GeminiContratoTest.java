@@ -4,6 +4,7 @@ import br.com.tribia.config.LlmProperties;
 import br.com.tribia.service.classificacao.ClassificadorIa;
 import br.com.tribia.service.classificacao.ClassificadorIa.ProdutoParaClassificar;
 import br.com.tribia.service.classificacao.ClassificadorIa.ResultadoIa;
+import br.com.tribia.service.classificacao.OpcoesClassificacao;
 import br.com.tribia.service.tabelas.TabelaCClassTrib;
 import br.com.tribia.service.tabelas.TabelaNcmAplicavel;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,12 +30,12 @@ public class GeminiContratoTest {
     public static ClassificadorIa classificador() {
         var props = new LlmProperties("https://generativelanguage.googleapis.com/v1beta",
                 List.of("gemini-3.5-flash", "gemini-3.5-flash-lite"), System.getenv("GEMINI_API_KEY"),
-                Duration.ofSeconds(5), Duration.ofSeconds(90), 40);
+                Duration.ofSeconds(5), Duration.ofSeconds(90), 40, Duration.ofSeconds(5));
         var fabrica = new JdkClientHttpRequestFactory(HttpClient.newBuilder().connectTimeout(props.timeoutConexao()).build());
         fabrica.setReadTimeout(props.timeoutResposta());
         RestClient http = RestClient.builder().baseUrl(props.url()).requestFactory(fabrica).build();
         return new ClassificadorIa(new GeminiClient(http, props), props, new TabelaCClassTrib(), new TabelaNcmAplicavel(),
-                new ObjectMapper());
+                new OpcoesClassificacao(new TabelaCClassTrib(), new String[0]), new ObjectMapper());
     }
 
     static ProdutoParaClassificar produto(int n, String ncm, String descricao) {

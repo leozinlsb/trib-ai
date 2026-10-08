@@ -45,7 +45,7 @@ class GeminiClientTest {
         RestClient.Builder builder = RestClient.builder().baseUrl(BASE);
         servidor = MockRestServiceServer.bindTo(builder).build();
         var props = new LlmProperties(BASE, List.of("modelo-a", "modelo-b"), apiKey, Duration.ofSeconds(1),
-                Duration.ofSeconds(1), 40);
+                Duration.ofSeconds(1), 40, Duration.ofSeconds(5));
         return new GeminiClient(builder.build(), props);
     }
 
@@ -138,7 +138,7 @@ class GeminiClientTest {
 
     @Test
     void propriedadesNaoVazamAChaveNoToString() {
-        var props = new LlmProperties(BASE, List.of("m"), "chave-secreta", Duration.ofSeconds(1), Duration.ofSeconds(1), 40);
+        var props = new LlmProperties(BASE, List.of("m"), "chave-secreta", Duration.ofSeconds(1), Duration.ofSeconds(1), 40, Duration.ofSeconds(5));
 
         assertThat(props.toString()).doesNotContain("chave-secreta").contains("***");
     }

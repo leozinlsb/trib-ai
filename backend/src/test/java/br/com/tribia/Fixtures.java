@@ -17,8 +17,8 @@ public final class Fixtures {
 
     /** Iguais às de application.properties. */
     public static final AliquotasProperties ALIQUOTAS = new AliquotasProperties(
-            new AliquotasProperties.Hoje(new BigDecimal("1.65"), new BigDecimal("7.60"), Set.of("01", "02", "03")),
-            new AliquotasProperties.Ano2027(new BigDecimal("9.43"), new BigDecimal("0.05"), new BigDecimal("0.05"), true));
+            new AliquotasProperties.Hoje(new BigDecimal("1.65"), new BigDecimal("7.60"), new BigDecimal("0.65"), new BigDecimal("3.00"), Set.of("01", "02", "03")),
+            new AliquotasProperties.Ano2027(new BigDecimal("9.43"), new BigDecimal("0.05"), new BigDecimal("0.05"), true, BigDecimal.ZERO));
 
     private Fixtures() {
     }

@@ -43,8 +43,8 @@ class ClassificadorIaTest {
 
     ClassificadorIa ia(LlmClient llm, int itensPorChamada) {
         var props = new LlmProperties("http://x", List.of("m"), "k", Duration.ofSeconds(1), Duration.ofSeconds(1),
-                itensPorChamada);
-        return new ClassificadorIa(llm, props, TABELA, new TabelaNcmAplicavel(), new ObjectMapper());
+                itensPorChamada, Duration.ofSeconds(5));
+        return new ClassificadorIa(llm, props, TABELA, new TabelaNcmAplicavel(), new OpcoesClassificacao(TABELA, new String[0]), new ObjectMapper());
     }
 
     static ProdutoParaClassificar produto(int n, String ncm, String desc) {
