@@ -29,6 +29,20 @@ class ClienteControllerTest {
     }
 
     @Test
+    void semNotasOsIndicadoresVemZeradosEOPainelAvisa() throws Exception {
+        mvc.perform(get("/api/clientes"))
+                .andExpect(jsonPath("$[0].notas").value(0))
+                .andExpect(jsonPath("$[0].indicadores.faturamento").value(0))
+                .andExpect(jsonPath("$[0].indicadores.pendentesRevisao").value(0));
+
+        mvc.perform(get("/api/clientes/1/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.periodo.de").doesNotExist())
+                .andExpect(jsonPath("$.indicadores.liquido2027").value(0))
+                .andExpect(jsonPath("$.avisos[0]").value("Nenhuma nota no período."));
+    }
+
+    @Test
     void buscaClientePorId() throws Exception {
         mvc.perform(get("/api/clientes/1"))
                 .andExpect(status().isOk())

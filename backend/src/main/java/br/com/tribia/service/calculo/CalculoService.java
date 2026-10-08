@@ -204,7 +204,8 @@ public class CalculoService {
         return tabelaIs.aliquota(i.getNcm(), props.dataFatoGerador()).isPresent();
     }
 
-    static Comparativo comparativo(Calculo c) {
+    /** Contribuição de um item para o comparativo: hoje e 2027 na coluna de débito (saída) ou de crédito (entrada). */
+    public static Comparativo comparativo(Calculo c) {
         BigDecimal zero = BigDecimal.ZERO.setScale(2);
         return c.getNatureza() == Natureza.DEBITO
                 ? new Comparativo(new Apuracao(c.getImpostoHoje(), zero), new Apuracao(c.getImposto2027(), zero))
