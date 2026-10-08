@@ -60,7 +60,7 @@ Pedido do responsável (Etapa 3). O que existe agora:
   (JEV) → VALIDANDO (`ValidadorNcm`) → GERANDO_RELATORIO → CONCLUIDA ou AGUARDANDO_REVISAO. Situações especiais:
   INFORMACOES_INSUFICIENTES (com o que falta) e FALHA (IA sem chave/fora do ar). Reinício do servidor marca as
   análises em andamento como FALHA.
-- **JEV AI (colaborador):** implementar `service/fiscal/AvaliadorJev` como `@Component`; enquanto não existir, o
+- **JEV AI (colaborador):** guia completo em `docs/JEV-AI-INTEGRACAO.md`. Implementar `service/fiscal/AvaliadorJev` como `@Component`; enquanto não existir, o
   processador usa `JevIndisponivel` e registra a limitação. Ver o javadoc da interface (escala, significado, falhas).
 - **Honestidade das verificações:** sem base da TIPI, "Existência e vigência" fica NAO_REALIZADA e vira pendência;
   só anexos .txt são lidos pela IA; a descrição do código vem da IA (limitação explícita). Sem relatório PDF.

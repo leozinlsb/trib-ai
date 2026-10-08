@@ -2,7 +2,7 @@
 
 **Situação:** implementado no backend em 08/10/2026 (`backend/src/main/java/br/com/tribia/service/fiscal/`).
 O endpoint opcional de relatório em PDF não existe (`relatorio.disponivel` vem `false`). A pontuação da JEV AI
-aparece quando houver um bean `AvaliadorJev`; até lá as alternativas vêm sem `pontuacao`.
+aparece quando houver um bean `AvaliadorJev`; até lá as alternativas vêm sem `pontuacao`. Guia da integração: `docs/JEV-AI-INTEGRACAO.md`.
 
 Toda a lógica fica no backend: chamadas ao Gemini e ao JEV, interpretação da mercadoria, busca NCM, validação
 fiscal, leitura dos anexos, geração do relatório, persistência e controle de acesso. O navegador não recebe
