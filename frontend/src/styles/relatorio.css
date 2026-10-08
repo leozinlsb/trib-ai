@@ -1,0 +1,258 @@
+/* ============ Relatório individual da empresa ============ */
+.relatorio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+.relatorio__barra {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.relatorio__barra .field {
+  width: 190px;
+}
+.relatorio__topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.relatorio__titulo {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--navy-950);
+}
+.relatorio__nota {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+.relatorio__nota svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* Origem do dado */
+.fonte {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  margin-left: 6px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 500;
+  vertical-align: middle;
+  letter-spacing: 0;
+  background: #eef1f6;
+  color: var(--text-3);
+}
+.fonte--calc {
+  background: #e8eefb;
+  color: var(--navy-700);
+}
+.fonte--verif {
+  background: #fdf3e2;
+  color: var(--badge-amber-fg);
+}
+
+.relatorio__numeros {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.relatorio__numero {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.relatorio__numero span {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+.relatorio__numero b {
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.relatorio__numero small {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.apuracao {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid #d6e2f5;
+  background: #f5f8fd;
+}
+.apuracao__cab {
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.apuracao__conta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.apuracao__conta > div {
+  display: flex;
+  flex-direction: column;
+}
+.apuracao__conta span {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+.apuracao__conta b {
+  font-size: 18px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.apuracao__op {
+  font-size: 20px !important;
+  color: var(--muted) !important;
+}
+.apuracao__resultado {
+  margin-left: auto;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--navy-900);
+}
+.apuracao__resultado span {
+  color: var(--navy-100) !important;
+}
+.apuracao__resultado b {
+  color: #fff;
+  font-size: 20px;
+}
+
+.observacoes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.observacao {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid #d6e2f5;
+  background: #f5f8fd;
+}
+.observacao > svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--navy-700);
+}
+.observacao--atencao {
+  border-color: #f0dfb5;
+  background: #fdf8ec;
+}
+.observacao--atencao > svg {
+  color: var(--warning);
+}
+.observacao__msg {
+  font-size: 14px;
+  color: var(--text);
+}
+.observacao__refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+.observacao__ref {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--navy-700);
+}
+.observacao__ref:hover {
+  border-color: var(--navy-700);
+  text-decoration: none;
+}
+.relatorio__sintese {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text-2);
+}
+.relatorio__lista {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 14px;
+  color: var(--text-2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@media (max-width: 860px) {
+  .relatorio__numeros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .apuracao__resultado {
+    margin-left: 0;
+  }
+}
+
+/* ---------- Impressão / PDF ---------- */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  body {
+    background: #fff;
+  }
+  .sidebar,
+  .topbar,
+  .tabs,
+  .no-print,
+  .page-head__actions,
+  .toasts,
+  .backdrop {
+    display: none !important;
+  }
+  .main {
+    margin-left: 0 !important;
+  }
+  .content {
+    padding: 0 !important;
+    max-width: none;
+  }
+  .card {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  .relatorio__secao {
+    break-inside: avoid;
+  }
+  .table-wrap {
+    overflow: visible;
+  }
+  a {
+    color: inherit;
+  }
+}

@@ -13,10 +13,16 @@ public record ClienteDto(
         String uf,
         String municipio,
         String codigoMunicipio,
-        boolean fabricante
+        boolean fabricante,
+        String email,
+        String telefone,
+        String responsavel,
+        String observacoes,
+        boolean ativo
 ) {
     public static ClienteDto de(Cliente c) {
         return new ClienteDto(c.getId(), c.getCnpj(), c.getRazaoSocial(), c.getNomeFantasia(),
-                c.getRegime(), c.getSetor(), c.getUf(), c.getMunicipio(), c.getCodigoMunicipio(), c.isFabricante());
+                c.getRegime(), c.getSetor(), c.getUf(), c.getMunicipio(), c.getCodigoMunicipio(),
+                c.isFabricante(), c.getEmail(), c.getTelefone(), c.getResponsavel(), c.getObservacoes(), c.isAtivo());
     }
 }

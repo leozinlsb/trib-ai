@@ -1,0 +1,64 @@
+/* Tokens extraídos da referência visual do TribIA (amostragem de pixels da imagem). */
+:root {
+  /* Marca */
+  --navy-950: #0c2557;
+  --navy-900: #0f2c68; /* botão primário */
+  --navy-850: #12306a; /* sidebar */
+  --navy-800: #1a3a76; /* hover na sidebar */
+  --navy-700: #24468a;
+  --navy-300: #8799c9; /* ícones da sidebar */
+  --navy-100: #dbe3f3; /* texto da sidebar */
+
+  --green-700: #0e8a5e;
+  --green-600: #13a06e; /* item ativo */
+  --green-500: #1fb07c;
+  --green-100: #dcf1e8; /* pílula "Sistema Ativo" */
+  --green-text: #146c4b;
+
+  /* Superfícies */
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-2: #fafafb;
+  --border: #e3e3e8;
+  --border-soft: #ececef;
+
+  /* Texto */
+  --text: #1c1c20;
+  --text-2: #3a3a40;
+  --text-3: #5f5f66;
+  --muted: #8e8e95;
+
+  /* Status (badges da tabela) */
+  --badge-green-bg: #d3efe0;
+  --badge-green-fg: #23704a;
+  --badge-blue-bg: #d8e5f8;
+  --badge-blue-fg: #2b4a7e;
+  --badge-gray-bg: #e2e3e6;
+  --badge-gray-fg: #55565c;
+  --badge-amber-bg: #fbeccc;
+  --badge-amber-fg: #8a5a06;
+  --badge-red-bg: #fbe0e0;
+  --badge-red-fg: #a32b2b;
+
+  --danger: #d6404c;
+  --warning: #c98a0b;
+
+  /* Séries dos gráficos (validadas: faixa de luminosidade, daltonismo e contraste) */
+  --serie-saida: #2c4f96;
+  --serie-entrada: #16a06e;
+
+  /* Forma */
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 10px;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-pop: 0 10px 30px rgba(16, 24, 40, 0.14), 0 2px 6px rgba(16, 24, 40, 0.06);
+
+  /* Medidas do layout */
+  --sidebar-w: 224px;
+  --topbar-h: 68px;
+  --gutter: 24px;
+  --gap: 18px;
+
+  --font: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
