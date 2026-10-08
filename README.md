@@ -17,6 +17,7 @@ cd frontend
 npm install
 npm run dev      # http://localhost:5173 (o Vite repassa /api para http://localhost:8090)
 npm test         # testes do motor de alertas (Node 22.6+)
+# E2E no navegador (backend isolado + Playwright fora do repo): ver o cabeçalho de scripts/etapa4-e2e.mjs
 ```
 
 Detalhes, endpoints usados e limitações em [`frontend/README.md`](frontend/README.md).
@@ -115,7 +116,17 @@ GEMINI_API_KEY=sua-chave
 - Os testes nunca usam a chave do `.env`. `GeminiContratoTest` usa a IA de verdade (gasta cota) e só roda com
   `GEMINI_API_KEY` definida como variável de ambiente.
 
+### Hospedagem (profile `prod`)
+
+O `backend/Dockerfile` sobe a API com `SPRING_PROFILES_ACTIVE=prod`: sem console H2 nem Swagger, rotas
+`/api/demo` desligadas (ligue com `TRIBIA_DEMO_HABILITADO=true` só num ambiente de demonstração), cookie de sessão
+`Secure` e login bloqueado por 15 min após 5 falhas no mesmo e-mail. Variáveis: `TRIBIA_ADMIN_SENHA` (obrigatória,
+12+ caracteres: sem ela a API não sobe) e `GEMINI_API_KEY` (opcional). O front na Vercel repassa `/api` ao backend
+(`frontend/vercel.json`), então tudo fica na mesma origem e não é preciso configurar CORS.
+
 ### Apresentação (profile `demo`)
+
+Roteiro completo para quem apresenta: [`docs/ROTEIRO_DEMO.md`](docs/ROTEIRO_DEMO.md).
 
 ```powershell
 ferramentas\iniciar-calculadora.bat                                  # janela 1 (opcional)

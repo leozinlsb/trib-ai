@@ -8,9 +8,14 @@ COPY src ./src
 RUN mvn -q -B -DskipTests package
 
 FROM eclipse-temurin:21-jre
+# usuário sem privilégios: a API não precisa de root (o banco H2 fica em /app/data)
+RUN useradd --system --uid 10001 --home-dir /app tribia && mkdir -p /app/data && chown -R tribia /app
 WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build --chown=tribia /app/target/*.jar app.jar
+USER tribia
 # Render informa a porta em PORT; localmente usa 8090.
+# Profile prod: sem console H2/Swagger, cookie Secure e senha do administrador obrigatória (TRIBIA_ADMIN_SENHA).
+ENV SPRING_PROFILES_ACTIVE=prod
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+UseSerialGC"
 EXPOSE 8090
 CMD ["sh", "-c", "java -Dserver.port=${PORT:-8090} -jar app.jar"]

@@ -74,9 +74,9 @@ tratados; testes fiscais e de isolamento; custos/chamadas externas previamente a
 
 **Estado:** PARCIAL, revisada em 08/10/2026 (sem aprovação de conclusão). Feito: motor de alertas
 no front (`frontend/src/lib/alertas.ts`), agora com 8 testes automáticos (`npm test`). Revisão encontrou
-R1 (alertas de compra somam como "oportunidade" um valor que o crédito compensa) e R2 ("Corrigir" numa
-compra recalcula o crédito pelo código corrigido, embora o crédito acompanhe o destaque da nota).
-**Pendências:** decisão S5 (base sem ICMS/PIS/Cofins, 15 testes), A1, R1, R2, I-FISCAL, V1–V6,
+R1 e R2 (alertas e crédito de compras), ambos resolvidos em 08/10/2026 (R2: crédito = menor entre a nota e a
+correção, a confirmar com especialista; R1: compras viram "efeito no preço").
+**Pendências:** A1, I-FISCAL, V1–V6 (S5 decidida em 08/10: base sem ICMS/PIS/Cofins),
 validação profissional. Detalhes em `PENDENCIAS.md`.
 
 ## Etapa 4 — Testes completos, refinamento e preparação do produto
@@ -93,9 +93,17 @@ ou chamadas pagas não autorizadas. Testes são obrigatórios também nas etapas
 **Estado:** INICIADA em 08/10/2026 com aprovação do responsável. Primeiro incremento:
 ensaio da demo adaptado a login ADMIN + CSRF (3 de 3 verdes em API isolada, banco em memória, sem IA real);
 `.env` da raiz lido pelo backend (chave fora do Git, testes nunca a usam); testes do motor de alertas.
-**Pendências:** suíte do backend verde (depende da decisão S5), E2E de perfis e erros no navegador,
-ensaio com a calculadora oficial e com a IA real (chave nova), revisão de segurança para o deploy
-(console H2 e `/api/demo` desligados fora da demo).
+Suíte do backend verde após S5 e R2: 226 testes, 0 falhas, 0 erros, 7 ignorados, nas duas ordens.
+**Evidência 08/10/2026 (tarde):** ensaio pela API com calculadora oficial + Gemini real (chave nova do `.env`)
+1/1 verde, mesmos números do modo simplificado (Distribuidora R$ 264,58 → R$ 378,44), IA classificou 8/8 em
+11,7 s. E2E no Chrome (`frontend/scripts/etapa4-e2e.mjs`): 11 fluxos aprovados, 0 erros JavaScript (login
+inválido/ADMIN, comparativo do início, upload + classificação/cálculo com IA real, XML inválido e duplicado,
+detalhe da nota, revisão/aceite, alertas, relatório e CSVs, perfil EMPRESA isolado, logout).
+**Segurança do deploy (08/10/2026):** profile `prod` ativado pelo Dockerfile (sem console H2/Swagger/demo,
+cookie Secure, senha do admin obrigatória), limite de tentativas de login e container sem root; 7 testes novos,
+suíte 233 / 0 falhas nas duas ordens. Roteiro da apresentação em `docs/ROTEIRO_DEMO.md`.
+**Pendências:** `docker build` da imagem (Docker Desktop parado nesta máquina), deploy de fato e validação do
+fluxo na URL pública; ensaio final com quem vai apresentar.
 
 ## Continuidade e evidências
 

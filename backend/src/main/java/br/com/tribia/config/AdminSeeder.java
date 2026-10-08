@@ -19,12 +19,14 @@ import java.security.SecureRandom;
  * Cria o administrador na inicialização, se não houver nenhum.
  * A senha vem de tribia.admin.senha (ex.: variável de ambiente TRIBIA_ADMIN_SENHA). Sem ela, uma senha
  * aleatória é gerada e mostrada uma vez no log. Nenhuma senha fica no código.
+ * Com tribia.admin.exigir-senha=true (profile prod), a aplicação nem sobe sem uma senha de 12+ caracteres.
  */
 @Component
 @Order(0)
 public class AdminSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(AdminSeeder.class);
+    static final int TAMANHO_MINIMO_SENHA = 12;
     private static final String ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
 
     private final UsuarioRepository usuarios;
@@ -36,7 +38,12 @@ public class AdminSeeder implements ApplicationRunner {
     public AdminSeeder(UsuarioRepository usuarios, PasswordEncoder encoder,
                        @Value("${tribia.admin.nome:Administrador}") String nome,
                        @Value("${tribia.admin.email:admin@tribia.local}") String email,
-                       @Value("${tribia.admin.senha:}") String senha) {
+                       @Value("${tribia.admin.senha:}") String senha,
+                       @Value("${tribia.admin.exigir-senha:false}") boolean exigirSenha) {
+        if (exigirSenha && (senha == null || senha.isBlank() || senha.length() < TAMANHO_MINIMO_SENHA)) {
+            throw new IllegalStateException("Defina TRIBIA_ADMIN_SENHA com pelo menos " + TAMANHO_MINIMO_SENHA
+                    + " caracteres: neste ambiente a senha do administrador não pode ser gerada nem impressa no log.");
+        }
         this.usuarios = usuarios;
         this.encoder = encoder;
         this.nome = nome;

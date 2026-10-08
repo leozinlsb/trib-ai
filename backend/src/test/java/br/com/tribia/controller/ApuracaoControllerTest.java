@@ -52,7 +52,8 @@ class ApuracaoControllerTest {
                 .andExpect(jsonPath("$.porOrigem.XML").value(2))
                 .andExpect(jsonPath("$.pendentes", hasSize(0)));
 
-        // compra no Lucro Real: hoje 1,65% + 7,6%; em 2027 CBS 9,43% + IBS 0,05% + 0,05%
+        // compra no Lucro Real: hoje 1,65% + 7,6%; em 2027 CBS 9,43% + IBS 0,05% + 0,05% sobre a base sem ICMS/PIS/Cofins
+        // (detergente 360,00 − 64,80 − 5,94 − 27,36 = 261,90; papel toalha 420,00 − 75,60 − 6,93 − 31,92 = 305,55)
         mvc.perform(post("/api/notas/" + nota + "/calcular").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.origem").value("SIMPLIFICADA"))
@@ -61,7 +62,7 @@ class ApuracaoControllerTest {
                 .andExpect(jsonPath("$.itensCalculados").value(2))
                 .andExpect(jsonPath("$.comparativo.hoje.debito").value(0))
                 .andExpect(jsonPath("$.comparativo.hoje.credito").value(72.15))   // 33,30 + 38,85
-                .andExpect(jsonPath("$.comparativo['2027'].credito").value(74.34)) // 34,31 + 40,03
+                .andExpect(jsonPath("$.comparativo['2027'].credito").value(54.07)) // 24,96 + 29,11
                 .andExpect(jsonPath("$.avisos", hasItem(containsString("estimativa"))));
 
         mvc.perform(get("/api/notas/" + nota))
@@ -70,9 +71,9 @@ class ApuracaoControllerTest {
                 .andExpect(jsonPath("$.itens[0].classificacao.regime").value("INTEGRAL"))
                 .andExpect(jsonPath("$.itens[0].classificacao.aceita").value(true))
                 .andExpect(jsonPath("$.itens[0].calculo.natureza").value("CREDITO"))
-                .andExpect(jsonPath("$.itens[0].calculo.vCbs").value(33.95))
+                .andExpect(jsonPath("$.itens[0].calculo.vCbs").value(24.70))   // 261,90 x 9,43%
                 .andExpect(jsonPath("$.itens[0].calculo.impostoHoje").value(33.30))
-                .andExpect(jsonPath("$.itens[0].calculo.imposto2027").value(34.31));
+                .andExpect(jsonPath("$.itens[0].calculo.imposto2027").value(24.96));
     }
 
     @Test
@@ -99,9 +100,9 @@ class ApuracaoControllerTest {
                 .andExpect(jsonPath("$.itens[1].calculo").doesNotExist());
     }
 
-    /** Preserva a referência fiscal anterior em cenário cache-only, separado do contrato de fallback. */
+    /** Cenário cache-only, separado do contrato de fallback. Base 2027 sem ICMS/PIS/Cofins (decisão S5, 08/10/2026). */
     @Test
-    void calculoDoCacheSemIaMantemReferenciaFiscalAnterior() throws Exception {
+    void calculoDoCacheSemIaUsaABaseSemTributos() throws Exception {
         classificacaoService.gravarNoCache("10063021", "Arroz tipo 1 5kg", "200", "200003", "cesta básica",
                 new BigDecimal("0.95"), "SEED", true);
         classificacaoService.gravarNoCache("18063210", "CHOCOLATE AO LEITE 90G", "000", "000001", "integral",
@@ -123,7 +124,7 @@ class ApuracaoControllerTest {
                 .andExpect(jsonPath("$.itensCalculados").value(2))
                 .andExpect(jsonPath("$.itensPendentes", hasSize(6)))
                 .andExpect(jsonPath("$.comparativo.hoje.debito").value(55.40))   // 0 + 9,88 + 45,52
-                .andExpect(jsonPath("$.comparativo['2027'].debito").value(57.09)) // 0 + 56,49 + 0,30 + 0,30
+                .andExpect(jsonPath("$.comparativo['2027'].debito").value(41.53)) // chocolate 435,78 de base: 0 + 41,09 + 0,22 + 0,22
                 .andExpect(jsonPath("$.avisos", hasItem(containsString("sem classificação"))));
 
         mvc.perform(get("/api/notas/" + nota))
@@ -141,7 +142,7 @@ class ApuracaoControllerTest {
 
         mvc.perform(post("/api/notas/" + nota + "/calcular").param("cbs", "8.8").with(csrf()))
                 .andExpect(jsonPath("$.aliquotaCbs").value(8.8))
-                .andExpect(jsonPath("$.comparativo['2027'].credito").value(69.42)) // 31,68 + 36,96 + 4 x IBS
+                .andExpect(jsonPath("$.comparativo['2027'].credito").value(50.50)) // 23,05 + 26,89 + 4 x IBS
                 .andExpect(jsonPath("$.avisos", hasItem(containsString("Cenário simulado"))));
 
         mvc.perform(post("/api/notas/" + nota + "/calcular").param("cbs", "50").with(csrf()))
@@ -157,7 +158,7 @@ class ApuracaoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.notas").value(1))
                 .andExpect(jsonPath("$.itensCalculados").value(2))
-                .andExpect(jsonPath("$.comparativo['2027'].credito").value(74.34));
+                .andExpect(jsonPath("$.comparativo['2027'].credito").value(54.07));
     }
 
     @Test

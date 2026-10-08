@@ -126,3 +126,28 @@ test('itens sem classificação, não aceitos ou de baixa confiança contam como
   })
   assert.equal(r.alertas.find((x) => x.tipo === 'REVISAO_PENDENTE')?.quantidade, 3)
 })
+
+test('R1: benefício não aplicado numa compra é efeito no preço e não soma em oportunidades', () => {
+  const compra = nota(1, [item(1, '000001')], {
+    tipo: 'ENTRADA', operacao: 'COMPRA', emitenteCnpj: FORNECEDOR, emitenteNome: 'FORNECEDOR', emitenteCrt: 3,
+  })
+  const r = gerarAlertas({ cnpjEmpresa: EMPRESA, notas: [compra], opcoesPorNcm: opcoes([reducao60(true), integral]) })
+  const a = r.alertas.find((x) => x.tipo === 'BENEFICIO_NAO_APLICADO')
+  assert.ok(a)
+  assert.equal(a.categoria, 'conformidade')
+  assert.equal(a.impacto, null)
+  assert.equal(a.efeitoNoPreco, Math.round(727.5 * 0.0953 * 0.6 * 100) / 100)
+  assert.equal(r.resumo.oportunidade, 0)
+})
+
+test('R1: divergência confirmada numa compra também não soma em oportunidades', () => {
+  const compra = nota(1, [item(1, '000001', classificacao({ cst: '200', cClassTrib: '200035', regime: 'REDUZIDA', descricaoRegime: 'Redução de 60%', revisada: true }))], {
+    tipo: 'ENTRADA', operacao: 'COMPRA', emitenteCnpj: FORNECEDOR, emitenteNome: 'FORNECEDOR', emitenteCrt: 3,
+  })
+  const r = gerarAlertas({ cnpjEmpresa: EMPRESA, notas: [compra], opcoesPorNcm: opcoes([reducao60(true), integral]) })
+  const a = r.alertas.find((x) => x.tipo === 'DIVERGENCIA_CONFIRMADA')
+  assert.ok(a)
+  assert.equal(a.impacto, null)
+  assert.ok((a.efeitoNoPreco ?? 0) > 0)
+  assert.equal(r.resumo.oportunidade, 0)
+})

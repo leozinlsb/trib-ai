@@ -10,9 +10,9 @@
 
 Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_MESTRE_TRIBIA.md`).
 
-- **Estado verificado:** backend 220 testes / 15 falhas / 0 erros / 7 ignorados (sem calculadora no ar).
-  As 15 são todas S5 (base 2027 sem ICMS/PIS/Cofins × valores esperados antigos); **decisão do responsável
-  pendente**, nenhuma expectativa alterada. Front: `npm run build`, `npm run lint` e `npm test` (8/8) verdes.
+- **Decisão S5 aprovada:** base 2027 sem ICMS/PIS/Cofins. Os 15 valores esperados foram atualizados e
+  conferidos à mão. **Backend: 226 testes / 0 falhas / 0 erros / 7 ignorados** (após R2), nas duas ordens.
+  Novos resultados: Distribuidora +255,45%, Farmácia −32,63%, Loja −28,24% (antes −1,35%). Front: `npm run build`, `npm run lint` e `npm test` (8/8) verdes.
 - **`.env` na raiz** (fora do Git) agora é lido pelo backend (`spring.config.import`); variável de ambiente
   tem prioridade; testes continuam com a chave vazia (conferido). O1 resolvido pelo responsável.
 - **Ensaio da demo** (`backend/ferramentas/ensaio-demo.ps1`) entra como ADMIN com CSRF. Executado 3/3 verde
@@ -20,8 +20,22 @@ Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_
   Números do ensaio (com a base atual): Distribuidora hoje R$ 264,58 → 2027 R$ 378,44, 9 pendentes.
 - **Revisão da Etapa 3 (motor de alertas):** coerente com o backend (mesma lista de códigos por adquirente,
   mesma base, opções completas da tabela). Achados R1 e R2 (alertas de compra) em `PENDENCIAS.md`.
-  Testes novos: `frontend/scripts/alertas.test.ts` (`npm test`, Node 22.6+, sem dependências).
-- Próximo: decisão S5 → suíte verde; E2E no navegador; ensaio com calculadora oficial e IA real.
+  Testes novos: `frontend/scripts/alertas.test.ts` (`npm test`, 10 testes, Node 22.6+, sem dependências).
+- **R2 resolvido (padrão C):** `CalculoService` calcula também com o código destacado na nota quando a compra foi
+  corrigida e usa o menor crédito (`tribia.calculo.credito-compra-divergente=MENOR|NOTA|REVISAO`); a revisão
+  devolve aviso. **R1 resolvido no front:** compras viram "efeito no preço" (fora do total de oportunidades).
+  Testes: `CreditoCompraDivergenteTest` (6). Regra a confirmar com especialista (ver PENDENCIAS, R2).
+- **Ensaio real** (calculadora oficial + Gemini com a chave nova do `.env`): 1/1 verde, mesmos números do
+  simplificado; IA 8/8 em 11,7 s; azeite ficou integral (trava V6 confirmada com o modelo real).
+- **E2E Etapa 4** (`frontend/scripts/etapa4-e2e.mjs`, Playwright fora do repo + Chrome local): 11 fluxos, 0 erros
+  JavaScript; capturas em `backend/target/etapa4-e2e`. Comando no cabeçalho do script.
+- **Segurança do deploy:** `application-prod.properties` (ativado pelo Dockerfile): console H2, Swagger e
+  `/api/demo` desligados (demo só com `TRIBIA_DEMO_HABILITADO=true`), cookie Secure + forward headers, senha do
+  admin obrigatória (12+ caracteres, senão não sobe). `LimiteTentativasLogin`: 5 falhas no mesmo e-mail → 429 por
+  15 min. Dockerfile roda como usuário sem privilégios. Testes: `PerfilProducaoTest`, `LimiteTentativasLoginTest`.
+  Suíte: 233 / 0 falhas / 7 ignorados nas duas ordens. `docker build` NÃO executado (Docker Desktop parado).
+- **Roteiro da apresentação:** `docs/ROTEIRO_DEMO.md` (preparação, passos com números, plano B, ressalvas).
+- Próximo: `docker build` e deploy de demonstração; ensaio final com quem apresenta.
 
 ## Registro anterior — Etapa 3 iniciada: motor de alertas (branch `dev/nicolau`, 08/10/2026)
 
@@ -67,7 +81,7 @@ Somente frontend alterado; nenhuma regra fiscal, teste, backend ou configuraçã
   no ambiente de desenvolvimento; rodar `.\mvnw.cmd test`.
 - Deploy de demonstração preparado: `frontend/vercel.json` (rewrite `/api` → backend, fallback SPA)
   e `backend/Dockerfile` (Render). Mesmo domínio para o navegador por causa do cookie de sessão/CSRF;
-  no backend definir `TRIBIA_ADMIN_SENHA` e `TRIBIA_CORS_ORIGENS=https://*.vercel.app`. H2 do
+  no backend definir `TRIBIA_ADMIN_SENHA` (12+ caracteres). CORS não é necessário: o rewrite deixa tudo na mesma origem. H2 do
   container zera a cada deploy (seed recria as empresas fictícias); calculadora RTC não sobe lá
   (cálculo cai no modo simplificado, com aviso).
 

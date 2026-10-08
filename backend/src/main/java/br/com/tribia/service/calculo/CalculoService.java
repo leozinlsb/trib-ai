@@ -7,6 +7,7 @@ import br.com.tribia.client.calculadora.OperacaoCalculo;
 import br.com.tribia.client.calculadora.OperacaoCalculo.AliquotasNominais;
 import br.com.tribia.client.calculadora.OperacaoCalculo.ImpostoSeletivo;
 import br.com.tribia.client.calculadora.OperacaoCalculo.ItemCalculo;
+import br.com.tribia.client.calculadora.OrigemCalculo;
 import br.com.tribia.client.calculadora.ResultadoCalculo;
 import br.com.tribia.client.calculadora.ResultadoCalculo.ItemCalculado;
 import br.com.tribia.config.AliquotasProperties;
@@ -35,6 +36,7 @@ import br.com.tribia.service.apuracao.Comparativo;
 import br.com.tribia.service.apuracao.ItemTributavel;
 import br.com.tribia.service.apuracao.RegrasApuracao;
 import br.com.tribia.service.apuracao.Tributos2027;
+import br.com.tribia.service.tabelas.TabelaCClassTrib;
 import br.com.tribia.service.tabelas.TabelaImpostoSeletivo;
 import br.com.tribia.util.CnpjUtil;
 import org.slf4j.Logger;
@@ -81,6 +83,7 @@ public class CalculoService {
     private final CalculadoraSimplificadaClient simplificada;
     private final RegrasApuracao regras;
     private final TabelaImpostoSeletivo tabelaIs;
+    private final TabelaCClassTrib tabelaCClassTrib;
     private final AliquotasProperties aliquotas;
     private final CalculoProperties props;
     private final TransactionTemplate tx;
@@ -90,8 +93,8 @@ public class CalculoService {
                           ClassificacaoRepository classificacaoRepository, CalculoRepository calculoRepository,
                           ClienteService clienteService, CalculadoraOficialClient oficial,
                           CalculadoraSimplificadaClient simplificada, RegrasApuracao regras,
-                          TabelaImpostoSeletivo tabelaIs, AliquotasProperties aliquotas, CalculoProperties props,
-                           PlatformTransactionManager transacoes, AcessoService acesso) {
+                          TabelaImpostoSeletivo tabelaIs, TabelaCClassTrib tabelaCClassTrib, AliquotasProperties aliquotas,
+                          CalculoProperties props, PlatformTransactionManager transacoes, AcessoService acesso) {
         this.notaRepository = notaRepository;
         this.itemRepository = itemRepository;
         this.classificacaoRepository = classificacaoRepository;
@@ -101,6 +104,7 @@ public class CalculoService {
         this.simplificada = simplificada;
         this.regras = regras;
         this.tabelaIs = tabelaIs;
+        this.tabelaCClassTrib = tabelaCClassTrib;
         this.aliquotas = aliquotas;
         this.props = props;
         this.tx = new TransactionTemplate(transacoes);
@@ -108,13 +112,16 @@ public class CalculoService {
     }
 
     /** Tudo o que a fase 3 precisa da nota, lido na fase 1 (sem depender de entidades carregadas). */
-    private record Preparo(Long notaId, OperacaoCalculo operacaoCalculo, List<Long> idsItens, List<Integer> pendentes,
-                           Map<Integer, ItemPreparado> porNumero, Operacao operacao, Regime regime,
+    private record Preparo(Long notaId, OperacaoCalculo operacaoCalculo, OperacaoCalculo operacaoPelaNota, int divergentes,
+                           List<Long> idsItens, List<Integer> pendentes, Map<Integer, ItemPreparado> porNumero, Operacao operacao, Regime regime,
                            boolean emitidaPeloCliente, boolean fornecedorSimples, boolean pagamentoConfirmado) {
     }
 
     private record ItemPreparado(Long itemId, ItemTributavel tributavel, boolean sujeitoIs) {
     }
+
+    /** Marca nos avisos as compras em que o crédito foi limitado pela divergência com a nota (a revisão reaproveita). */
+    public static final String AVISO_CREDITO_DIVERGENTE = "Compra com enquadramento diferente do destacado pelo fornecedor";
 
     /**
      * @param cbsCenario alíquota da CBS (%) para simular um cenário; null usa a configurada
@@ -128,10 +135,18 @@ public class CalculoService {
         if (!p.pendentes().isEmpty()) {
             avisos.add(p.pendentes().size() + " item(ns) sem classificação ficaram fora do cálculo: classifique a nota antes.");
         }
+        if (p.divergentes() > 0) {
+            avisos.add(AVISO_CREDITO_DIVERGENTE + " em " + p.divergentes() + " item(ns): "
+                    + (props.creditoCompraDivergente() == CalculoProperties.CreditoDivergente.NOTA
+                    ? "o crédito de 2027 segue o código destacado na nota"
+                    : "o crédito de 2027 considera o menor valor entre a nota e a correção")
+                    + " até o fornecedor corrigir a nota (LC 214, art. 47; regra a confirmar com especialista).");
+        }
         acesso.notaAcessivel(notaId);
         ResultadoCalculo r = p.operacaoCalculo().itens().isEmpty() ? null : executar(p.operacaoCalculo(), avisos);
+        ResultadoCalculo pelaNota = p.operacaoPelaNota() == null || r == null ? null : executar(p.operacaoPelaNota(), avisos);
 
-        Comparativo total = tx.execute(s -> gravar(p, r, avisos));
+        Comparativo total = tx.execute(s -> gravar(p, r, pelaNota, avisos));
         return new CalculoNotaDto(notaId, r == null ? null : r.origem(), r != null && r.simulado(), nominais.cbs(),
                 r == null ? 0 : r.itens().size(), p.pendentes(), List.copyOf(avisos), ComparativoDto.de(total));
     }
@@ -202,8 +217,10 @@ public class CalculoService {
         // IS monofásico: só o fabricante paga, e só quando vende
         boolean cobraIs = cliente.isFabricante() && operacao == Operacao.VENDA;
         List<ItemCalculo> itensCalculo = new ArrayList<>();
+        List<ItemCalculo> itensPelaNota = new ArrayList<>();
         Map<Integer, ItemPreparado> porNumero = new LinkedHashMap<>();
         List<Integer> pendentes = new ArrayList<>();
+        int divergentes = 0;
         for (Item i : nota.getItens()) {
             Classificacao c = classificacoes.get(i.getId());
             if (c == null) {
@@ -214,8 +231,19 @@ public class CalculoService {
             ImpostoSeletivo is = !sujeitoIs ? null : cobraIs ? new ImpostoSeletivo("000", "000001") : ImpostoSeletivo.REVENDA;
             BigDecimal base = RegrasApuracao.base2027(i.valorDaOperacao(), i.getVIcms(), i.getVPis(), i.getVCofins(),
                     props.excluirTributosDaBase());
-            itensCalculo.add(new ItemCalculo(i.getNItem(), i.getNcm(), i.getQuantidade(), i.getUnidade(), base,
-                    c.getCst(), c.getCClassTrib(), is));
+            ItemCalculo doItem = new ItemCalculo(i.getNItem(), i.getNcm(), i.getQuantidade(), i.getUnidade(), base,
+                    c.getCst(), c.getCClassTrib(), is);
+            // compra cujo enquadramento corrigido difere do destacado pelo fornecedor (R2)
+            ItemCalculo pelaNota = operacao.natureza() == Natureza.CREDITO ? divergenteDaNota(i, c, base, is) : null;
+            if (pelaNota != null) {
+                divergentes++;
+                if (props.creditoCompraDivergente() == CalculoProperties.CreditoDivergente.NOTA) {
+                    doItem = pelaNota;
+                } else if (props.creditoCompraDivergente() == CalculoProperties.CreditoDivergente.MENOR) {
+                    itensPelaNota.add(pelaNota);
+                }
+            }
+            itensCalculo.add(doItem);
             porNumero.put(i.getNItem(), new ItemPreparado(i.getId(), ItemTributavel.de(i), sujeitoIs));
         }
         // IBS é devido no destino: município de quem recebe a mercadoria (ver Nota.municipioDestino)
@@ -223,8 +251,30 @@ public class CalculoService {
         String uf = nota.getUfDestino() != null ? nota.getUfDestino() : cliente.getUf();
         OperacaoCalculo op = new OperacaoCalculo("nota-" + notaId, dataFatoGerador(), municipio, uf, itensCalculo, nominais);
         boolean emitidaPeloCliente = CnpjUtil.somenteDigitos(cliente.getCnpj()).equals(nota.getEmitenteCnpj());
-        return new Preparo(notaId, op, ids, pendentes, porNumero, operacao, cliente.getRegime(), emitidaPeloCliente,
+        OperacaoCalculo opPelaNota = itensPelaNota.isEmpty() ? null
+                : new OperacaoCalculo("nota-" + notaId + "-destacado", dataFatoGerador(), municipio, uf, itensPelaNota, nominais);
+        return new Preparo(notaId, op, opPelaNota, divergentes, ids, pendentes, porNumero, operacao, cliente.getRegime(), emitidaPeloCliente,
                 !emitidaPeloCliente && nota.emitenteDoSimples(), nota.isPagamentoConfirmado());
+    }
+
+    /**
+     * O item como o fornecedor o classificou na nota, quando é um par CST/cClassTrib válido para NF-e e diferente do
+     * classificado/revisado; null quando não há divergência (ou a nota não traz o grupo IBS/CBS, ou a opção é REVISAO).
+     */
+    private ItemCalculo divergenteDaNota(Item i, Classificacao c, BigDecimal base, ImpostoSeletivo is) {
+        if (props.creditoCompraDivergente() == CalculoProperties.CreditoDivergente.REVISAO) {
+            return null;
+        }
+        var d = i.getIbsCbsDestacado();
+        if (d == null || d.getCst() == null || d.getCClassTrib() == null) {
+            return null;
+        }
+        String cst = d.getCst().trim();
+        String codigo = d.getCClassTrib().trim();
+        if (codigo.equals(c.getCClassTrib()) || !tabelaCClassTrib.validoParaNfe(cst, codigo)) {
+            return null;
+        }
+        return new ItemCalculo(i.getNItem(), i.getNcm(), i.getQuantidade(), i.getUnidade(), base, cst, codigo, is);
     }
 
     // ---------------- fase 2: calcula (fora de transação) ----------------
@@ -259,7 +309,7 @@ public class CalculoService {
 
     // ---------------- fase 3: grava ----------------
 
-    private Comparativo gravar(Preparo p, ResultadoCalculo r, Set<String> avisos) {
+    private Comparativo gravar(Preparo p, ResultadoCalculo r, ResultadoCalculo pelaNota, Set<String> avisos) {
         acesso.notaAcessivel(p.notaId());
         calculoRepository.apagarDosItens(p.idsItens());
         if (r == null) {
@@ -278,8 +328,18 @@ public class CalculoService {
         }
         BigDecimal sinal = BigDecimal.valueOf(p.operacao().sinal());
 
+        Map<Integer, ItemCalculado> doDestacado = pelaNota == null ? Map.of()
+                : pelaNota.itens().stream().collect(Collectors.toMap(ItemCalculado::numero, Function.identity()));
         Comparativo total = Comparativo.ZERO;
-        for (ItemCalculado ic : r.itens()) {
+        for (ItemCalculado calculado : r.itens()) {
+            ItemCalculado ic = calculado;
+            OrigemCalculo origem = r.origem();
+            // MENOR: o crédito é o menor entre o enquadramento corrigido e o destacado pelo fornecedor
+            ItemCalculado alternativo = doDestacado.get(calculado.numero());
+            if (alternativo != null && alternativo.tributos().totalCredito().compareTo(calculado.tributos().totalCredito()) < 0) {
+                ic = alternativo;
+                origem = pelaNota.origem();
+            }
             ItemPreparado ip = p.porNumero().get(ic.numero());
             ItemTributavel it = ip.tributavel();
             Tributos2027 t = ic.tributos();
@@ -289,7 +349,7 @@ public class CalculoService {
                     : (it.creditavel() ? t.totalCredito() : ZERO));
             var a = ic.aliquotas();
             Calculo c = calculoRepository.save(new Calculo(itemRepository.getReferenceById(ip.itemId()),
-                    p.operacao().natureza(), r.origem(), t.vCbs(), t.vIbsUf(), t.vIbsMun(), t.vIs(), a.pCbs(), a.pIbsUf(),
+                    p.operacao().natureza(), origem, t.vCbs(), t.vIbsUf(), t.vIbsMun(), t.vIs(), a.pCbs(), a.pIbsUf(),
                     a.pIbsMun(), a.reducaoCbs(), a.reducaoIbs(), a.pIs(), ip.sujeitoIs(),
                     hoje.multiply(sinal), ano2027.multiply(sinal), r.simulado()));
             total = total.somar(comparativo(c));

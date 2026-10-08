@@ -12,13 +12,30 @@ import java.time.LocalDate;
  *                                 2026 a 2032)
  * @param creditoFornecedorSimples crédito de 2027 nas compras de fornecedor do Simples Nacional: o real é limitado
  *                                 ao que ele recolheu no Simples (LC 214, art. 47), valor que a nota não informa
+ * @param creditoCompraDivergente  crédito de 2027 numa compra cujo enquadramento (cClassTrib) corrigido pela revisão
+ *                                 difere do que o fornecedor destacou na nota. Padrão MENOR (conservador)
  */
 @ConfigurationProperties(prefix = "tribia.calculo")
 public record CalculoProperties(Modo modo, LocalDate dataFatoGerador, boolean excluirTributosDaBase,
-                                CreditoSimples creditoFornecedorSimples) {
+                                CreditoSimples creditoFornecedorSimples, CreditoDivergente creditoCompraDivergente) {
+
+    public CalculoProperties {
+        if (creditoCompraDivergente == null) {
+            creditoCompraDivergente = CreditoDivergente.MENOR;
+        }
+    }
 
     public enum Modo {
         AUTO, OFICIAL, SIMPLIFICADA
+    }
+
+    public enum CreditoDivergente {
+        /** O crédito segue o código destacado na nota; a correção vira só divergência. */
+        NOTA,
+        /** O crédito segue o código corrigido na revisão (otimista: supõe que o fornecedor corrija a nota). */
+        REVISAO,
+        /** O menor crédito entre os dois (conservador). */
+        MENOR
     }
 
     public enum CreditoSimples {
