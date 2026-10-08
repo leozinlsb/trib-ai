@@ -5,8 +5,9 @@ import br.com.tribia.dto.NotaResumoDto;
 import br.com.tribia.dto.UploadNotasDto;
 import br.com.tribia.exception.ApiException;
 import br.com.tribia.exception.NotaRejeitadaException;
+import br.com.tribia.model.Cliente;
 import br.com.tribia.model.TipoNota;
-import br.com.tribia.service.ClienteService;
+import br.com.tribia.security.AcessoService;
 import br.com.tribia.service.NotaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,11 +31,11 @@ import java.util.List;
 public class NotaController {
 
     private final NotaService notaService;
-    private final ClienteService clienteService;
+    private final AcessoService acesso;
 
-    public NotaController(NotaService notaService, ClienteService clienteService) {
+    public NotaController(NotaService notaService, AcessoService acesso) {
         this.notaService = notaService;
-        this.clienteService = clienteService;
+        this.acesso = acesso;
     }
 
     @Operation(summary = "Upload de um ou mais XMLs de NF-e para o cliente",
@@ -44,7 +45,11 @@ public class NotaController {
     @PostMapping(path = "/api/clientes/{clienteId}/notas", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> upload(@PathVariable Long clienteId,
                                     @RequestParam("arquivos") List<MultipartFile> arquivos) {
-        clienteService.buscar(clienteId); // 404 antes de processar qualquer arquivo
+        Cliente cliente = acesso.clienteAcessivel(clienteId); // 404 antes de processar qualquer arquivo
+        if (!cliente.isAtivo()) {
+            throw new ApiException(HttpStatus.CONFLICT, "Empresa desativada",
+                    "Esta empresa está desativada. Reative-a para enviar notas.");
+        }
         if (arquivos.isEmpty()) {
             throw ApiException.requisicaoInvalida("Envie ao menos um arquivo XML no campo 'arquivos'.");
         }
@@ -80,13 +85,16 @@ public class NotaController {
     public List<NotaResumoDto> listar(@PathVariable Long clienteId,
                                       @RequestParam(required = false) TipoNota tipo,
                                       @RequestParam(required = false) String competencia) {
+        acesso.clienteAcessivel(clienteId);
         return notaService.listar(clienteId, tipo, competencia);
     }
 
     @Operation(summary = "Nota com itens")
     @GetMapping("/api/notas/{id}")
     public NotaDetalheDto detalhar(@PathVariable Long id) {
-        return notaService.detalhar(id);
+        NotaDetalheDto nota = notaService.detalhar(id);
+        acesso.exigirAcessoNota(id, nota.clienteId());
+        return nota;
     }
 
     private static byte[] ler(MultipartFile arquivo) {
