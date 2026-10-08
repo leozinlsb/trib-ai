@@ -18,6 +18,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     boolean existsByEmailIgnoreCase(String email);
 
     boolean existsByPapel(Papel papel);
+    Optional<Usuario> findFirstByPapelOrderByIdAsc(Papel papel);
 
     List<Usuario> findByClienteIdOrderByNome(Long clienteId);
 }

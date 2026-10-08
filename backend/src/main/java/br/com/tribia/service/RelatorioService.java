@@ -13,6 +13,7 @@ import br.com.tribia.model.Nota;
 import br.com.tribia.model.Regime;
 import br.com.tribia.model.TipoNota;
 import br.com.tribia.repository.NotaRepository;
+import br.com.tribia.security.AcessoService;
 import br.com.tribia.service.apuracao.Apuracao;
 import br.com.tribia.service.apuracao.ClassificacaoXml;
 import br.com.tribia.service.apuracao.ItemTributavel;
@@ -43,14 +44,18 @@ public class RelatorioService {
     private final NotaRepository notas;
     private final RegrasApuracao regras;
     private final AliquotasProperties aliquotas;
+    private final AcessoService acesso;
 
-    public RelatorioService(NotaRepository notas, RegrasApuracao regras, AliquotasProperties aliquotas) {
+    public RelatorioService(NotaRepository notas, RegrasApuracao regras, AliquotasProperties aliquotas,
+                            AcessoService acesso) {
         this.notas = notas;
         this.regras = regras;
         this.aliquotas = aliquotas;
+        this.acesso = acesso;
     }
 
     public RelatorioDto gerar(Cliente cliente, String de, String ate) {
+        cliente = acesso.clienteAcessivel(cliente.getId());
         validarCompetencia(de);
         validarCompetencia(ate);
         if (de != null && ate != null && de.compareTo(ate) > 0) {

@@ -3,7 +3,11 @@ package br.com.tribia.security;
 import br.com.tribia.exception.ApiException;
 import br.com.tribia.exception.RecursoNaoEncontradoException;
 import br.com.tribia.model.Cliente;
+import br.com.tribia.model.Item;
+import br.com.tribia.model.Nota;
 import br.com.tribia.repository.ClienteRepository;
+import br.com.tribia.repository.ItemRepository;
+import br.com.tribia.repository.NotaRepository;
 import br.com.tribia.repository.UsuarioRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -28,10 +32,15 @@ public class AcessoService {
 
     private final ClienteRepository clientes;
     private final UsuarioRepository usuarios;
+    private final NotaRepository notas;
+    private final ItemRepository itens;
 
-    public AcessoService(ClienteRepository clientes, UsuarioRepository usuarios) {
+    public AcessoService(ClienteRepository clientes, UsuarioRepository usuarios, NotaRepository notas,
+                         ItemRepository itens) {
         this.clientes = clientes;
         this.usuarios = usuarios;
+        this.notas = notas;
+        this.itens = itens;
     }
 
     /** Usuário da requisição. Se ele foi removido depois do login, a sessão deixa de valer. */
@@ -74,6 +83,28 @@ public class AcessoService {
             return clientes.findAll().stream().sorted(Comparator.comparing(Cliente::getId)).toList();
         }
         return List.of(clienteAcessivel(u.clienteId()));
+    }
+
+    /** Resolve a empresa proprietária antes de consultar ou alterar uma nota. */
+    public Nota notaAcessivel(Long notaId) {
+        atual();
+        Nota nota = notas.findById(notaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Nota " + notaId + " não encontrada"));
+        exigirAcessoNota(notaId, nota.getCliente().getId());
+        return nota;
+    }
+
+    /** A empresa do item vem da sua nota, nunca de um parâmetro do navegador. */
+    public Item itemAcessivel(Long itemId) {
+        atual();
+        Item item = itens.findById(itemId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Item " + itemId + " não encontrado"));
+        try {
+            clienteAcessivel(item.getNota().getCliente().getId());
+        } catch (RecursoNaoEncontradoException e) {
+            throw new RecursoNaoEncontradoException("Item " + itemId + " não encontrado");
+        }
+        return item;
     }
 
     /** Para notas: quem não pode ver a empresa recebe "nota não encontrada". */

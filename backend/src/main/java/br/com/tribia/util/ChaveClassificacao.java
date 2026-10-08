@@ -1,6 +1,10 @@
 package br.com.tribia.util;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.Normalizer;
+import java.util.HexFormat;
 import java.util.Locale;
 
 /**
@@ -14,6 +18,27 @@ public final class ChaveClassificacao {
 
     public static String de(String ncm, String descricao) {
         return (ncm == null ? "" : ncm.trim()) + "|" + normalizar(descricao);
+    }
+
+    /** Chave privada com tamanho fixo, sem alterar o schema legado (varchar 520). */
+    public static String daEmpresa(Long clienteId, String ncm, String descricao) {
+        if (clienteId == null || clienteId <= 0) {
+            throw new IllegalArgumentException("Cache privado exige empresa persistida.");
+        }
+        return "EMPRESA:v1:" + clienteId + ":" + digest(ncm, descricao);
+    }
+
+    public static String doCatalogo(String ncm, String descricao) {
+        return "CATALOGO:v1:" + digest(ncm, descricao);
+    }
+
+    private static String digest(String ncm, String descricao) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(de(ncm, descricao).getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 indisponivel no runtime Java.", e);
+        }
     }
 
     public static String normalizar(String descricao) {

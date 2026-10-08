@@ -2,10 +2,10 @@ package br.com.tribia.service;
 
 import br.com.tribia.dto.ClienteForm;
 import br.com.tribia.exception.ApiException;
-import br.com.tribia.exception.RecursoNaoEncontradoException;
 import br.com.tribia.model.Cliente;
 import br.com.tribia.repository.ClienteRepository;
 import br.com.tribia.repository.NotaRepository;
+import br.com.tribia.security.AcessoService;
 import br.com.tribia.util.CnpjUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,23 +19,25 @@ public class ClienteService {
 
     private final ClienteRepository repository;
     private final NotaRepository notas;
+    private final AcessoService acesso;
 
-    public ClienteService(ClienteRepository repository, NotaRepository notas) {
+    public ClienteService(ClienteRepository repository, NotaRepository notas, AcessoService acesso) {
         this.repository = repository;
         this.notas = notas;
+        this.acesso = acesso;
     }
 
     public List<Cliente> listar() {
-        return repository.findAll();
+        return acesso.clientesVisiveis();
     }
 
     public Cliente buscar(Long id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Cliente " + id + " não encontrado"));
+        return acesso.clienteAcessivel(id);
     }
 
     @Transactional
     public Cliente criar(ClienteForm form) {
+        acesso.exigirAdmin();
         String cnpj = cnpjValido(form.cnpj());
         if (repository.existsByCnpj(cnpj)) {
             throw conflito("Já existe uma empresa com o CNPJ " + CnpjUtil.formatar(cnpj) + ".");
@@ -49,6 +51,7 @@ public class ClienteService {
      */
     @Transactional
     public Cliente atualizar(Long id, ClienteForm form) {
+        acesso.exigirAdmin();
         Cliente c = buscar(id);
         String cnpj = cnpjValido(form.cnpj());
         if (!cnpj.equals(c.getCnpj())) {
@@ -67,6 +70,7 @@ public class ClienteService {
     /** Exclusão lógica: notas e usuários são mantidos; a empresa pode ser reativada. */
     @Transactional
     public Cliente desativar(Long id) {
+        acesso.exigirAdmin();
         Cliente c = buscar(id);
         c.desativar();
         return c;
@@ -74,6 +78,7 @@ public class ClienteService {
 
     @Transactional
     public Cliente reativar(Long id) {
+        acesso.exigirAdmin();
         Cliente c = buscar(id);
         c.reativar();
         return c;

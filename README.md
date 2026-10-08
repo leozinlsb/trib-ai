@@ -3,6 +3,11 @@
 A empresa sobe os XMLs das notas fiscais, a IA classifica cada item nas regras da reforma tributária
 (CST + cClassTrib) e o sistema compara o imposto líquido de hoje (PIS/Cofins) com o de 2027 (CBS/IBS/IS).
 
+Comparativos são estimativas, não apuração fiscal definitiva. Classificação/cálculo existem
+no backend; integração visual ainda parcial (B5). Consulte [plano mestre](PLANO_MESTRE_TRIBIA.md)
+e [validação da Etapa 1](docs/contexto-projeto/CONCLUSAO-ETAPA-1-2026-10-08.md) para evidências,
+ressalvas fiscais, revogação da chave antiga e revisão histórica antes de uso real.
+
 ## Frontend
 
 React 19 + TypeScript + Vite, em [`frontend/`](frontend/). Com o backend rodando:
@@ -27,11 +32,13 @@ cd backend
 
 - API: http://localhost:8090 (a calculadora offline da Receita ocupa 8080, 8081, 8082 e 80)
 - Swagger: http://localhost:8090/swagger-ui.html
-- Console H2: http://localhost:8090/h2-console (JDBC URL `jdbc:h2:mem:tribia`, usuário `sa`)
+- Console H2: http://localhost:8090/h2-console, somente ADMIN quando habilitado
+  (JDBC padrão `jdbc:h2:file:./data/tribia`, usuário `sa`). Desabilite console/demo em produção.
 
 ### Acesso (login e empresas)
 
-Toda rota `/api` exige login (sessão em cookie HttpOnly + proteção CSRF). Há dois perfis:
+Rotas de negócio `/api` exigem login (cookie HttpOnly + CSRF); login e bootstrap CSRF são
+públicos. Há dois perfis:
 
 - **Administrador** (escritório): gerencia as empresas e acessa todas. É criado na inicialização como
   `admin@tribia.local`. Defina a senha pela variável de ambiente `TRIBIA_ADMIN_SENHA` antes de subir o backend;
@@ -52,8 +59,10 @@ O isolamento entre empresas é feito no servidor (`AcessoService`): a empresa do
 outra empresa devolve 404 e operações administrativas devolvem 403. "Remover" uma empresa é desativá-la
 (exclusão lógica): notas e acessos são mantidos e ela pode ser reativada.
 
-> O banco é H2 **em memória**: empresas, usuários e notas enviadas somem quando o backend reinicia
-> (os 3 clientes e as notas de demonstração são recriados).
+> O banco padrão é H2 **em arquivo**, em `backend/data/tribia` quando iniciado pela pasta backend.
+> Empresas, usuários e notas persistem entre reinícios; mudar a senha de inicialização não
+> altera um ADMIN existente. Não apague o banco para testar: use ambiente isolado em memória.
+> Guardas/cache privado passaram nos caminhos avaliados; histórico do cache antigo não foi auditado em dados reais.
 
 ### Calculadora oficial (Calculadora RTC da Receita)
 
@@ -72,8 +81,9 @@ O script consulta as APIs públicas `dados-abertos/versao` e `download/url?platf
 piloto-cbs.tributos.gov.br e guarda a versão instalada em `versao.json`.
 
 Modo de cálculo (`tribia.calculo.modo`): `AUTO` (padrão: oficial e, se ela falhar, o cálculo simplificado com
-aviso), `OFICIAL` ou `SIMPLIFICADA`. O simplificado usa as mesmas fórmulas e tabelas oficiais e é conferido contra
-a calculadora real pelo `SimplificadaVsOficialContratoTest`.
+aviso), `OFICIAL` ou `SIMPLIFICADA`. O simplificado é uma estimativa; três contratos reais
+RTC offline passaram em 08/10/2026, inclusive SimplificadaVsOficialContratoTest. Isso não
+certifica todas as regras tributárias ou a base enviada à calculadora.
 
 Observações:
 - A partir de 2027 a calculadora exige as alíquotas nominais; o TribIA envia as de `tribia.aliquotas.ano2027.*`,
@@ -95,7 +105,10 @@ setx GEMINI_API_KEY "sua-chave"      # uma vez; abra um novo terminal (e reinici
   o segundo é tentado sozinho. O `gemini-2.5-*` não está mais disponível para chaves novas.
 - A IA só escolhe entre as opções da tabela oficial de cClassTrib. Benefícios de anexo (ex.: cesta básica) só são
   aceitos se o NCM constar da lista oficial do código; senão a resposta é recusada e reenviada uma vez.
-- Sem chave ou com a IA fora do ar, `POST /api/notas/{id}/classificar` responde 200 com os itens pendentes e um aviso.
+- Sem chave/IA fora do ar, classificar responde 200: XML/cache preservados; regra só sugere
+  associação única permitida (REGRA, confiança 0,40, não aceita). Sem evidência/ambíguo fica
+  pendente, fora do cálculo. Não presume integral. IA/revisão usam cache privado por empresa;
+  compartilhado somente catálogo SEED. Legado sem dono IA/MANUAL não reutilizado.
 - `GeminiContratoTest` usa a IA de verdade (gasta cota) e só roda com `GEMINI_API_KEY` definida.
 
 ### Apresentação (profile `demo`)
@@ -103,15 +116,20 @@ setx GEMINI_API_KEY "sua-chave"      # uma vez; abra um novo terminal (e reinici
 ```powershell
 ferramentas\iniciar-calculadora.bat                                  # janela 1 (opcional)
 mvnw spring-boot:run "-Dspring-boot.run.profiles=demo"               # janela 2 (com GEMINI_API_KEY)
-powershell -ExecutionPolicy Bypass -File ferramentas\ensaio-demo.ps1  # ensaio: roteiro 3x, termina reiniciado
+# ensaio-demo.ps1 pendente de login/CSRF; não executar contra banco persistente.
 ```
+
+**Atenção:** ensaio-demo.ps1 ainda não implementa login ADMIN/CSRF; não executado neste ciclo.
+As rotas demo exigem ADMIN e habilitação explícita; reiniciar apaga uploads/revisões/cache.
+Nunca execute esse reset ou o ensaio contra dados reais. O roteiro visual acima ainda não
+tem todo o fluxo classificação/cálculo integrado ao frontend (Etapa 2).
 
 - `GET /api/demo/status`: checklist (calculadora no ar, IA configurada, respostas gravadas, volume de dados).
 - `POST /api/demo/reiniciar`: volta ao estado inicial (só o seed) entre ensaios.
 - Plano B da IA: se ela falhar, usa as respostas que o Gemini real deu antes para os produtos de
   `notas-demo-ao-vivo/` (`src/main/resources/demo/respostas-ia.json`), com aviso na resposta.
   Para regravar: `$env:GEMINI_API_KEY="..."; mvnw test -Dtest=GerarRespostasIaDemoTest -Dseed.gerar=true`.
-- Plano B do cálculo: sem a calculadora oficial, o modo `AUTO` usa o cálculo simplificado (mesmos valores).
+- Plano B do cálculo: AUTO usa simplificado com aviso/flag de simulação; não prometer equivalência universal.
 - Roteiro sugerido: tela inicial → upload de `1-distribuidora_nf1004.xml` (8 produtos novos: a IA classifica
   em ~12 s) → upload da nota do hackathon (7 do cache, 1 pela IA) → revisão → painel → CSV.
 

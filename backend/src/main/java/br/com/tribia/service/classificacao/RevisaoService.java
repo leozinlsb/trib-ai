@@ -18,6 +18,7 @@ import br.com.tribia.model.TipoNota;
 import br.com.tribia.repository.CalculoRepository;
 import br.com.tribia.repository.ClassificacaoRepository;
 import br.com.tribia.repository.ItemRepository;
+import br.com.tribia.security.AcessoService;
 import br.com.tribia.service.ClienteService;
 import br.com.tribia.service.calculo.CalculoService;
 import br.com.tribia.service.tabelas.TabelaCClassTrib;
@@ -54,11 +55,13 @@ public class RevisaoService {
     private final CriterioRevisao criterio;
     private final TabelaCClassTrib tabela;
     private final TabelaNcmAplicavel regrasNcm;
+    private final AcessoService acesso;
 
     public RevisaoService(ClienteService clienteService, ItemRepository itemRepository,
                           ClassificacaoRepository classificacaoRepository, CalculoRepository calculoRepository,
                           ClassificacaoService classificacaoService, CalculoService calculoService,
-                          CriterioRevisao criterio, TabelaCClassTrib tabela, TabelaNcmAplicavel regrasNcm) {
+                          CriterioRevisao criterio, TabelaCClassTrib tabela, TabelaNcmAplicavel regrasNcm,
+                          AcessoService acesso) {
         this.clienteService = clienteService;
         this.itemRepository = itemRepository;
         this.classificacaoRepository = classificacaoRepository;
@@ -68,6 +71,7 @@ public class RevisaoService {
         this.criterio = criterio;
         this.tabela = tabela;
         this.regrasNcm = regrasNcm;
+        this.acesso = acesso;
     }
 
     /** Itens do cliente que precisam de revisão: primeiro os sem classificação, depois os de menor confiança. */
@@ -102,6 +106,7 @@ public class RevisaoService {
      * @param soSugeridas true devolve apenas as associadas ao NCM
      */
     public List<OpcaoClassificacaoDto> opcoes(String ncm, boolean soSugeridas) {
+        acesso.atual();
         Set<String> sugeridas = regrasNcm.regrasPara(ncm).stream().map(TabelaNcmAplicavel.Regra::cClassTrib)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         return tabela.opcoesNfe().stream()
@@ -113,6 +118,7 @@ public class RevisaoService {
 
     @Transactional
     public RevisaoResultadoDto revisar(Long itemId, RevisarItemRequest req) {
+        acesso.itemAcessivel(itemId);
         if (req == null || req.vazio()) {
             throw ApiException.requisicaoInvalida("Informe ao menos um de: aceitar, cClassTrib, creditavel.");
         }
@@ -172,8 +178,7 @@ public class RevisaoService {
             c.corrigirNaRevisao(cst, codigo, oficial.regime(), justificativa);
             classificacaoRepository.save(c);
         }
-        classificacaoService.gravarNoCache(item.getNcm(), item.getDescricao(), cst, codigo, justificativa,
-                BigDecimal.ONE, "MANUAL", true);
+        classificacaoService.gravarNoCacheDoItem(item.getId(), cst, codigo, justificativa);
         return alvos;
     }
 
@@ -188,7 +193,7 @@ public class RevisaoService {
         for (Item alvo : alvos) {
             existentes.get(alvo.getId()).aceitarNaRevisao();
         }
-        classificacaoService.validarNoCache(item.getNcm(), item.getDescricao(), atual.getCst(), atual.getCClassTrib());
+        classificacaoService.validarNoCacheDoItem(item.getId(), atual.getCst(), atual.getCClassTrib());
         return alvos;
     }
 

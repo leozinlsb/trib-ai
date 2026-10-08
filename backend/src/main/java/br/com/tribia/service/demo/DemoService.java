@@ -9,6 +9,7 @@ import br.com.tribia.repository.ClassificacaoRepository;
 import br.com.tribia.repository.ClienteRepository;
 import br.com.tribia.repository.ItemRepository;
 import br.com.tribia.repository.NotaRepository;
+import br.com.tribia.security.AcessoService;
 import br.com.tribia.service.classificacao.RespostasGravadasIa;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,12 +48,13 @@ public class DemoService {
     private final CalculoProperties calculo;
     private final LlmProperties llm;
     private final TransactionTemplate transacao;
+    private final AcessoService acesso;
 
     public DemoService(ClienteRepository clienteRepository, NotaRepository notaRepository, ItemRepository itemRepository,
                        ClassificacaoRepository classificacaoRepository, CalculoRepository calculoRepository,
                        ClassificacaoCacheRepository cacheRepository, SeedService seedService,
                        RespostasGravadasIa respostasGravadas, CalculadoraProperties calculadora, CalculoProperties calculo,
-                       LlmProperties llm, TransactionTemplate transacao) {
+                       LlmProperties llm, TransactionTemplate transacao, AcessoService acesso) {
         this.clienteRepository = clienteRepository;
         this.notaRepository = notaRepository;
         this.itemRepository = itemRepository;
@@ -65,9 +67,11 @@ public class DemoService {
         this.calculo = calculo;
         this.llm = llm;
         this.transacao = transacao;
+        this.acesso = acesso;
     }
 
     public Status status() {
+        acesso.exigirAdmin();
         return new Status(calculadoraNoAr(), calculo.modo().name(), llm.configurada(), respostasGravadas.quantidade(),
                 clienteRepository.count(), notaRepository.count(), itemRepository.count(),
                 classificacaoRepository.count(), calculoRepository.count());
@@ -78,6 +82,7 @@ public class DemoService {
      * Os clientes ficam. Os ids novos continuam a numeração (não voltam a 1).
      */
     public SeedService.Resultado reiniciar() {
+        acesso.exigirAdmin();
         transacao.executeWithoutResult(s -> {
             calculoRepository.deleteAllInBatch();
             classificacaoRepository.deleteAllInBatch();

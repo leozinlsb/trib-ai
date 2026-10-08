@@ -28,6 +28,7 @@ import br.com.tribia.repository.CalculoRepository;
 import br.com.tribia.repository.ClassificacaoRepository;
 import br.com.tribia.repository.ItemRepository;
 import br.com.tribia.repository.NotaRepository;
+import br.com.tribia.security.AcessoService;
 import br.com.tribia.service.ClienteService;
 import br.com.tribia.service.apuracao.Apuracao;
 import br.com.tribia.service.apuracao.Comparativo;
@@ -83,13 +84,14 @@ public class CalculoService {
     private final AliquotasProperties aliquotas;
     private final CalculoProperties props;
     private final TransactionTemplate tx;
+    private final AcessoService acesso;
 
     public CalculoService(NotaRepository notaRepository, ItemRepository itemRepository,
                           ClassificacaoRepository classificacaoRepository, CalculoRepository calculoRepository,
                           ClienteService clienteService, CalculadoraOficialClient oficial,
                           CalculadoraSimplificadaClient simplificada, RegrasApuracao regras,
                           TabelaImpostoSeletivo tabelaIs, AliquotasProperties aliquotas, CalculoProperties props,
-                          PlatformTransactionManager transacoes) {
+                           PlatformTransactionManager transacoes, AcessoService acesso) {
         this.notaRepository = notaRepository;
         this.itemRepository = itemRepository;
         this.classificacaoRepository = classificacaoRepository;
@@ -102,6 +104,7 @@ public class CalculoService {
         this.aliquotas = aliquotas;
         this.props = props;
         this.tx = new TransactionTemplate(transacoes);
+        this.acesso = acesso;
     }
 
     /** Tudo o que a fase 3 precisa da nota, lido na fase 1 (sem depender de entidades carregadas). */
@@ -117,6 +120,7 @@ public class CalculoService {
      * @param cbsCenario alíquota da CBS (%) para simular um cenário; null usa a configurada
      */
     public CalculoNotaDto calcular(Long notaId, BigDecimal cbsCenario) {
+        acesso.notaAcessivel(notaId);
         AliquotasNominais nominais = nominais(cbsCenario);
         Preparo p = tx.execute(s -> preparar(notaId, nominais));
 
@@ -124,6 +128,7 @@ public class CalculoService {
         if (!p.pendentes().isEmpty()) {
             avisos.add(p.pendentes().size() + " item(ns) sem classificação ficaram fora do cálculo: classifique a nota antes.");
         }
+        acesso.notaAcessivel(notaId);
         ResultadoCalculo r = p.operacaoCalculo().itens().isEmpty() ? null : executar(p.operacaoCalculo(), avisos);
 
         Comparativo total = tx.execute(s -> gravar(p, r, avisos));
@@ -136,6 +141,7 @@ public class CalculoService {
      * Usado depois de classificar ou revisar, para o painel refletir a mudança sem perder o cenário escolhido.
      */
     public CalculoNotaDto recalcular(Long notaId) {
+        acesso.notaAcessivel(notaId);
         BigDecimal configurada = aliquotas.ano2027().cbsEfetiva();
         BigDecimal cenario = calculoRepository.findByNota(notaId).stream()
                 .map(Calculo::getPCbs)
@@ -169,6 +175,7 @@ public class CalculoService {
      */
     public CalculoNotaDto definirPagamento(Long notaId, boolean confirmado) {
         tx.executeWithoutResult(s -> {
+            acesso.notaAcessivel(notaId);
             Nota n = notaRepository.findById(notaId)
                     .orElseThrow(() -> new RecursoNaoEncontradoException("Nota " + notaId + " não encontrada"));
             if (n.getOperacao().natureza() != Natureza.CREDITO) {
@@ -183,6 +190,7 @@ public class CalculoService {
     // ---------------- fase 1: lê e monta a operação ----------------
 
     private Preparo preparar(Long notaId, AliquotasNominais nominais) {
+        acesso.notaAcessivel(notaId);
         Nota nota = notaRepository.buscarComItens(notaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Nota " + notaId + " não encontrada"));
         Cliente cliente = nota.getCliente();
@@ -240,7 +248,7 @@ public class CalculoService {
                     log.warn("{}: usando o cálculo simplificado ({})", op.id(), e.getMessage());
                     avisos.add((e.getTipo() == CalculadoraException.Tipo.INDISPONIVEL
                             ? "Calculadora oficial fora do ar"
-                            : e.getMessage()) + ": valores calculados pelo método simplificado (mesmas fórmulas e tabela oficial).");
+                            : e.getMessage()) + ": valores estimados pelo método simplificado; exigem revisão fiscal.");
                     yield simplificada.calcular(op);
                 }
             }
@@ -252,6 +260,7 @@ public class CalculoService {
     // ---------------- fase 3: grava ----------------
 
     private Comparativo gravar(Preparo p, ResultadoCalculo r, Set<String> avisos) {
+        acesso.notaAcessivel(p.notaId());
         calculoRepository.apagarDosItens(p.idsItens());
         if (r == null) {
             return Comparativo.ZERO;
@@ -316,6 +325,7 @@ public class CalculoService {
 
     private List<String> avisosDeAliquota(AliquotasNominais n, BigDecimal cbsCenario) {
         List<String> avisos = new ArrayList<>();
+        avisos.add("Comparativo tributário é estimativa e exige revisão profissional; não é apuração fiscal definitiva.");
         AliquotasProperties.Ano2027 a = aliquotas.ano2027();
         if (cbsCenario != null) {
             avisos.add("Cenário simulado: CBS de " + cbsCenario.stripTrailingZeros().toPlainString() + "% em 2027.");

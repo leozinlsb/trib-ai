@@ -3,6 +3,7 @@ package br.com.tribia.config;
 import br.com.tribia.model.Papel;
 import br.com.tribia.model.Usuario;
 import br.com.tribia.repository.UsuarioRepository;
+import br.com.tribia.security.UsuarioLogado;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,7 +16,7 @@ import org.springframework.stereotype.Component;
 import java.security.SecureRandom;
 
 /**
- * Cria o administrador na inicialização, se não houver nenhum (o banco é em memória).
+ * Cria o administrador na inicialização, se não houver nenhum.
  * A senha vem de tribia.admin.senha (ex.: variável de ambiente TRIBIA_ADMIN_SENHA). Sem ela, uma senha
  * aleatória é gerada e mostrada uma vez no log. Nenhuma senha fica no código.
  */
@@ -45,6 +46,16 @@ public class AdminSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        garantirAdministrador();
+    }
+
+    /** Usado pelo seed antes de o servidor aceitar requisições; nunca cria sessão HTTP. */
+    public UsuarioLogado principalInicializacao() {
+        garantirAdministrador();
+        return UsuarioLogado.de(usuarios.findFirstByPapelOrderByIdAsc(Papel.ADMIN).orElseThrow()).semSenha();
+    }
+
+    private void garantirAdministrador() {
         if (usuarios.existsByPapel(Papel.ADMIN)) {
             return;
         }

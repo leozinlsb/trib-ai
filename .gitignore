@@ -17,3 +17,6 @@ Thumbs.db
 # Segredos locais (chave da API de IA etc.)
 .env
 application-local.properties
+
+# Banco H2 local (dados das empresas e usuários desta máquina)
+backend/data/

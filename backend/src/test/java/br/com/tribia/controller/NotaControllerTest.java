@@ -2,6 +2,8 @@ package br.com.tribia.controller;
 
 import br.com.tribia.Fixtures;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -83,21 +85,42 @@ class NotaControllerTest {
                         "A nota 35260810433218000193550010000012341123456789 já foi importada para este cliente."));
     }
 
-    @Test
-    void notaDeDevolucaoEComplementarSaoRejeitadas() throws Exception {
-        upload(DISTRIBUIDORA, arquivo("devolucao.xml", xmlCom("<finNFe>1</finNFe>", "<finNFe>4</finNFe>")))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.detail").value(
-                        "Notas de devolução (finNFe=4) ainda não são suportadas. Envie apenas notas normais."));
-
-        upload(DISTRIBUIDORA, arquivo("compl.xml", xmlCom("<finNFe>1</finNFe>", "<finNFe>2</finNFe>")))
-                .andExpect(status().isUnprocessableEntity());
+    @ParameterizedTest
+    @ValueSource(ints = {2, 4})
+    void notaComplementarEDeDevolucaoSaoImportadasComOperacaoCorreta(int finalidade) throws Exception {
+        upload(DISTRIBUIDORA, arquivo("finalidade.xml", xmlCom("<finNFe>1</finNFe>",
+                        "<finNFe>" + finalidade + "</finNFe>")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.importadas", hasSize(1)))
+                .andExpect(jsonPath("$.rejeitadas", hasSize(0)))
+                .andExpect(jsonPath("$.importadas[0].tipo").value("SAIDA"))
+                .andExpect(jsonPath("$.importadas[0].operacao").value(
+                        finalidade == 4 ? "DEVOLUCAO_DE_COMPRA" : "VENDA"));
     }
 
     @Test
-    void notaComTpNfZeroERejeitada() throws Exception {
+    void notaPropriaComTpNfZeroViraCompra() throws Exception {
         upload(DISTRIBUIDORA, arquivo("tpnf0.xml", xmlCom("<tpNF>1</tpNF>", "<tpNF>0</tpNF>")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.importadas[0].tipo").value("ENTRADA"))
+                .andExpect(jsonPath("$.importadas[0].operacao").value("COMPRA"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 3, 5, 6, 9})
+    void finalidadeForaDoEscopoContinuaRejeitada(int finalidade) throws Exception {
+        upload(DISTRIBUIDORA, arquivo("fora.xml", xmlCom("<finNFe>1</finNFe>",
+                        "<finNFe>" + finalidade + "</finNFe>")))
                 .andExpect(status().isUnprocessableEntity());
+        mvc.perform(get("/api/clientes/1/notas")).andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {-1, 2})
+    void tipoDeOperacaoInvalidoContinuaRejeitado(int tipo) throws Exception {
+        upload(DISTRIBUIDORA, arquivo("tipo.xml", xmlCom("<tpNF>1</tpNF>", "<tpNF>" + tipo + "</tpNF>")))
+                .andExpect(status().isUnprocessableEntity());
+        mvc.perform(get("/api/clientes/1/notas")).andExpect(jsonPath("$", hasSize(0)));
     }
 
     @Test
