@@ -90,7 +90,7 @@ estabilidade e relatórios; documentação e ambiente de demonstração seguros.
 resultados e relatórios validados, documentação reproduzível e demonstração sem dados reais
 ou chamadas pagas não autorizadas. Testes são obrigatórios também nas etapas anteriores.
 
-**Estado:** INICIADA em 08/10/2026 com aprovação do responsável. Primeiro incremento:
+**Estado:** CONCLUÍDA PARA A ENTREGA em 08/10/2026 (ver ressalvas abaixo); iniciada com aprovação do responsável. Primeiro incremento:
 ensaio da demo adaptado a login ADMIN + CSRF (3 de 3 verdes em API isolada, banco em memória, sem IA real);
 `.env` da raiz lido pelo backend (chave fora do Git, testes nunca a usam); testes do motor de alertas.
 Suíte do backend verde após S5 e R2: 226 testes, 0 falhas, 0 erros, 7 ignorados, nas duas ordens.
@@ -103,7 +103,14 @@ detalhe da nota, revisão/aceite, alertas, relatório e CSVs, perfil EMPRESA iso
 cookie Secure, senha do admin obrigatória), limite de tentativas de login e container sem root; 7 testes novos,
 suíte 233 / 0 falhas nas duas ordens. Roteiro da apresentação em `docs/ROTEIRO_DEMO.md`.
 **Deploy:** imagem única (API + front, `Dockerfile` na raiz) construída e validada em container (E2E 11/11).
-**Pendências:** deploy de fato no Render e validação do fluxo na URL pública; ensaio final com quem vai apresentar.
+**Deploy validado na URL pública (08/10/2026, Render, imagem única):** telas, rotas internas, 404 de arquivo
+inexistente, 401 nas rotas protegidas, Swagger/H2/docs fechados, cookie Secure e HSTS; ensaio autenticado completo
+1/1 verde (login ADMIN, upload nf1004, classificação, revisão, painel, CSV), Distribuidora R$ 264,58 → R$ 378,44.
+No ensaio o Gemini respondeu 503 (sobrecarga) e o plano B das respostas gravadas assumiu, como projetado.
+**Estado da Etapa 4:** critérios atendidos para a entrega do hackathon. **Ressalvas:** cálculo simplificado no
+Render (sem a calculadora oficial); E2E de navegador não rodado contra a URL pública (criaria usuário de teste lá);
+estimativas e regras S5/R2 aguardam validação profissional; pendências abertas em `PENDENCIAS.md`.
+**Pendências:** ensaio final com quem vai apresentar; trocar a senha do administrador depois da avaliação.
 
 ## Continuidade e evidências
 

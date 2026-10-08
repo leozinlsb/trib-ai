@@ -41,7 +41,11 @@ Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_
   validada em container: sobe em ~11 s, login com sessão, rotas fechadas 404 como ADMIN, E2E 11/11 contra a imagem.
   `backend/Dockerfile` e `backend/.dockerignore` removidos; `frontend/vercel.json` não é mais usado.
   Suíte: 236 / 0 falhas / 7 ignorados nas duas ordens.
-- Próximo: deploy no Render (Root Directory vazio), checklist na URL pública, ensaio final com quem apresenta.
+- **Deploy público validado** (Render, serviço único, `https://trib-ai-dllr.onrender.com`): checagens sem login
+  (telas, 404/401, rotas fechadas, cookie Secure, HSTS) e ensaio autenticado 1/1 verde, Distribuidora
+  R$ 264,58 → R$ 378,44. Gemini deu 503 e o plano B das respostas gravadas funcionou. Calculadora oficial não roda lá.
+- Próximo: ensaio final com quem apresenta; trocar `TRIBIA_ADMIN_SENHA` no Render depois da avaliação (a senha foi
+  compartilhada no chat); pausar o UptimeRobot, se usado.
 
 ## Registro anterior — Etapa 3 iniciada: motor de alertas (branch `dev/nicolau`, 08/10/2026)
 
