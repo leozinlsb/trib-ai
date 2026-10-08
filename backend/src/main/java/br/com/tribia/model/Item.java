@@ -158,6 +158,11 @@ public class Item {
         return creditavel;
     }
 
+    /** Revisão: bens de uso e consumo pessoal não dão crédito. */
+    public void setCreditavel(boolean creditavel) {
+        this.creditavel = creditavel;
+    }
+
     public IbsCbsDestacado getIbsCbsDestacado() {
         return ibsCbsDestacado;
     }

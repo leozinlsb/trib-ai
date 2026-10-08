@@ -84,13 +84,13 @@ class SeedRunnerTest {
         try (Stream<Path> s = Files.list(pasta)) {
             xmls = s.filter(p -> p.toString().endsWith(".xml")).sorted().toList();
         }
-        assertThat(xmls).hasSize(3);
+        assertThat(xmls).hasSize(4);
 
         for (Path xml : xmls) {
             long clienteId = Long.parseLong(xml.getFileName().toString().substring(0, 1));
             Nota nota = notaService.importar(clienteId, Files.readAllBytes(xml));
             assertThat(nota.getTipo()).as(xml.toString()).isEqualTo(TipoNota.SAIDA);
         }
-        assertThat(xmls.get(0).getFileName().toString()).endsWith(Fixtures.NFE_SAIDA_HACKATHON);
+        assertThat(xmls).anySatisfy(x -> assertThat(x.getFileName().toString()).endsWith(Fixtures.NFE_SAIDA_HACKATHON));
     }
 }

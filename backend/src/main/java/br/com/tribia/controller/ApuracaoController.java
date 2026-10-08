@@ -27,12 +27,15 @@ public class ApuracaoController {
         this.calculoService = calculoService;
     }
 
-    @Operation(summary = "Classifica os itens da nota (CST + cClassTrib)",
-            description = "Ordem: grupo IBS/CBS do XML, cache global por NCM + descrição e, na próxima etapa, IA. "
-                    + "Itens já classificados não são alterados.")
+    @Operation(summary = "Classifica os itens da nota (CST + cClassTrib) e recalcula a nota",
+            description = "Ordem: grupo IBS/CBS do XML, cache global por NCM + descrição e IA. Itens já classificados "
+                    + "não são alterados. Em seguida recalcula a nota (mantendo o cenário de CBS), para o painel "
+                    + "refletir; o resultado vem em 'calculo'. Use calcular=false para só classificar.")
     @PostMapping("/api/notas/{id}/classificar")
-    public ClassificacaoNotaDto classificar(@PathVariable Long id) {
-        return classificacaoService.classificar(id);
+    public ClassificacaoNotaDto classificar(@PathVariable Long id,
+                                            @RequestParam(defaultValue = "true") boolean calcular) {
+        ClassificacaoNotaDto r = classificacaoService.classificar(id);
+        return calcular ? r.comCalculo(calculoService.recalcular(id)) : r;
     }
 
     @Operation(summary = "Calcula CBS/IBS/IS de 2027 e o comparativo com hoje para os itens classificados",

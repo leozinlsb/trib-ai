@@ -5,13 +5,21 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Quando um item precisa de revisão (adendo: "confiança baixa ou não aceitos"). Usado no contador do painel e na
- * aba de revisão, para os dois mostrarem sempre o mesmo número.
+ * aba de revisão, para os dois mostrarem sempre o mesmo número. Item já conferido por uma pessoa sai da fila.
  */
 @Component
 public class CriterioRevisao {
+
+    public enum Motivo {
+        SEM_CLASSIFICACAO,
+        NAO_ACEITA,
+        CONFIANCA_BAIXA
+    }
 
     private final BigDecimal confiancaMinima;
 
@@ -19,9 +27,27 @@ public class CriterioRevisao {
         this.confiancaMinima = confiancaMinima;
     }
 
-    /** Sem classificação, não aceita ou com confiança abaixo do mínimo. */
     public boolean precisaRevisao(Classificacao c) {
-        return c == null || !c.isAceita() || c.getConfianca().compareTo(confiancaMinima) < 0;
+        return !motivos(c).isEmpty();
+    }
+
+    /** Vazio quando o item está ok (ou já foi revisado por uma pessoa). */
+    public List<Motivo> motivos(Classificacao c) {
+        List<Motivo> m = new ArrayList<>();
+        if (c == null) {
+            m.add(Motivo.SEM_CLASSIFICACAO);
+            return m;
+        }
+        if (c.isRevisada()) {
+            return m;
+        }
+        if (!c.isAceita()) {
+            m.add(Motivo.NAO_ACEITA);
+        }
+        if (c.getConfianca().compareTo(confiancaMinima) < 0) {
+            m.add(Motivo.CONFIANCA_BAIXA);
+        }
+        return m;
     }
 
     public BigDecimal confiancaMinima() {

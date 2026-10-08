@@ -24,9 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Não verifica o "gabarito tributário", só que a IA responde no formato certo e dentro das opções oficiais.
  */
 @EnabledIfEnvironmentVariable(named = "GEMINI_API_KEY", matches = ".+")
-class GeminiContratoTest {
+public class GeminiContratoTest {
 
-    static ClassificadorIa classificador() {
+    public static ClassificadorIa classificador() {
         var props = new LlmProperties("https://generativelanguage.googleapis.com/v1beta",
                 List.of("gemini-3.5-flash", "gemini-3.5-flash-lite"), System.getenv("GEMINI_API_KEY"),
                 Duration.ofSeconds(5), Duration.ofSeconds(90), 40);

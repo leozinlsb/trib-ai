@@ -153,7 +153,19 @@ public final class CatalogoSeed {
                         item("QL-DES2L", "DESINFETANTE LAVANDA 2L", "38089419", "UN", 120, "5.70", 18, NAO_CUMULATIVO))),
 
                 // ================= Reservadas para o upload ao vivo (fora do seed) =================
-                // A da distribuidora é o próprio nfe_teste_hackathon.xml (copiado pelo GerarArquivosSeedTest).
+                // Distribuidora: o próprio nfe_teste_hackathon.xml (copiado pelo GerarArquivosSeedTest) e esta nota
+                // com produtos que NÃO estão no cache, para a IA classificar ao vivo. Regimes variados de propósito:
+                // cesta básica (carne, queijo, farinha), Anexo XV (ovos, banana: o 0803 vence o 08 do Anexo VII),
+                // redução de 60% (pão de forma), integral com isca de regra agro (azeite) e Imposto Seletivo (cerveja).
+                aoVivo(distribuidora(nota(1004, "2026-10-28", DISTRIBUIDORA, MERCADO_BOM_PRECO,
+                        item("CAR001", "CARNE BOVINA ACEM RESFRIADA KG", "02013000", "KG", 50, "32.90", 0, ALIQUOTA_ZERO),
+                        item("QUE001", "QUEIJO MUSSARELA FATIADO KG", "04061010", "KG", 30, "39.90", 0, ALIQUOTA_ZERO),
+                        item("FAR001", "FARINHA DE TRIGO TIPO 1 1KG", "11010010", "UN", 80, "5.29", 0, ALIQUOTA_ZERO),
+                        item("OVO001", "OVOS BRANCOS GRANDES DUZIA", "04072100", "DZ", 60, "9.90", 0, ALIQUOTA_ZERO),
+                        item("BAN001", "BANANA PRATA KG", "08039000", "KG", 100, "5.49", 0, ALIQUOTA_ZERO),
+                        item("PAO001", "PAO DE FORMA TRADICIONAL 500G", "19059010", "UN", 60, "8.99", 18, NAO_CUMULATIVO),
+                        item("AZE001", "AZEITE DE OLIVA EXTRA VIRGEM 500ML", "15092000", "UN", 24, "34.90", 18, NAO_CUMULATIVO),
+                        item("CER001", "CERVEJA PILSEN LATA 350ML", "22030000", "UN", 240, "3.49", 18, MONOFASICO_REVENDA)))),
                 aoVivo(farmacia(nota(504, "2026-10-22", FARMACIA, CLINICA,
                         item("MED001", "DIPIRONA SODICA 500MG 10 COMPRIMIDOS", "30049069", "CX", 40, "6.90", 18, MONOFASICO_REVENDA),
                         item("SUP001", "VITAMINA C 1G 30 COMPRIMIDOS EFERVESCENTES", "21069030", "UN", 20, "24.90", 18, CUMULATIVO),

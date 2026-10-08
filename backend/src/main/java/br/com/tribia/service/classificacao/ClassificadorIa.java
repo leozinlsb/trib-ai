@@ -3,7 +3,6 @@ package br.com.tribia.service.classificacao;
 import br.com.tribia.client.llm.LlmClient;
 import br.com.tribia.client.llm.LlmException;
 import br.com.tribia.config.LlmProperties;
-import br.com.tribia.model.RegimeTributario;
 import br.com.tribia.service.tabelas.TabelaCClassTrib;
 import br.com.tribia.service.tabelas.TabelaCClassTrib.CClassTrib;
 import br.com.tribia.service.tabelas.TabelaNcmAplicavel;
@@ -68,20 +67,12 @@ public class ClassificadorIa {
         this.tabela = tabela;
         this.regrasNcm = regrasNcm;
         this.json = json;
-        List<CClassTrib> opcoes = tabela.todos().stream().filter(ClassificadorIa::elegivel).toList();
+        List<CClassTrib> opcoes = tabela.opcoesNfe();
         this.opcoesValidas = opcoes.stream().map(CClassTrib::codigo).collect(Collectors.toUnmodifiableSet());
         this.instrucoes = carregarPrompt().replace("{{OPCOES}}", opcoes.stream()
                 .map(o -> o.codigo() + " | " + o.cst() + " | " + o.descricaoRegime() + " | " + abreviar(o.nome(), 110)
                         + (regrasNcm.exigeNcmNaLista(o.codigo()) ? " [SÓ COM NCM NA LISTA OFICIAL]" : ""))
                 .collect(Collectors.joining("\n")));
-    }
-
-    /**
-     * Só códigos de NF-e com alíquota padrão (integral, reduzida, zero ou sem incidência): os regimes de alíquota
-     * fixa ou uniforme exigem tratamento próprio que o MVP não cobre.
-     */
-    private static boolean elegivel(CClassTrib c) {
-        return c.aceitaNfe() && c.regime() != RegimeTributario.OUTRO;
     }
 
     public boolean disponivel() {

@@ -60,6 +60,23 @@ setx GEMINI_API_KEY "sua-chave"      # uma vez; abra um novo terminal (e reinici
 - Sem chave ou com a IA fora do ar, `POST /api/notas/{id}/classificar` responde 200 com os itens pendentes e um aviso.
 - `GeminiContratoTest` usa a IA de verdade (gasta cota) e só roda com `GEMINI_API_KEY` definida.
 
+### Apresentação (profile `demo`)
+
+```powershell
+ferramentas\iniciar-calculadora.bat                                  # janela 1 (opcional)
+mvnw spring-boot:run "-Dspring-boot.run.profiles=demo"               # janela 2 (com GEMINI_API_KEY)
+powershell -ExecutionPolicy Bypass -File ferramentas\ensaio-demo.ps1  # ensaio: roteiro 3x, termina reiniciado
+```
+
+- `GET /api/demo/status`: checklist (calculadora no ar, IA configurada, respostas gravadas, volume de dados).
+- `POST /api/demo/reiniciar`: volta ao estado inicial (só o seed) entre ensaios.
+- Plano B da IA: se ela falhar, usa as respostas que o Gemini real deu antes para os produtos de
+  `notas-demo-ao-vivo/` (`src/main/resources/demo/respostas-ia.json`), com aviso na resposta.
+  Para regravar: `$env:GEMINI_API_KEY="..."; mvnw test -Dtest=GerarRespostasIaDemoTest -Dseed.gerar=true`.
+- Plano B do cálculo: sem a calculadora oficial, o modo `AUTO` usa o cálculo simplificado (mesmos valores).
+- Roteiro sugerido: tela inicial → upload de `1-distribuidora_nf1004.xml` (8 produtos novos: a IA classifica
+  em ~12 s) → upload da nota do hackathon (7 do cache, 1 pela IA) → revisão → painel → CSV.
+
 ### Dados de demonstração
 
 Na inicialização, o backend importa as notas de `src/main/resources/seed/{cnpj}/` (3 saídas e 3 entradas

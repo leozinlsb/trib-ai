@@ -20,7 +20,8 @@ public record ClassificacaoDto(
         String justificativa,
         BigDecimal confianca,
         OrigemClassificacao origem,
-        boolean aceita
+        boolean aceita,
+        boolean revisada
 ) {
     public static ClassificacaoDto de(Classificacao c, TabelaCClassTrib tabela) {
         if (c == null) {
@@ -30,6 +31,6 @@ public record ClassificacaoDto(
         return new ClassificacaoDto(c.getCst(), c.getCClassTrib(),
                 oficial.map(TabelaCClassTrib.CClassTrib::nome).orElse(null), c.getRegime(),
                 oficial.map(TabelaCClassTrib.CClassTrib::descricaoRegime).orElse(null),
-                c.getJustificativa(), c.getConfianca(), c.getOrigem(), c.isAceita());
+                c.getJustificativa(), c.getConfianca(), c.getOrigem(), c.isAceita(), c.isRevisada());
     }
 }

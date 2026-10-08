@@ -18,4 +18,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
             order by n.dataEmissao, n.id, i.nItem
             """)
     List<Item> doClienteNoPeriodo(@Param("clienteId") Long clienteId, @Param("de") String de, @Param("ate") String ate);
+
+    @Query("select i from Item i join fetch i.nota n join fetch n.cliente where n.id = :notaId order by i.nItem")
+    List<Item> daNota(@Param("notaId") Long notaId);
 }

@@ -51,6 +51,10 @@ public class Classificacao {
     @Column(nullable = false)
     private boolean aceita;
 
+    /** Conferida por uma pessoa na revisão (aceita ou corrigida): sai da fila mesmo com confiança baixa. */
+    @Column(nullable = false)
+    private boolean revisada;
+
     @Column(nullable = false)
     private Instant atualizadaEm;
 
@@ -71,7 +75,21 @@ public class Classificacao {
         this.confianca = confianca;
         this.origem = origem;
         this.aceita = aceita;
+        this.revisada = false;
         this.atualizadaEm = Instant.now();
+    }
+
+    /** Revisão: a pessoa confirma a classificação sugerida. */
+    public void aceitarNaRevisao() {
+        this.aceita = true;
+        this.revisada = true;
+        this.atualizadaEm = Instant.now();
+    }
+
+    /** Revisão: a pessoa informa outra classificação. */
+    public void corrigirNaRevisao(String cst, String cClassTrib, RegimeTributario regime, String justificativa) {
+        definir(cst, cClassTrib, regime, justificativa, BigDecimal.ONE, OrigemClassificacao.MANUAL, true);
+        this.revisada = true;
     }
 
     public Long getId() {
@@ -108,6 +126,10 @@ public class Classificacao {
 
     public boolean isAceita() {
         return aceita;
+    }
+
+    public boolean isRevisada() {
+        return revisada;
     }
 
     public Instant getAtualizadaEm() {

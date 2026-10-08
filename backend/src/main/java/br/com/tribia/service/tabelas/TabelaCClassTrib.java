@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -71,6 +72,19 @@ public class TabelaCClassTrib {
 
     public Collection<CClassTrib> todos() {
         return porCodigo.values();
+    }
+
+    /**
+     * Opções oferecidas para classificar itens de NF-e (IA e revisão manual): códigos aceitos em NF-e com alíquota
+     * padrão (integral, reduzida, zero ou sem incidência). Regimes de alíquota fixa ou uniforme ficam de fora:
+     * exigem tratamento próprio que o MVP não cobre.
+     */
+    public List<CClassTrib> opcoesNfe() {
+        return porCodigo.values().stream().filter(c -> c.aceitaNfe() && c.regime() != RegimeTributario.OUTRO).toList();
+    }
+
+    public boolean opcaoNfe(String codigo) {
+        return buscar(codigo).filter(c -> c.aceitaNfe() && c.regime() != RegimeTributario.OUTRO).isPresent();
     }
 
     /**

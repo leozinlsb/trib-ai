@@ -50,6 +50,54 @@ class DashboardControllerTest {
     }
 
     @Test
+    void impostoLiquidoPorMes() throws Exception {
+        // agosto: débito 2027 = biscoito 39,91 + chocolate 45,67 + óleo 18,28 (cesta básica zero); compras só de cesta
+        mvc.perform(get("/api/clientes/1/dashboard"))
+                .andExpect(jsonPath("$.porMes", hasSize(3)))
+                .andExpect(jsonPath("$.porMes[0].competencia").value("2026-08"))
+                .andExpect(jsonPath("$.porMes[0].faturamento").value(4687.90))
+                .andExpect(jsonPath("$.porMes[0].liquidoHoje").value(83.07))
+                .andExpect(jsonPath("$.porMes[0].liquido2027").value(103.86))
+                .andExpect(jsonPath("$.porMes[2].competencia").value("2026-10"));
+    }
+
+    @Test
+    void faturamentoPorRegime() throws Exception {
+        mvc.perform(get("/api/clientes/1/dashboard"))
+                .andExpect(jsonPath("$.porRegime[0].regime").value("ALIQUOTA_ZERO"))
+                .andExpect(jsonPath("$.porRegime[0].valor").value(12491.80))
+                .andExpect(jsonPath("$.porRegime[0].percentual").value(78.49))
+                .andExpect(jsonPath("$.porRegime[?(@.regime == 'SUJEITO_IS')].valor").value(959.04))
+                .andExpect(jsonPath("$.porRegime[?(@.regime == 'REDUZIDA')].valor").value(479.40)); // óleo de soja
+    }
+
+    @Test
+    void produtosQueMaisMudamOImpostoEFornecedoresQueMaisGeramCredito() throws Exception {
+        mvc.perform(get("/api/clientes/1/dashboard"))
+                .andExpect(jsonPath("$.topItens[0].descricao").value("REFRIGERANTE COLA 2L"))
+                .andExpect(jsonPath("$.topItens[0].impostoHoje").value(0))
+                .andExpect(jsonPath("$.topItens[0].imposto2027").value(91.40))
+                .andExpect(jsonPath("$.topItens[0].diferenca").value(91.40))
+                .andExpect(jsonPath("$.topItens[0].regime").value("INTEGRAL"))
+                .andExpect(jsonPath("$.topItens[1].descricao").value("OLEO DE SOJA 900ML"))
+                .andExpect(jsonPath("$.topItens[1].diferenca").value(18.28))
+                .andExpect(jsonPath("$.topFornecedores[0].nome").value("INDUSTRIA FICTICIA DE DOCES E BISCOITOS LTDA"))
+                .andExpect(jsonPath("$.topFornecedores[0].compras").value(1626.00))
+                .andExpect(jsonPath("$.topFornecedores[0].creditoHoje").value(150.40))
+                .andExpect(jsonPath("$.topFornecedores[0].credito2027").value(154.95))
+                .andExpect(jsonPath("$.topFornecedores", hasSize(3)));
+    }
+
+    @Test
+    void compraReduzOImpostoEApareceComSinalNegativoNoImpacto() throws Exception {
+        // farmácia (Presumido): compras não davam crédito hoje e passam a dar em 2027
+        mvc.perform(get("/api/clientes/2/dashboard"))
+                .andExpect(jsonPath("$.topItens[?(@.descricao == 'FRALDA GERIATRICA TAMANHO G PCT 8')].impostoHoje").value(0.0))
+                .andExpect(jsonPath("$.topItens[?(@.descricao == 'FRALDA GERIATRICA TAMANHO G PCT 8')].diferenca",
+                        hasItem(org.hamcrest.Matchers.lessThan(0.0))));
+    }
+
+    @Test
     void farmaciaDoPresumidoGanhaCreditoEm2027ETemMedicamentosParaRevisar() throws Exception {
         mvc.perform(get("/api/clientes/2/dashboard"))
                 .andExpect(jsonPath("$.indicadores.faturamento").value(14908.50))

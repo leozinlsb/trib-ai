@@ -47,15 +47,17 @@ public class ClassificacaoService {
     private final ClassificacaoCacheRepository cacheRepository;
     private final TabelaCClassTrib tabela;
     private final ClassificadorIa ia;
+    private final RespostasGravadasIa respostasGravadas;
 
     public ClassificacaoService(NotaRepository notaRepository, ClassificacaoRepository classificacaoRepository,
                                 ClassificacaoCacheRepository cacheRepository, TabelaCClassTrib tabela,
-                                ClassificadorIa ia) {
+                                ClassificadorIa ia, RespostasGravadasIa respostasGravadas) {
         this.notaRepository = notaRepository;
         this.classificacaoRepository = classificacaoRepository;
         this.cacheRepository = cacheRepository;
         this.tabela = tabela;
         this.ia = ia;
+        this.respostasGravadas = respostasGravadas;
     }
 
     /**
@@ -121,8 +123,11 @@ public class ClassificacaoService {
             r = ia.classificar(pedido);
         } catch (LlmException e) {
             log.warn("IA não classificou {} produto(s): {}", pedido.size(), e.getMessage());
-            avisos.add(e.getMessage() + " Os itens ficam pendentes.");
-            return;
+            if (!respostasGravadas.habilitadas()) {
+                avisos.add(e.getMessage() + " Os itens ficam pendentes.");
+                return;
+            }
+            r = respostasGravadas(pedido, e, avisos);
         }
         avisos.addAll(r.avisos());
         r.sugestoes().forEach((idProduto, s) -> {
@@ -136,6 +141,28 @@ public class ClassificacaoService {
             gravarNoCache(rep.getNcm(), rep.getDescricao(), s.cst(), s.cClassTrib(), s.justificativa(), s.confianca(),
                     "IA", false);
         });
+    }
+
+    /** Plano B do profile demo: respostas que a IA real deu antes para estes produtos (ver RespostasGravadasIa). */
+    private ClassificadorIa.ResultadoIa respostasGravadas(List<ClassificadorIa.ProdutoParaClassificar> pedido,
+                                                          LlmException falha, List<String> avisos) {
+        Map<Integer, ClassificadorIa.SugestaoIa> sugestoes = new LinkedHashMap<>();
+        List<String> semResposta = new ArrayList<>();
+        for (ClassificadorIa.ProdutoParaClassificar p : pedido) {
+            respostasGravadas.buscar(p.ncm(), p.descricao())
+                    .filter(g -> tabela.validoParaNfe(g.cst(), g.cClassTrib()))
+                    .ifPresentOrElse(
+                            g -> sugestoes.put(p.nItem(), new ClassificadorIa.SugestaoIa(p.nItem(), g.cst(), g.cClassTrib(),
+                                    g.justificativa(), g.confianca())),
+                            () -> semResposta.add(p.descricao()));
+        }
+        avisos.add(falha.getMessage() + " Modo demonstração: usadas as respostas da IA gravadas antes para "
+                + sugestoes.size() + " produto(s).");
+        List<String> outros = new ArrayList<>();
+        if (!semResposta.isEmpty()) {
+            outros.add("Sem resposta gravada para: " + String.join(", ", semResposta) + ". Esses itens ficam pendentes.");
+        }
+        return new ClassificadorIa.ResultadoIa(sugestoes, outros);
     }
 
     private Optional<Classificacao> doXml(Item item) {
@@ -180,6 +207,17 @@ public class ClassificacaoService {
         cacheRepository.save(e);
     }
 
+    /**
+     * A pessoa confirmou uma sugestão: a entrada do cache para o produto (se tiver o mesmo código) passa a ser
+     * validada, e as próximas notas com esse produto já chegam aceitas.
+     */
+    @Transactional
+    public void validarNoCache(String ncm, String descricao, String cst, String cClassTrib) {
+        cacheRepository.findByChave(ChaveClassificacao.de(ncm, descricao))
+                .filter(e -> e.getCst().equals(cst) && e.getCClassTrib().equals(cClassTrib))
+                .ifPresent(e -> e.definir(cst, cClassTrib, e.getJustificativa(), e.getConfianca(), e.getFonte(), true));
+    }
+
     private static ClassificacaoNotaDto resumo(Nota nota, Map<Long, Classificacao> classificacoes, List<String> avisos) {
         Map<OrigemClassificacao, Long> porOrigem = new EnumMap<>(OrigemClassificacao.class);
         classificacoes.values().forEach(c -> porOrigem.merge(c.getOrigem(), 1L, Long::sum));
@@ -190,6 +228,6 @@ public class ClassificacaoService {
             }
         }
         return new ClassificacaoNotaDto(nota.getId(), nota.getItens().size(), classificacoes.size(), porOrigem,
-                pendentes, List.copyOf(avisos));
+                pendentes, List.copyOf(avisos), null);
     }
 }

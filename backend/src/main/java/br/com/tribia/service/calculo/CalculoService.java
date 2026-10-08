@@ -133,6 +133,20 @@ public class CalculoService {
                 List.copyOf(avisos), ComparativoDto.de(total));
     }
 
+    /**
+     * Recalcula a nota mantendo o cenário de CBS com que ela foi calculada da última vez (se havia um).
+     * Usado depois de classificar ou revisar, para o painel refletir a mudança sem perder o cenário escolhido.
+     */
+    @Transactional
+    public CalculoNotaDto recalcular(Long notaId) {
+        BigDecimal configurada = aliquotas.ano2027().cbs();
+        BigDecimal cenario = calculoRepository.findByNota(notaId).stream()
+                .map(Calculo::getPCbs)
+                .filter(p -> p != null && p.compareTo(configurada) != 0)
+                .findFirst().orElse(null);
+        return calcular(notaId, cenario);
+    }
+
     /** Recalcula todas as notas do cliente (ex.: para trocar o cenário da CBS). */
     @Transactional
     public CalculoClienteDto calcularCliente(Long clienteId, BigDecimal cbsCenario) {

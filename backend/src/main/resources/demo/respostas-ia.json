@@ -1,0 +1,64 @@
+[ {
+  "ncm" : "02013000",
+  "descricao" : "CARNE BOVINA ACEM RESFRIADA KG",
+  "cst" : "200",
+  "cClassTrib" : "200003",
+  "justificativa" : "Carne bovina resfriada classificada na Cesta Básica Nacional com alíquota zero (Anexo I, item 19 da LC 214/2025).",
+  "confianca" : 0.95
+}, {
+  "ncm" : "04061010",
+  "descricao" : "QUEIJO MUSSARELA FATIADO KG",
+  "cst" : "200",
+  "cClassTrib" : "200003",
+  "justificativa" : "Queijo mussarela fatiado classificado na Cesta Básica Nacional com alíquota zero (Anexo I, item 21 da LC 214/2025).",
+  "confianca" : 0.95
+}, {
+  "ncm" : "11010010",
+  "descricao" : "FARINHA DE TRIGO TIPO 1 1KG",
+  "cst" : "200",
+  "cClassTrib" : "200003",
+  "justificativa" : "Farinha de trigo classificada na Cesta Básica Nacional com alíquota zero (Anexo I, item 13 da LC 214/2025), prevalecendo sobre as regras de insumos.",
+  "confianca" : 0.95
+}, {
+  "ncm" : "04072100",
+  "descricao" : "OVOS BRANCOS GRANDES DUZIA",
+  "cst" : "200",
+  "cClassTrib" : "200014",
+  "justificativa" : "Ovos brancos de aves classificados com alíquota zero no Anexo XV, item 1 da LC 214/2025.",
+  "confianca" : 0.95
+}, {
+  "ncm" : "08039000",
+  "descricao" : "BANANA PRATA KG",
+  "cst" : "200",
+  "cClassTrib" : "200014",
+  "justificativa" : "Banana prata (fruta in natura) classificada com alíquota zero no Anexo XV, item 3 da LC 214/2025, prevalecendo sobre a redução parcial.",
+  "confianca" : 0.95
+}, {
+  "ncm" : "19059010",
+  "descricao" : "PAO DE FORMA TRADICIONAL 500G",
+  "cst" : "200",
+  "cClassTrib" : "200034",
+  "justificativa" : "Pão de forma tradicional classificado com redução de 60% na alíquota para alimentos de consumo humano (Anexo VII, item 12 da LC 214/2025).",
+  "confianca" : 0.95
+}, {
+  "ncm" : "15092000",
+  "descricao" : "AZEITE DE OLIVA EXTRA VIRGEM 500ML",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "Azeite de oliva extra virgem para consumo final. As regras de insumos agropecuários (Anexo IX) não se aplicam ao produto final de varejo, resultando em tributação integral.",
+  "confianca" : 0.80
+}, {
+  "ncm" : "22030000",
+  "descricao" : "CERVEJA PILSEN LATA 350ML",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "Cerveja pilsen é bebida alcoólica sujeita à tributação integral, sem benefícios fiscais previstos na LC 214/2025.",
+  "confianca" : 0.98
+}, {
+  "ncm" : "34022000",
+  "descricao" : "DETERGENTE LIQUIDO NEUTRO 500ML",
+  "cst" : "000",
+  "cClassTrib" : "000001",
+  "justificativa" : "Detergente líquido neutro. Sem regra oficial por NCM para o Anexo VIII (produtos de limpeza), aplica-se a tributação integral.",
+  "confianca" : 0.95
+} ]
