@@ -6,7 +6,27 @@
 
 ---
 
-## Atualização mais recente — Etapa 2 iniciada no front (branch `dev/nicolau`, 08/10/2026)
+## Atualização mais recente — Etapa 3 iniciada: motor de alertas (branch `dev/nicolau`, 08/10/2026)
+
+**Etapa 3 EM ANDAMENTO.** Motor de alertas no front, sobre dados e endpoints existentes; nenhuma regra
+fiscal do backend mudou. Build/lint não verificados no ambiente de desenvolvimento (npm bloqueado);
+checagem de tipos com stubs e teste do motor com a tabela oficial do repositório passaram.
+
+- `lib/alertas.ts` (motor puro), `hooks/useAlertas.ts`, tela `/dashboard/empresas/:id/alertas` (menu
+  "Alertas") e faixa "Alertas fiscais" no início da empresa.
+- Alertas: benefício não aplicado (nota integral, lista oficial associa o NCM a redução/alíquota zero),
+  benefício fora da lista do NCM, par CST/cClassTrib inválido (o backend descartou o código da nota),
+  divergência confirmada na revisão, fornecedor do Simples (crédito limitado), nota sem grupo IBS/CBS e
+  itens aguardando revisão. Códigos por adquirente (mesma lista do backend) não viram sugestão.
+- "Valor em jogo" é estimativa: base sem ICMS/PIS/Cofins × alíquota de referência (mediana dos cálculos
+  integrais da empresa ou CBS 9,43% + IBS 0,1%) × diferença de carga. A tela diz isso.
+- Ação "Corrigir" aplica o código escolhido via `PUT /api/itens/{id}/classificacao` e recalcula; o
+  alerta vira "divergência confirmada" (corrigir a nota na origem).
+- Limitação conhecida: o backend aceita o cClassTrib do XML com confiança 1 sem conferir a lista do NCM;
+  o alerta cobre isso na tela, mas o comparativo 2027 usa o código da nota até alguém corrigir.
+- XMLs de demonstração fora do repositório: `xml-teste/demo_alertas_*.xml` (erros propositais).
+
+## Registro anterior — Etapa 2 no front (branch `dev/nicolau`, 08/10/2026)
 
 **Etapa 2 EM ANDAMENTO — integração front × back. Build/lint NÃO verificados no ambiente de
 desenvolvimento (npm bloqueado); rodar `npm run build` e `npm run lint` antes do commit.**

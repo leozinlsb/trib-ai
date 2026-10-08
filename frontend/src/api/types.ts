@@ -2,6 +2,7 @@
 
 export type Regime = 'LUCRO_REAL' | 'LUCRO_PRESUMIDO'
 export type TipoNota = 'ENTRADA' | 'SAIDA'
+export type Operacao = 'VENDA' | 'COMPRA' | 'DEVOLUCAO_DE_VENDA' | 'DEVOLUCAO_DE_COMPRA'
 
 export interface Cliente {
   id: number
@@ -341,8 +342,12 @@ export interface NotaDetalhe {
   serie: number | null
   dataEmissao: string
   competencia: string
+  /** o que a nota representa para a empresa (define débito/crédito) */
+  operacao?: Operacao
   emitenteCnpj: string | null
   emitenteNome: string | null
+  /** CRT do emitente: 1 Simples Nacional, 2 Simples (excesso de sublimite), 3 regime normal, 4 MEI */
+  emitenteCrt?: number | null
   destinatarioDocumento: string | null
   destinatarioNome: string | null
   contraparteCnpj: string | null

@@ -1,6 +1,6 @@
 import { Link, NavLink, useMatch, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, BrainCircuit, Building2, ChartColumn, FileText, FolderKanban, House, ListChecks, LogOut, Settings, X,
+  ArrowLeft, BrainCircuit, Building2, ChartColumn, FileText, FolderKanban, House, ListChecks, LogOut, Settings, ShieldAlert, X,
 } from 'lucide-react'
 import { Logo } from './Logo'
 import { useAuth, useDados } from '../../state/contexts'
@@ -24,6 +24,7 @@ function menuEmpresa(id: number): Item[] {
   return [
     { to: rotaEmpresa(id), rotulo: 'Início', icone: House, end: true },
     { to: rotaEmpresa(id, 'documentos'), rotulo: 'Documentos', icone: FileText },
+    { to: rotaEmpresa(id, 'alertas'), rotulo: 'Alertas', icone: ShieldAlert },
     { to: rotaEmpresa(id, 'revisao'), rotulo: 'Revisão', icone: ListChecks },
     ...(INTELIGENCIA_FISCAL_ATIVA
       ? [{ to: rotaEmpresa(id, 'inteligencia-fiscal'), rotulo: 'Inteligência Fiscal', icone: BrainCircuit }]

@@ -9,6 +9,7 @@ import { CabecalhoEmpresa, EstadoEmpresa } from '../../components/empresas/Cabec
 import { EnviosRecentes } from '../../components/EnviosRecentes'
 import { CardRecentes, CardVolume } from '../../components/painel/Blocos'
 import { Comparativo2027 } from '../../components/painel/Comparativo2027'
+import { ResumoAlertas } from '../../components/painel/ResumoAlertas'
 import { Card, Carregando, ErroEstado, KpiCard } from '../../components/ui'
 import { useCobertura } from '../../hooks/useCobertura'
 import { useEmpresa } from '../../hooks/useEmpresa'
@@ -66,6 +67,12 @@ export function InicioEmpresa() {
         processando={processando}
         onProcessar={() => void processar(aProcessar)}
       />
+
+      {notas.length > 0 && (
+        <div style={{ marginBottom: 'var(--gap)' }}>
+          <ResumoAlertas empresa={empresa} notas={notas} />
+        </div>
+      )}
 
       <div className="grid-kpi">
         <KpiCard

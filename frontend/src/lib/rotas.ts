@@ -1,4 +1,4 @@
-type Secao = 'documentos' | 'revisao' | 'analises' | 'configuracoes' | 'inteligencia-fiscal'
+type Secao = 'documentos' | 'alertas' | 'revisao' | 'analises' | 'configuracoes' | 'inteligencia-fiscal'
 
 /**
  * Inteligência Fiscal (sugestão de NCM) ainda não tem backend: fica fora do menu até existir.
@@ -24,7 +24,7 @@ export function rotaAnaliseFiscal(empresaId: number, analiseId?: number | 'nova'
  * Itens específicos (uma nota, uma análise) não existem na outra empresa: volta para a lista da seção.
  */
 export function trocarEmpresaNoCaminho(pathname: string, novoId: number) {
-  const m = pathname.match(/^\/dashboard\/empresas\/\d+(\/(documentos|revisao|analises|configuracoes|inteligencia-fiscal))?/)
+  const m = pathname.match(/^\/dashboard\/empresas\/\d+(\/(documentos|alertas|revisao|analises|configuracoes|inteligencia-fiscal))?/)
   const secao = m?.[2] as Secao | undefined
   return rotaEmpresa(novoId, secao)
 }
