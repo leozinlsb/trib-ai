@@ -47,6 +47,28 @@ Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_
 - Próximo: ensaio final com quem apresenta; trocar `TRIBIA_ADMIN_SENHA` no Render depois da avaliação (a senha foi
   compartilhada no chat); pausar o UptimeRobot, se usado.
 
+## Atualização — Inteligência Fiscal com backend (08/10/2026)
+
+Pedido do responsável (Etapa 3). O que existe agora:
+- **Endpoints** (contrato em `frontend/docs/inteligencia-fiscal-api.md`): `GET/POST /api/clientes/{id}/analises-fiscais`,
+  `GET /api/clientes/{id}/analises-fiscais/indicadores`, `GET /api/analises-fiscais/{id}`. Acesso por empresa via
+  `AcessoService` (outra empresa = 404 "Recurso não encontrado"); empresa desativada = 409; validação de anexos
+  (10 arquivos, 10 MB, formatos do front).
+- **Fluxo** (`service/fiscal/`): `AnaliseFiscalService` cria (202, AGUARDANDO) e dispara `ProcessadorAnaliseFiscal`
+  em segundo plano (pool de 2 threads, fila 20; `tribia.fiscal.sincrono=true` nos testes). Etapas gravadas no
+  histórico: INTERPRETANDO → PESQUISANDO_NCM (1 chamada ao Gemini, `PesquisaNcmIa` + `prompt-ncm.txt`) → AVALIANDO
+  (JEV) → VALIDANDO (`ValidadorNcm`) → GERANDO_RELATORIO → CONCLUIDA ou AGUARDANDO_REVISAO. Situações especiais:
+  INFORMACOES_INSUFICIENTES (com o que falta) e FALHA (IA sem chave/fora do ar). Reinício do servidor marca as
+  análises em andamento como FALHA.
+- **JEV AI (colaborador):** implementar `service/fiscal/AvaliadorJev` como `@Component`; enquanto não existir, o
+  processador usa `JevIndisponivel` e registra a limitação. Ver o javadoc da interface (escala, significado, falhas).
+- **Honestidade das verificações:** sem base da TIPI, "Existência e vigência" fica NAO_REALIZADA e vira pendência;
+  só anexos .txt são lidos pela IA; a descrição do código vem da IA (limitação explícita). Sem relatório PDF.
+- **Front:** telas ligadas por padrão (`VITE_INTELIGENCIA_FISCAL=false` esconde).
+- **Testes:** `AnaliseFiscalControllerTest` (10, IA simulada, inclui isolamento e JEV plugada); E2E
+  `frontend/scripts/inteligencia-fiscal-e2e.mjs` aprovado com Gemini real (sabonete → 3401.11.90 em ~8 s).
+  Suíte: 246 / 0 falhas / 7 ignorados nas duas ordens.
+
 ## Registro anterior — Etapa 3 iniciada: motor de alertas (branch `dev/nicolau`, 08/10/2026)
 
 **Etapa 3 EM ANDAMENTO.** Motor de alertas no front, sobre dados e endpoints existentes; nenhuma regra

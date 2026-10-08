@@ -72,7 +72,10 @@ incerteza e revisão humana; regras verificadas com fontes oficiais/especialista
 verificáveis; IA não apresentada como verdade fiscal definitiva; casos de baixa confiança
 tratados; testes fiscais e de isolamento; custos/chamadas externas previamente autorizados.
 
-**Estado:** PARCIAL, revisada em 08/10/2026 (sem aprovação de conclusão). Feito: motor de alertas
+**Estado:** PARCIAL, revisada em 08/10/2026 (sem aprovação de conclusão). Inteligência Fiscal (sugestão de
+NCM) implementada no backend a pedido do responsável: 4 endpoints do contrato do front, Gemini interpreta a mercadoria
+e propõe até 4 NCMs, verificações honestas (vigência na TIPI aparece como não realizada), ponto de encaixe
+`AvaliadorJev` para a JEV AI do colaborador; 10 testes de backend e E2E no navegador com Gemini real aprovados. Feito: motor de alertas
 no front (`frontend/src/lib/alertas.ts`), agora com 8 testes automáticos (`npm test`). Revisão encontrou
 R1 e R2 (alertas e crédito de compras), ambos resolvidos em 08/10/2026 (R2: crédito = menor entre a nota e a
 correção, a confirmar com especialista; R1: compras viram "efeito no preço").

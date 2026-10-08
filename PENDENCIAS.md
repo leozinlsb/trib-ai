@@ -27,12 +27,12 @@ Sem commit, sem mudanças fiscais, sem tocar dados reais. Abertos:
 |---|-----|-----------|-------------------|
 | B3-HISTORICO | Classificações eventualmente contaminadas pelo cache antigo não foram remediadas. | Defeito anterior reproduzido em dados sintéticos; ocorrência real não investigada. | Avaliar histórico somente em ambiente autorizado, aprovar remediação auditável; não inferir dono/apagar automaticamente. Etapa 1. |
 | A1 | Classificação do XML é aceita sem conferir a lista de NCMs do benefício. | `ClassificacaoService.doXml` grava origem XML, confiança 1, aceita. | Motor de alertas sinaliza no front; avaliar no backend marcar como não aceita quando `exigeNcmNaLista` e o NCM não estiver na lista (regra fiscal: validar antes). Etapa 3. |
-| I-FISCAL | Telas de Inteligência Fiscal chamam 4 endpoints inexistentes. | `api/inteligenciaFiscal.ts`. | Ocultas por padrão (`VITE_INTELIGENCIA_FISCAL`); implementar back na Etapa 3. |
+| I-FISCAL | Backend da Inteligência Fiscal implementado em 08/10/2026 (4 endpoints, Gemini sugere NCM, telas ligadas por padrão). Restam: vigência/existência da NCM não verificadas (sem base da TIPI no projeto); só anexos .txt são lidos pela IA (PDF/imagem/Office não); relatório em PDF não gerado; JEV AI depende do colaborador (`AvaliadorJev`); processamento em memória (reinício marca as em andamento como FALHA). | `service/fiscal/*`, `AnaliseFiscalControllerTest`, `frontend/scripts/inteligencia-fiscal-e2e.mjs`. | Base da TIPI para validar vigência; leitura de PDF/imagem pela IA; JEV; relatório PDF. Etapa 3. |
 | F-TABELA | Exceções NCM em linhas repetidas podem reintroduzir associação excluída. | Arroz/feijão retornam múltiplos códigos; fallback agora se abstém. | Conferir extração/semântica com base oficial, Etapa 3; não alterar tabelas sem validação. |
 
 ## Testes do backend (08/10/2026)
 
-**Atual (após S5, R2 e segurança do deploy, 08/10/2026): 233 testes, 0 falhas, 0 erros, 7 ignorados**, nas duas ordens
+**Atual (após Inteligência Fiscal, 08/10/2026): 246 testes, 0 falhas, 0 erros, 7 ignorados**, nas duas ordens
 (`-Dsurefire.runOrder=reversealphabetical`), sem a calculadora no ar (3 contratos RTC + 2 Gemini reais +
 2 geradores opt-in ignorados). Front: build, lint e `npm test` (8) verdes. Histórico abaixo.
 

@@ -1,8 +1,8 @@
 # Inteligência Fiscal: contrato de API proposto
 
-**Situação:** nenhum destes endpoints existe no backend ainda. O frontend já os consome
-(`src/api/inteligenciaFiscal.ts`). Enquanto o servidor responder 404 de rota inexistente, as telas mostram
-"Análise fiscal ainda não disponível" e não simulam resultados.
+**Situação:** implementado no backend em 08/10/2026 (`backend/src/main/java/br/com/tribia/service/fiscal/`).
+O endpoint opcional de relatório em PDF não existe (`relatorio.disponivel` vem `false`). A pontuação da JEV AI
+aparece quando houver um bean `AvaliadorJev`; até lá as alternativas vêm sem `pontuacao`.
 
 Toda a lógica fica no backend: chamadas ao Gemini e ao JEV, interpretação da mercadoria, busca NCM, validação
 fiscal, leitura dos anexos, geração do relatório, persistência e controle de acesso. O navegador não recebe

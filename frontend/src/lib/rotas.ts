@@ -1,10 +1,10 @@
 type Secao = 'documentos' | 'alertas' | 'revisao' | 'analises' | 'configuracoes' | 'inteligencia-fiscal'
 
 /**
- * Inteligência Fiscal (sugestão de NCM) ainda não tem backend: fica fora do menu até existir.
- * Para ver as telas em desenvolvimento: VITE_INTELIGENCIA_FISCAL=true no frontend/.env.
+ * Inteligência Fiscal (sugestão de NCM): ligada por padrão desde que o backend ganhou os endpoints
+ * (/api/clientes/{id}/analises-fiscais). Para esconder do menu: VITE_INTELIGENCIA_FISCAL=false no frontend/.env.
  */
-export const INTELIGENCIA_FISCAL_ATIVA = import.meta.env.VITE_INTELIGENCIA_FISCAL === 'true'
+export const INTELIGENCIA_FISCAL_ATIVA = import.meta.env.VITE_INTELIGENCIA_FISCAL !== 'false'
 
 /** Caminhos do ambiente de uma empresa. */
 export function rotaEmpresa(id: number, sub?: Secao | `${Secao}/${string}`) {
