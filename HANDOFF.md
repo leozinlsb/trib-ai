@@ -25,7 +25,11 @@ Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_
   corrigida e usa o menor crédito (`tribia.calculo.credito-compra-divergente=MENOR|NOTA|REVISAO`); a revisão
   devolve aviso. **R1 resolvido no front:** compras viram "efeito no preço" (fora do total de oportunidades).
   Testes: `CreditoCompraDivergenteTest` (6). Regra a confirmar com especialista (ver PENDENCIAS, R2).
-- Próximo: E2E no navegador; ensaio com calculadora oficial e IA real.
+- **Ensaio real** (calculadora oficial + Gemini com a chave nova do `.env`): 1/1 verde, mesmos números do
+  simplificado; IA 8/8 em 11,7 s; azeite ficou integral (trava V6 confirmada com o modelo real).
+- **E2E Etapa 4** (`frontend/scripts/etapa4-e2e.mjs`, Playwright fora do repo + Chrome local): 11 fluxos, 0 erros
+  JavaScript; capturas em `backend/target/etapa4-e2e`. Comando no cabeçalho do script.
+- Próximo: revisão de segurança do deploy (console H2/demo desligados), roteiro do pitch com os números novos.
 
 ## Registro anterior — Etapa 3 iniciada: motor de alertas (branch `dev/nicolau`, 08/10/2026)
 

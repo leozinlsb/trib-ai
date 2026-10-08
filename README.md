@@ -17,6 +17,7 @@ cd frontend
 npm install
 npm run dev      # http://localhost:5173 (o Vite repassa /api para http://localhost:8090)
 npm test         # testes do motor de alertas (Node 22.6+)
+# E2E no navegador (backend isolado + Playwright fora do repo): ver o cabeçalho de scripts/etapa4-e2e.mjs
 ```
 
 Detalhes, endpoints usados e limitações em [`frontend/README.md`](frontend/README.md).

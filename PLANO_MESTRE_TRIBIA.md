@@ -94,8 +94,12 @@ ou chamadas pagas não autorizadas. Testes são obrigatórios também nas etapas
 ensaio da demo adaptado a login ADMIN + CSRF (3 de 3 verdes em API isolada, banco em memória, sem IA real);
 `.env` da raiz lido pelo backend (chave fora do Git, testes nunca a usam); testes do motor de alertas.
 Suíte do backend verde após S5 e R2: 226 testes, 0 falhas, 0 erros, 7 ignorados, nas duas ordens.
-**Pendências:** E2E de perfis e erros no navegador,
-ensaio com a calculadora oficial e com a IA real (chave nova), revisão de segurança para o deploy
+**Evidência 08/10/2026 (tarde):** ensaio pela API com calculadora oficial + Gemini real (chave nova do `.env`)
+1/1 verde, mesmos números do modo simplificado (Distribuidora R$ 264,58 → R$ 378,44), IA classificou 8/8 em
+11,7 s. E2E no Chrome (`frontend/scripts/etapa4-e2e.mjs`): 11 fluxos aprovados, 0 erros JavaScript (login
+inválido/ADMIN, comparativo do início, upload + classificação/cálculo com IA real, XML inválido e duplicado,
+detalhe da nota, revisão/aceite, alertas, relatório e CSVs, perfil EMPRESA isolado, logout).
+**Pendências:** revisão de segurança para o deploy
 (console H2 e `/api/demo` desligados fora da demo).
 
 ## Continuidade e evidências
