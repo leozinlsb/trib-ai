@@ -1,7 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://TROQUE-PELO-ENDERECO-DO-BACKEND.onrender.com/api/:path*" },
-    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "https://trib-ai-dllr.onrender.com/api/:path*"
+    },
+    {
+      "source": "/((?!assets/).*)",
+      "destination": "/index.html"
+    }
   ]
 }
