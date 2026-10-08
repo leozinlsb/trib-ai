@@ -4,19 +4,34 @@
 #   2. API:          mvnw spring-boot:run -Dspring-boot.run.profiles=demo   (com GEMINI_API_KEY para a IA real)
 #   3. ensaio:       powershell -ExecutionPolicy Bypass -File ferramentas\ensaio-demo.ps1 [-Vezes 3]
 #
+# Entra como ADMIN (sessão + CSRF, como o front). A senha vem de -Senha ou da variável TRIBIA_ADMIN_SENHA
+# (a mesma usada para subir a API); nunca fica no script. Use só contra a API de demonstração: reinicia os dados.
+#
 # Termina com código 0 se todos os ensaios passarem. No fim, a API fica no estado inicial (reiniciada).
 
 param(
     [string]$Api = "http://localhost:8090",
-    [int]$Vezes = 3
+    [int]$Vezes = 3,
+    [string]$Email = "admin@tribia.local",
+    [string]$Senha = $env:TRIBIA_ADMIN_SENHA
 )
 
 $ErrorActionPreference = "Stop"
 $pasta = Join-Path $PSScriptRoot "..\notas-demo-ao-vivo"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 
+if (-not $Senha) { throw "Informe a senha do administrador: -Senha ou variável TRIBIA_ADMIN_SENHA" }
+$sessao = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+
+function Cookie([string]$nome) {
+    $c = $sessao.Cookies.GetCookies([Uri]$Api) | Where-Object { $_.Name -eq $nome } | Select-Object -First 1
+    if ($c) { return $c.Value }
+    return $null
+}
+
 function Chamar([string]$metodo, [string]$caminho, [string]$corpo = $null) {
-    $req = @{ Method = $metodo; Uri = "$Api$caminho"; UseBasicParsing = $true; TimeoutSec = 120 }
+    $req = @{ Method = $metodo; Uri = "$Api$caminho"; UseBasicParsing = $true; TimeoutSec = 120; WebSession = $sessao }
+    if ($metodo -ne "GET") { $req.Headers = @{ "X-XSRF-TOKEN" = (Cookie "XSRF-TOKEN") } }
     if ($corpo) { $req.Body = [Text.Encoding]::UTF8.GetBytes($corpo); $req.ContentType = "application/json" }
     $r = Invoke-WebRequest @req
     $texto = [Text.Encoding]::UTF8.GetString($r.RawContentStream.ToArray())
@@ -25,7 +40,9 @@ function Chamar([string]$metodo, [string]$caminho, [string]$corpo = $null) {
 }
 
 function Enviar([long]$cliente, [string]$arquivo) {
-    $saida = curl.exe -s -w "`n%{http_code}" -F "arquivos=@$(Join-Path $pasta $arquivo)" "$Api/api/clientes/$cliente/notas"
+    $cookies = "JSESSIONID=$(Cookie 'JSESSIONID'); XSRF-TOKEN=$(Cookie 'XSRF-TOKEN')"
+    $saida = curl.exe -s -w "`n%{http_code}" -b $cookies -H "X-XSRF-TOKEN: $(Cookie 'XSRF-TOKEN')" `
+        -F "arquivos=@$(Join-Path $pasta $arquivo)" "$Api/api/clientes/$cliente/notas"
     $linhas = $saida -split "`n"
     if ($linhas[-1] -ne "201") { throw "upload de $arquivo respondeu HTTP $($linhas[-1]): $($linhas[0..($linhas.Count-2)] -join '')" }
     return (($linhas[0..($linhas.Count - 2)] -join "") | ConvertFrom-Json).importadas[0].id
@@ -41,6 +58,12 @@ function Passo([string]$nome, [scriptblock]$bloco) {
 function Conferir([bool]$condicao, [string]$mensagem) {
     if (-not $condicao) { throw $mensagem }
 }
+
+# login como ADMIN: o GET grava o cookie XSRF-TOKEN, o POST cria a sessão (cookie JSESSIONID)
+Chamar GET "/api/auth/csrf" | Out-Null
+$login = @{ email = $Email; senha = $Senha } | ConvertTo-Json -Compress
+try { $eu = Chamar POST "/api/auth/login" $login } catch { throw "Login de $Email falhou: $($_.Exception.Message)" }
+Write-Host "Sessão: $($eu.nome) ($($eu.papel))"
 
 $st = Chamar GET "/api/demo/status"
 Write-Host "Checklist: calculadora no ar=$($st.calculadoraNoAr) (modo $($st.modoCalculo)) | IA configurada=$($st.iaConfigurada) | respostas gravadas da IA=$($st.respostasGravadasIa)"

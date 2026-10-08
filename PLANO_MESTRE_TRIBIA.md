@@ -33,7 +33,8 @@ executados. Antes de uso real, confirmar revogação da chave exposta e autoriza
 do histórico possivelmente contaminado; não houve limpeza/reatribuição automática.
 Etapa 1 não significa prontidão para dados reais. B5 continua na Etapa 2.
 
-**Próxima tarefa prioritária:** responsável confirma O1 e autoriza triagem histórica antes
+**Atualização 08/10/2026:** O1 confirmado pelo responsável (chave antiga revogada, nova só no `.env`).
+**Próxima tarefa prioritária (histórica):** responsável confirma O1 e autoriza triagem histórica antes
 de uso real. Após aprovação de transição, pode-se iniciar Etapa 2 em ambiente isolado por
 B5, mantendo revisão/avisos de simulação. Não avançar automaticamente. Evidências e
 procedimento seguro: `docs/contexto-projeto/CONCLUSAO-ETAPA-1-2026-10-08.md`.
@@ -51,11 +52,13 @@ Fluxo: login → empresa → XML → processamento → classificação → cálc
 corretamente exibidos; erros e bloqueios tratados; fluxos completos de perfis diferentes
 testados. Reutilizar o backend antes de criar serviços novos.
 
-**Estado:** não iniciada neste ciclo; algumas integrações já existem, outras estão parciais.
-**Pendências:** B5 (UI ignora classificação/cálculo persistidos), endpoints não consumidos,
-contratos e exportações. Detalhes em `MAPA_FUNCIONAL.md` e `INTEGRACAO_FRONT_BACK.md`.
-**Primeira tarefa proposta, após aprovação:** confirmar o contrato do detalhe da nota e corrigir
-B5, conectando a classificação existente e seus resultados, com testes de fluxo e isolamento.
+**Estado:** CONCLUÍDA, aprovada pelo responsável em 08/10/2026. Integração feita em `dev/nicolau`
+(merge na `main`, commit `50a026c`): classificar/calcular, painel 2027, revisão, opções e relatório
+conectados; B5 e B6 corrigidos. Evidência na aprovação: build e lint do front verdes; backend compila e os
+testes de relatório passam; ensaio da demo pela API (login ADMIN + CSRF, upload → classificação →
+cálculo → revisão → painel → CSV) 3 de 3 sem erro e com os mesmos números.
+**Ressalvas:** fluxo visual no navegador validado manualmente pelo Nicolau (7 testes), sem E2E
+automatizado da Etapa 2; endpoints `resumo`, `pagamento` e CSVs ainda sem uso na UI (T19).
 
 ## Etapa 3 — Inteligência Fiscal e validação tributária
 
@@ -69,10 +72,12 @@ incerteza e revisão humana; regras verificadas com fontes oficiais/especialista
 verificáveis; IA não apresentada como verdade fiscal definitiva; casos de baixa confiança
 tratados; testes fiscais e de isolamento; custos/chamadas externas previamente autorizados.
 
-**Estado:** parcial no produto, não autorizada para desenvolvimento neste ciclo.
-Classificação Gemini existe; telas/contratos de análises fiscais não equivalem a backend pronto.
-**Pendências:** implementação real das análises, papel da JEV, auditoria, limitações fiscais
-S1–S10/V1–V6 em `PENDENCIAS.md`, incluindo a divergência de base S5.
+**Estado:** PARCIAL, revisada em 08/10/2026 (sem aprovação de conclusão). Feito: motor de alertas
+no front (`frontend/src/lib/alertas.ts`), agora com 8 testes automáticos (`npm test`). Revisão encontrou
+R1 (alertas de compra somam como "oportunidade" um valor que o crédito compensa) e R2 ("Corrigir" numa
+compra recalcula o crédito pelo código corrigido, embora o crédito acompanhe o destaque da nota).
+**Pendências:** decisão S5 (base sem ICMS/PIS/Cofins, 15 testes), A1, R1, R2, I-FISCAL, V1–V6,
+validação profissional. Detalhes em `PENDENCIAS.md`.
 
 ## Etapa 4 — Testes completos, refinamento e preparação do produto
 
@@ -85,9 +90,12 @@ estabilidade e relatórios; documentação e ambiente de demonstração seguros.
 resultados e relatórios validados, documentação reproduzível e demonstração sem dados reais
 ou chamadas pagas não autorizadas. Testes são obrigatórios também nas etapas anteriores.
 
-**Estado:** não iniciada como validação abrangente.
-**Pendências:** dependerá das evidências das etapas anteriores; ensaio demo precisa de
-autenticação ADMIN e CSRF, nunca resetar dados reais.
+**Estado:** INICIADA em 08/10/2026 com aprovação do responsável. Primeiro incremento:
+ensaio da demo adaptado a login ADMIN + CSRF (3 de 3 verdes em API isolada, banco em memória, sem IA real);
+`.env` da raiz lido pelo backend (chave fora do Git, testes nunca a usam); testes do motor de alertas.
+**Pendências:** suíte do backend verde (depende da decisão S5), E2E de perfis e erros no navegador,
+ensaio com a calculadora oficial e com a IA real (chave nova), revisão de segurança para o deploy
+(console H2 e `/api/demo` desligados fora da demo).
 
 ## Continuidade e evidências
 

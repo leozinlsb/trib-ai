@@ -16,6 +16,7 @@ React 19 + TypeScript + Vite, em [`frontend/`](frontend/). Com o backend rodando
 cd frontend
 npm install
 npm run dev      # http://localhost:5173 (o Vite repassa /api para http://localhost:8090)
+npm test         # testes do motor de alertas (Node 22.6+)
 ```
 
 Detalhes, endpoints usados e limitações em [`frontend/README.md`](frontend/README.md).
@@ -95,10 +96,12 @@ Observações:
 ### IA (Gemini)
 
 A classificação dos itens que o XML e o cache não resolvem é feita pelo Gemini (`tribia.llm.*`). A chave **nunca**
-fica em arquivo do projeto: defina a variável de ambiente antes de subir a API.
+fica em arquivo versionado: coloque-a no `.env` da raiz do repositório (ignorado pelo Git), que o backend lê ao
+subir, ou numa variável de ambiente (que tem prioridade sobre o `.env`).
 
-```powershell
-setx GEMINI_API_KEY "sua-chave"      # uma vez; abra um novo terminal (e reinicie o VS Code) depois
+```
+# .env (raiz do repositório)
+GEMINI_API_KEY=sua-chave
 ```
 
 - Modelos em ordem de preferência (`tribia.llm.modelos`): se o primeiro estiver sobrecarregado ou sem cota,
@@ -109,20 +112,21 @@ setx GEMINI_API_KEY "sua-chave"      # uma vez; abra um novo terminal (e reinici
   associação única permitida (REGRA, confiança 0,40, não aceita). Sem evidência/ambíguo fica
   pendente, fora do cálculo. Não presume integral. IA/revisão usam cache privado por empresa;
   compartilhado somente catálogo SEED. Legado sem dono IA/MANUAL não reutilizado.
-- `GeminiContratoTest` usa a IA de verdade (gasta cota) e só roda com `GEMINI_API_KEY` definida.
+- Os testes nunca usam a chave do `.env`. `GeminiContratoTest` usa a IA de verdade (gasta cota) e só roda com
+  `GEMINI_API_KEY` definida como variável de ambiente.
 
 ### Apresentação (profile `demo`)
 
 ```powershell
 ferramentas\iniciar-calculadora.bat                                  # janela 1 (opcional)
-mvnw spring-boot:run "-Dspring-boot.run.profiles=demo"               # janela 2 (com GEMINI_API_KEY)
-# ensaio-demo.ps1 pendente de login/CSRF; não executar contra banco persistente.
+$env:TRIBIA_ADMIN_SENHA="..."; mvnw spring-boot:run "-Dspring-boot.run.profiles=demo"   # janela 2
+powershell -ExecutionPolicy Bypass -File ferramentas\ensaio-demo.ps1 -Vezes 3      # janela 3 (mesma senha)
 ```
 
-**Atenção:** ensaio-demo.ps1 ainda não implementa login ADMIN/CSRF; não executado neste ciclo.
-As rotas demo exigem ADMIN e habilitação explícita; reiniciar apaga uploads/revisões/cache.
-Nunca execute esse reset ou o ensaio contra dados reais. O roteiro visual acima ainda não
-tem todo o fluxo classificação/cálculo integrado ao frontend (Etapa 2).
+O ensaio entra como ADMIN (sessão + CSRF) e roda o roteiro pela API: reiniciar → upload → classificar → revisão →
+painel → CSV. As rotas demo exigem ADMIN e habilitação explícita; reiniciar apaga uploads/revisões/cache.
+Nunca execute esse reset ou o ensaio contra dados reais: para ensaiar sem tocar `data/`, suba a API com
+`--spring.datasource.url=jdbc:h2:mem:ensaio`.
 
 - `GET /api/demo/status`: checklist (calculadora no ar, IA configurada, respostas gravadas, volume de dados).
 - `POST /api/demo/reiniciar`: volta ao estado inicial (só o seed) entre ensaios.

@@ -6,7 +6,24 @@
 
 ---
 
-## Atualização mais recente — Etapa 3 iniciada: motor de alertas (branch `dev/nicolau`, 08/10/2026)
+## Atualização mais recente — Etapa 2 concluída, Etapa 3 revisada, Etapa 4 iniciada (08/10/2026)
+
+Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_MESTRE_TRIBIA.md`).
+
+- **Estado verificado:** backend 220 testes / 15 falhas / 0 erros / 7 ignorados (sem calculadora no ar).
+  As 15 são todas S5 (base 2027 sem ICMS/PIS/Cofins × valores esperados antigos); **decisão do responsável
+  pendente**, nenhuma expectativa alterada. Front: `npm run build`, `npm run lint` e `npm test` (8/8) verdes.
+- **`.env` na raiz** (fora do Git) agora é lido pelo backend (`spring.config.import`); variável de ambiente
+  tem prioridade; testes continuam com a chave vazia (conferido). O1 resolvido pelo responsável.
+- **Ensaio da demo** (`backend/ferramentas/ensaio-demo.ps1`) entra como ADMIN com CSRF. Executado 3/3 verde
+  contra API isolada (porta 8190, H2 em memória, senha sintética, sem IA real, modo SIMPLIFICADA).
+  Números do ensaio (com a base atual): Distribuidora hoje R$ 264,58 → 2027 R$ 378,44, 9 pendentes.
+- **Revisão da Etapa 3 (motor de alertas):** coerente com o backend (mesma lista de códigos por adquirente,
+  mesma base, opções completas da tabela). Achados R1 e R2 (alertas de compra) em `PENDENCIAS.md`.
+  Testes novos: `frontend/scripts/alertas.test.ts` (`npm test`, Node 22.6+, sem dependências).
+- Próximo: decisão S5 → suíte verde; E2E no navegador; ensaio com calculadora oficial e IA real.
+
+## Registro anterior — Etapa 3 iniciada: motor de alertas (branch `dev/nicolau`, 08/10/2026)
 
 **Etapa 3 EM ANDAMENTO.** Motor de alertas no front, sobre dados e endpoints existentes; nenhuma regra
 fiscal do backend mudou. Build/lint não verificados no ambiente de desenvolvimento (npm bloqueado);

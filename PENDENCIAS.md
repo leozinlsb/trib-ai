@@ -5,8 +5,8 @@ Atualizado a cada etapa. Itens resolvidos saem daqui e ficam no histórico do gi
 
 ## Bugs conhecidos
 
-Etapa atual: **1, CONCLUÍDA COM RESSALVAS no ambiente isolado/caminhos avaliados**;
-não certifica produção/fiscal. Etapa 2 em andamento no front (branch `dev/nicolau`, ver HANDOFF). Referência: `PLANO_MESTRE_TRIBIA.md`.
+Etapa atual: **4, iniciada em 08/10/2026** (Etapa 2 concluída com aprovação; Etapa 3 parcial, revisada).
+Referência: `PLANO_MESTRE_TRIBIA.md`.
 Resultados, auditoria individual e plano histórico:
 `docs/contexto-projeto/CONCLUSAO-ETAPA-1-2026-10-08.md`. Relatórios anteriores preservados.
 
@@ -26,10 +26,10 @@ Sem commit, sem mudanças fiscais, sem tocar dados reais. Abertos:
 | # | Bug | Evidência | Correção proposta |
 |---|-----|-----------|-------------------|
 | B3-HISTORICO | Classificações eventualmente contaminadas pelo cache antigo não foram remediadas. | Defeito anterior reproduzido em dados sintéticos; ocorrência real não investigada. | Avaliar histórico somente em ambiente autorizado, aprovar remediação auditável; não inferir dono/apagar automaticamente. Etapa 1. |
-| B5 | ~~Detalhe da nota mostra "Pendente" mesmo classificado.~~ Corrigido no front (branch `dev/nicolau`), aguardando build/teste local. | `itemClassificado` agora lê `classificacao` persistida. | Validar no navegador e remover daqui após o merge. |
-| B6 | ~~Relatório (back) contava classificados só pelo XML.~~ Corrigido em `dev/nicolau`: soma as classificações persistidas. | `RelatorioService` + `ClassificacaoRepository.findByItemIdIn`. | Escrito sem compilar: rodar `.\mvnw.cmd test` e conferir o relatório. |
 | A1 | Classificação do XML é aceita sem conferir a lista de NCMs do benefício. | `ClassificacaoService.doXml` grava origem XML, confiança 1, aceita. | Motor de alertas sinaliza no front; avaliar no backend marcar como não aceita quando `exigeNcmNaLista` e o NCM não estiver na lista (regra fiscal: validar antes). Etapa 3. |
 | I-FISCAL | Telas de Inteligência Fiscal chamam 4 endpoints inexistentes. | `api/inteligenciaFiscal.ts`. | Ocultas por padrão (`VITE_INTELIGENCIA_FISCAL`); implementar back na Etapa 3. |
+| R1 | Alertas de compra (benefício não aplicado pelo fornecedor) somam o valor em "Oportunidades", mas o imposto destacado a mais vira crédito para empresa do regime regular: o valor real é preço/fluxo de caixa, não imposto recuperável. | `lib/alertas.ts`, ramo `BENEFICIO_NAO_APLICADO` com `propria=false`. | Separar compras do total de oportunidades ou estimar só o efeito no preço. Etapa 3. |
+| R2 | "Corrigir" um alerta de compra recalcula o crédito pelo código corrigido, embora o próprio alerta diga que o crédito acompanha o destaque da nota. | `CorrecaoAlerta` → `PUT /api/itens/{id}/classificacao`; o cálculo do crédito usa a classificação, não o destaque. | Decidir com especialista se o crédito simulado segue o destaque; até lá, avisar na tela. Etapa 3. |
 | F-TABELA | Exceções NCM em linhas repetidas podem reintroduzir associação excluída. | Arroz/feijão retornam múltiplos códigos; fallback agora se abstém. | Conferir extração/semântica com base oficial, Etapa 3; não alterar tabelas sem validação. |
 
 ## Testes do backend (08/10/2026)
@@ -80,7 +80,7 @@ restantes era de autenticação (evidências históricas); a execução P0.1 nã
 | T19 | Rotas do backend que o front ainda não usa: classificar/calcular nota (`POST /api/notas/{id}/classificar`, `/calcular`), recalcular empresa (`POST /api/clientes/{id}/calcular`), pagamento (`PUT /api/notas/{id}/pagamento`), revisão (`GET /api/clientes/{id}/revisao`, `PUT /api/itens/{id}/classificacao`, `GET /api/classificacoes/opcoes`), painel 2027 (`GET /api/clientes/{id}/dashboard`), resumo da nota e os dois CSVs. O upload só importa (não classifica). | Integrar só depois de B3, para não expor dados de outras empresas pela interface. |
 | T16 | CSV no padrão Excel pt-BR (";", vírgula decimal, BOM): em Excel/LibreOffice configurado em inglês os números podem virar texto. | Importar com separador ";" e decimal ",". |
 | T17 | IA: classificar 8 produtos novos leva 11-12 s com `gemini-3.5-flash` (o modelo "pensa"). O `flash-lite` leva ~2,5 s, mas erra o azeite (ver V6). | Na demo, narrar a espera. Avaliar chamada assíncrona ou modelo mais rápido sem perder precisão. |
-| T18 | Endpoints `/api/demo/*` exigem ADMIN e `tribia.demo.habilitado=true`; `reiniciar` apaga uploads, revisões e cache. Seed inicial usa ADMIN persistido em contexto temporário, restaurado inclusive na falha. | Nunca habilitar em produção; adaptar ensaio para login ADMIN + CSRF. Nenhum reset em dados reais foi executado. |
+| T18 | Endpoints `/api/demo/*` exigem ADMIN e `tribia.demo.habilitado=true`; `reiniciar` apaga uploads, revisões e cache. Seed inicial usa ADMIN persistido em contexto temporário, restaurado inclusive na falha. | Nunca habilitar em produção. `ensaio-demo.ps1` já entra como ADMIN com CSRF (senha por `-Senha`/`TRIBIA_ADMIN_SENHA`): 3/3 verdes em API isolada em 08/10. |
 
 ## Simplificações tributárias (dizer no pitch, não esconder)
 
@@ -112,6 +112,6 @@ restantes era de autenticação (evidências históricas); a execução P0.1 nã
 
 | # | Ponto |
 |---|-------|
-| O1 | Revogação da chave Gemini exposta não confirmada. Nenhum padrão encontrado nos arquivos rastreados atuais não comprova revogação/histórico. Responsável deve confirmar revogação na conta, registrar evidência sanitizada e provisionar substituta fora do Git. Bloqueia uso real da integração; não usar/testar chave antiga. |
+| O1 | Resolvido pelo responsável em 08/10/2026: chave antiga revogada; a nova fica só no `.env` da raiz (fora do Git), lido pelo backend. Testes forçam a chave vazia. |
 | O2 | O `nfe_teste_hackathon.xml` original nunca foi recebido: os testes usam uma reconstrução a partir da tabela do PDF (inclusive o NCM extinto 34022000 do detergente). |
 | O3 | O pacote da calculadora baixado pelo portal veio truncado (`calculadora.tar.gz`); usamos a distribuição oficial `jar` via `ferramentas/atualizar_calculadora.py`. |
