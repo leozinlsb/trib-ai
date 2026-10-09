@@ -4,6 +4,7 @@ import { RefreshCw } from 'lucide-react'
 import { CardConta, CardPreferencias } from '../../components/Preferencias'
 import { CardJev } from '../../components/fiscal/CardJev'
 import { CardTabelaNcm } from '../../components/fiscal/CardTabelaNcm'
+import { ChavesApi } from '../../components/integracoes/ChavesApi'
 import { INTELIGENCIA_FISCAL_ATIVA } from '../../lib/rotas'
 import { Badge, Card } from '../../components/ui'
 import { useAtividades, useDados, useToast } from '../../state/contexts'
@@ -64,6 +65,9 @@ export function Configuracoes() {
           <CardTabelaNcm />
         </div>
       )}
+      <div style={{ marginTop: 'var(--gap)' }}>
+        <ChavesApi />
+      </div>
     </>
   )
 }

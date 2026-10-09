@@ -6,6 +6,19 @@
 
 ---
 
+## Atualização mais recente — tela de chaves da API pública (09/10/2026)
+
+Decisões da responsável: a tela fica em **Configurações** do administrador e só o **administrador** emite chaves.
+- `frontend/src/components/integracoes/ChavesApi.tsx` (seção "Integrações (API pública)"): lista com situação, prefixo,
+  permissões, uso do dia e último uso; **Nova chave** (empresa ativa, integrador, seis permissões marcadas por padrão,
+  validade/limites opcionais); janela que mostra a chave **uma única vez** (copiar; só fecha após "Já guardei");
+  **Revogar** com confirmação; guia de uso (rotas e exemplo sem chave embutida, já que o Swagger fica desligado em prod).
+- Lógica pura em `src/lib/chavesApi.ts`, chamadas em `src/api/chavesApi.ts`. Backend: `ChaveResumo` ganhou
+  `analisesHoje` e `itensIaHoje` (consumo do dia na lista).
+- Testes: `scripts/chavesApi.test.ts` (5; front 15/15), E2E `scripts/integracoes-e2e.mjs` 5/5 (emitir, chave some da tela
+  depois de fechar, chave funciona com as permissões escolhidas, revogar, chave revogada → 401 CHAVE_REVOGADA), 0 erros
+  JavaScript. Backend 373 / 0 falhas nas duas ordens; build e lint verdes. Pendência API-5 resolvida.
+
 ## Atualização mais recente — API pública, fase 2: classificador e calculadora sem nota (09/10/2026)
 
 Pedido da responsável (ciente de que as regras aguardam validação profissional).

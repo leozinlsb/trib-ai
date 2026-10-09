@@ -8,7 +8,7 @@
 | API-2 | **Profile `prod`**: decidir se a API pública fica ligada na hospedagem e com quais limites | Hoje fica ligada em todos os profiles (sem Swagger em prod) | Revisar limites e emitir chaves só para integradores reais |
 | API-3 | Contadores por minuto e falhas por IP **em memória** | Várias instâncias multiplicam o limite | Contador compartilhado (banco/Redis) se houver escala horizontal |
 | API-4 | Migrações versionadas | `ddl-auto=update` cria as tabelas novas; padrão atual do projeto | Flyway antes de produção com dados reais (vale para todo o projeto) |
-| API-5 | Tela de gestão de chaves no front | Gestão hoje por API/script de ADMIN | Tela em Configurações do admin (fora do escopo: front não podia ser alterado) |
+| API-5 | ~~Tela de gestão de chaves no front~~ **Feita em 09/10/2026**: Configurações → "Integrações (API pública)" | Gestão hoje por API/script de ADMIN | Tela em Configurações do admin (fora do escopo: front não podia ser alterado) |
 | API-6 | Retenção de `Idempotency-Key` | Sem expiração (guardada com a solicitação) | Definir política (ex.: 30 dias) se o volume crescer |
 | API-7 | Revisão jurídica/contratual | Termos de uso, LGPD e responsabilidade do integrador ao usar sugestões de IA | Antes de oferecer comercialmente |
 

@@ -35,7 +35,11 @@ public final class ChaveApiDtos {
                               List<String> escopos, String situacao, Instant criadaEm, String criadaPor,
                               Instant expiraEm, Instant revogadaEm, String revogadaPor, Instant ultimoUsoEm,
                               Integer requisicoesPorMinuto, Integer cotaDiariaAnalises, Integer maxAnalisesSimultaneas,
-                              Integer cotaDiariaItensIa) {
+                              Integer cotaDiariaItensIa,
+                              @Schema(description = "Análises de NCM criadas hoje por esta chave (dia de Brasília)")
+                              long analisesHoje,
+                              @Schema(description = "Itens de NF-e/produtos enviados à IA hoje por esta chave")
+                              long itensIaHoje) {
     }
 
     @Schema(description = "A chave completa aparece só aqui, uma vez. Não é recuperável depois.")

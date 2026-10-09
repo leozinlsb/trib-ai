@@ -7,6 +7,7 @@ import br.com.tribia.apipublica.dto.ChaveApiDtos.CriarChaveForm;
 import br.com.tribia.apipublica.model.ChaveApi;
 import br.com.tribia.apipublica.model.EscopoApi;
 import br.com.tribia.apipublica.repository.ChaveApiRepository;
+import br.com.tribia.apipublica.repository.SolicitacaoApiRepository;
 import br.com.tribia.apipublica.seguranca.ChavesApi;
 import br.com.tribia.exception.ApiException;
 import br.com.tribia.exception.RecursoNaoEncontradoException;
@@ -37,13 +38,17 @@ public class ChaveApiService {
     private final ClienteRepository clientes;
     private final AcessoService acesso;
     private final ApiPublicaProperties props;
+    private final SolicitacaoApiRepository solicitacoes;
+    private final ConsumoIaApi consumo;
 
     public ChaveApiService(ChaveApiRepository chaves, ClienteRepository clientes, AcessoService acesso,
-                           ApiPublicaProperties props) {
+                           ApiPublicaProperties props, SolicitacaoApiRepository solicitacoes, ConsumoIaApi consumo) {
         this.chaves = chaves;
         this.clientes = clientes;
         this.acesso = acesso;
         this.props = props;
+        this.solicitacoes = solicitacoes;
+        this.consumo = consumo;
     }
 
     @Transactional
@@ -104,12 +109,14 @@ public class ChaveApiService {
         return resumo(c, Instant.now());
     }
 
-    private static ChaveResumo resumo(ChaveApi c, Instant agora) {
+    private ChaveResumo resumo(ChaveApi c, Instant agora) {
         String situacao = c.revogada() ? "REVOGADA" : c.expirada(agora) ? "EXPIRADA" : "ATIVA";
         return new ChaveResumo(c.getId(), c.getPrefixo(), c.getNomeIntegrador(), c.getCliente().getId(),
                 c.getCliente().getRazaoSocial(), c.getEscopos().stream().map(Enum::name).sorted().toList(), situacao,
                 c.getCriadaEm(), c.getCriadaPor(), c.getExpiraEm(), c.getRevogadaEm(), c.getRevogadaPor(),
                 c.getUltimoUsoEm(), c.getRequisicoesPorMinuto(), c.getCotaDiariaAnalises(),
-                c.getMaxAnalisesSimultaneas(), c.getCotaDiariaItensIa());
+                c.getMaxAnalisesSimultaneas(), c.getCotaDiariaItensIa(),
+                solicitacoes.contarCriadasDesde(c.getId(), ConsumoIaApi.inicioDoDia(ConsumoIaApi.hoje())),
+                consumo.itensHoje(c.getId()));
     }
 }

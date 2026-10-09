@@ -25,6 +25,14 @@ configurado (`GEMINI_API_KEY`), o que **gera custo/cota** e exige autorização 
 
 ## 2. Emitir uma chave (ADMIN)
 
+**Pela tela (recomendado):** entre como administrador → **Configurações** → seção **Integrações (API pública)** →
+**Nova chave**: empresa, nome do integrador, permissões (todas marcadas por padrão) e, opcionalmente, validade e
+limites. A chave completa aparece uma única vez, com botão de copiar; a janela só fecha depois de confirmar que ela
+foi guardada. Na mesma seção ficam a lista (situação, uso do dia, último uso), o botão **Revogar** e um guia curto para
+o integrador. A tela só existe para o administrador (rota `SoAdmin`), e o backend confere de novo.
+
+**Por linha de comando** (automação local):
+
 ```bash
 export TRIBIA_API_URL=http://localhost:8091          # ou 8090
 export TRIBIA_API_KEY=$(node exemplos/api-publica/emitir-chave-local.mjs 1 "ERP Demo")

@@ -140,6 +140,7 @@ Implementada e testada (35 testes novos; suíte 353 / 0 falhas). Detalhes:
 | API-8 | Fase 2 da API implementada em 09/10/2026 a pedido da responsável, com respostas marcadas como sugestão/projeção; as regras seguem pendentes de validação profissional (S5, R2, V1–V6). |
 | API-10 | ~~Classificação síncrona lenta~~ resolvido em 09/10/2026: `POST /api/v1/classificacoes` agora é assíncrono (202 + `GET /api/v1/classificacoes/{id}`); POST em 151 ms no ensaio real, antes 69 s. |
 | API-9 | Revisão humana das notas enviadas pela API só na plataforma; cliente de exemplo ainda cobre só análises de NCM. |
+| API-5 | ~~Sem tela de chaves~~ feita em 09/10/2026: Configurações → "Integrações (API pública)" (só administrador). |
 | API-2 | Decidir se a API pública fica ligada no profile `prod` e com quais limites; emitir chaves só para integradores reais. |
 | API-3 | Limite por minuto e falhas por IP ficam em memória: com várias instâncias, usar contador compartilhado. |
 | API-4 | Tabelas `chave_api`/`solicitacao_api` criadas por `ddl-auto=update` (padrão do projeto); migrações versionadas antes de produção. |
