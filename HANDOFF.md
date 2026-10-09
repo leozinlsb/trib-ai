@@ -6,7 +6,30 @@
 
 ---
 
-## Atualização mais recente — ajustes da landing (08/10/2026, noite)
+## Atualização mais recente — API pública v1 para integradores (09/10/2026)
+
+Missão autônoma pedida pela responsável: a Inteligência Fiscal (sugestão de NCM) virou também uma **API REST pública**
+para ERPs e sistemas contábeis, no mesmo backend e com o **mesmo motor** (cada pedido cria uma `AnaliseFiscal`, que
+aparece na plataforma para revisão humana). Fora das quatro etapas do plano mestre; nenhuma etapa mudou.
+
+- Rotas: `POST /api/v1/analises` (202 + UUID), `GET /api/v1/analises/{id}`, `GET /api/v1/analises`, `GET /api/v1/uso`.
+  Autenticação `X-API-Key`; chave presa a **uma empresa**, guardada só como SHA-256 + prefixo; escopos
+  `ANALISES_CRIAR`/`ANALISES_LER`; revogação e validade. Emissão só por ADMIN em `/api/admin/chaves-api` (sessão + CSRF)
+  ou `node exemplos/api-publica/emitir-chave-local.mjs`.
+- Cadeia de segurança própria (`/api/v1/**`, stateless, sem CSRF/sessão); a sessão da plataforma não abre a API pública
+  e a chave não abre rotas internas. Idempotency-Key (mesmo corpo → mesma análise sem nova chamada à IA; outro corpo →
+  409), limite por minuto, cota diária e análises simultâneas por chave, erros ProblemDetail com `codigo` e `requestId`.
+- Swagger: documento "API pública v1 (integradores)" em `/swagger-ui.html` (`/v3/api-docs/publica-v1`).
+- Código: `backend/src/main/java/br/com/tribia/apipublica/`; alteração mínima em `AnaliseFiscalService` (extraídos
+  `registrarNova`/`despachar`/`detalheAutorizado`), `OpenApiConfig` (grupos) e `application.properties`
+  (`tribia.api-publica.*`). Frontend, regras fiscais, JEV e Gemini intocados.
+- Testes: 35 novos; suíte do backend 353 casos / 0 falhas / 8 ignorados, nas duas ordens (base 318). Ensaio ao vivo com
+  servidor real, banco em memória, sem IA: fluxo, idempotência, 409, 401/404 entre empresas, revogação; chave ausente do
+  log. **Não executado:** análise com Gemini real (custo).
+- Documentação completa: [`docs/contexto-projeto/API-PUBLICA/`](docs/contexto-projeto/API-PUBLICA/07-HANDOFF-FINAL.md)
+  (comece por `07-HANDOFF-FINAL.md`). Pendências API-1 a API-7 em `PENDENCIAS.md`.
+
+## Registro anterior — ajustes da landing (08/10/2026, noite)
 
 - Removido o selo "Reforma tributária · NF-e" do topo da landing (`pages/landing/Landing.tsx`; os estilos `.lp-selo*` ficaram sem uso).
 - Rolagem suave nos links de seção (Início, Funcionalidades, Como funciona, Sobre, botões e menu mobile): hook `useRolagemSuave`

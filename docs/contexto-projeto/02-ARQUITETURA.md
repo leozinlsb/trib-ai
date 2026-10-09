@@ -29,6 +29,7 @@ A calculadora oficial da Receita ocupa as portas 8080, 8081, 8082 e 80 (por isso
 | `security/` | `AcessoService`, `UsuarioLogado`, `UsuarioDetailsService`, `SpaCsrfTokenRequestHandler` |
 | `config/` | `SecurityConfig`, `CorsConfig`, `AdminSeeder`, `SeedRunner`, `*Properties`, `OpenApiConfig`, `RestClientConfig` |
 | `exception/` | `ApiExceptionHandler` (ProblemDetail), `ApiException`, `NotaRejeitadaException`, `RecursoNaoEncontradoException` |
+| `apipublica/` | API pública v1 (`/api/v1/**`, 09/10/2026): chave de API, cadeia de segurança própria, idempotência, limites. Ver [API-PUBLICA](API-PUBLICA/01-CONTEXTO-E-ARQUITETURA.md) |
 
 ### Serviços e responsabilidades
 

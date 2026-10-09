@@ -128,3 +128,18 @@ restantes era de autenticação (evidências históricas); a execução P0.1 nã
 | O1 | Resolvido pelo responsável em 08/10/2026: chave antiga revogada; a nova fica só no `.env` da raiz (fora do Git), lido pelo backend. Testes forçam a chave vazia. |
 | O2 | O `nfe_teste_hackathon.xml` original nunca foi recebido: os testes usam uma reconstrução a partir da tabela do PDF (inclusive o NCM extinto 34022000 do detergente). |
 | O3 | O pacote da calculadora baixado pelo portal veio truncado (`calculadora.tar.gz`); usamos a distribuição oficial `jar` via `ferramentas/atualizar_calculadora.py`. |
+
+## API pública v1 (09/10/2026)
+
+Implementada e testada (35 testes novos; suíte 353 / 0 falhas). Detalhes:
+[`docs/contexto-projeto/API-PUBLICA/10-PENDENCIAS-E-EVOLUCAO.md`](docs/contexto-projeto/API-PUBLICA/10-PENDENCIAS-E-EVOLUCAO.md).
+
+| # | Pendência |
+|---|-----------|
+| API-1 | Validar uma análise pela API pública com o Gemini real (não executado: custo, sem autorização). |
+| API-2 | Decidir se a API pública fica ligada no profile `prod` e com quais limites; emitir chaves só para integradores reais. |
+| API-3 | Limite por minuto e falhas por IP ficam em memória: com várias instâncias, usar contador compartilhado. |
+| API-4 | Tabelas `chave_api`/`solicitacao_api` criadas por `ddl-auto=update` (padrão do projeto); migrações versionadas antes de produção. |
+| API-5 | Sem tela de gestão de chaves (só API/script de ADMIN); o front não fazia parte do escopo. |
+| API-6 | Idempotency-Key sem expiração; definir retenção se o volume crescer. |
+| API-7 | Termos de uso/LGPD/responsabilidade do integrador antes de oferta comercial. |

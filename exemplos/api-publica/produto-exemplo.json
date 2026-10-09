@@ -1,0 +1,11 @@
+{
+  "referenciaExterna": "ERP-DEMO-0042",
+  "mercadoria": {
+    "nome": "Detergente líquido neutro 500 ml",
+    "descricao": "Detergente líquido para lavar louças, uso doméstico, à base de tensoativos aniônicos, frasco plástico de 500 ml.",
+    "composicao": "tensoativo aniônico, coadjuvantes, conservante, água",
+    "finalidade": "limpeza doméstica de louças",
+    "caracteristicas": "líquido, frasco de 500 ml, venda no varejo",
+    "ncmInformada": "3402.20.00"
+  }
+}

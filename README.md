@@ -116,6 +116,18 @@ GEMINI_API_KEY=sua-chave
 - Os testes nunca usam a chave do `.env`. `GeminiContratoTest` usa a IA de verdade (gasta cota) e só roda com
   `GEMINI_API_KEY` definida como variável de ambiente.
 
+### API pública v1 (integradores: ERPs e sistemas contábeis)
+
+`/api/v1/**` expõe a Inteligência Fiscal (sugestão de NCM) com chave de API presa a uma empresa (`X-API-Key`),
+idempotência e limites de uso. Emissão de chave só por ADMIN. Guia, contratos e demo:
+[`docs/contexto-projeto/API-PUBLICA/`](docs/contexto-projeto/API-PUBLICA/06-GUIA-DE-USO.md).
+
+```bash
+export TRIBIA_ADMIN_SENHA="..."   # do backend local
+export TRIBIA_API_KEY=$(node exemplos/api-publica/emitir-chave-local.mjs 1 "ERP Demo")
+node exemplos/api-publica/cliente-tribia.mjs
+```
+
 ### Hospedagem (imagem única, profile `prod`)
 
 O `Dockerfile` da **raiz** gera uma imagem só: compila o front (React) e o empacota no jar, e a API Spring Boot serve

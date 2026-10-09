@@ -120,6 +120,13 @@ Render (sem a calculadora oficial); E2E de navegador não rodado contra a URL p�
 estimativas e regras S5/R2 aguardam validação profissional; pendências abertas em `PENDENCIAS.md`.
 **Pendências:** ensaio final com quem vai apresentar; trocar a senha do administrador depois da avaliação.
 
+## Trabalho fora das etapas — API pública v1 (09/10/2026)
+
+Pedido explícito da responsável (missão autônoma), sem mudança de etapa: API REST `/api/v1` para ERPs e sistemas
+contábeis sobre o motor da Inteligência Fiscal (chave de API presa a uma empresa, idempotência, limites, OpenAPI,
+cliente de exemplo). Evidência: 35 testes novos, suíte do backend 353 / 0 falhas / 8 ignorados nas duas ordens,
+ensaio ao vivo sem IA real. Não validada com Gemini real. Ver `docs/contexto-projeto/API-PUBLICA/07-HANDOFF-FINAL.md`.
+
 ## Continuidade e evidências
 
 - Consultar `CONTEXTO_COMPLETO_TRIBIA.md`, `docs/contexto-projeto/00-LEIA-PRIMEIRO.md`

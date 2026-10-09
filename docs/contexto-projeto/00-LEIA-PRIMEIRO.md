@@ -30,6 +30,10 @@ B3/B4/cache e contratos verdes, fallback se abstém sem evidência. 120 direcion
 catálogo SEED/legado preservados. Antes de uso real: revogação da chave, histórico do cache
 e validação fiscal. [Execução e limites](CONCLUSAO-ETAPA-1-2026-10-08.md); relatórios anteriores históricos.
 
+## API pública v1 (09/10/2026)
+
+API REST para integradores sobre o motor da Inteligência Fiscal, fora das quatro etapas: [API-PUBLICA/](API-PUBLICA/07-HANDOFF-FINAL.md).
+
 ## Informação não recuperada
 
 O histórico integral das conversas anteriores não estava disponível; ver limite em [05](05-HISTORICO-DECISOES.md).

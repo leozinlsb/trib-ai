@@ -153,33 +153,47 @@ public class AnaliseFiscalService {
                 naoLidos.add(nome + " (" + leitura.observacao() + ")");
             }
         }
-        String anexosLidos = escrever(new ProcessadorAnaliseFiscal.AnexosLidos(textos, naoLidos));
+        ProcessadorAnaliseFiscal.AnexosLidos anexosLidos = new ProcessadorAnaliseFiscal.AnexosLidos(textos, naoLidos);
 
-        String ncmAtual = dados.ncmAtual() == null ? null : dados.ncmAtual().replaceAll("\\D", "");
-        AnaliseFiscal salva = tx.execute(s -> {
-            Instant agora = Instant.now();
-            AnaliseFiscal a = new AnaliseFiscal(cliente, dados.nome().trim(), dados.descricao().trim(),
-                    vazioComoNulo(dados.composicao()), vazioComoNulo(dados.finalidade()),
-                    vazioComoNulo(dados.caracteristicas()), vazioComoNulo(ncmAtual), escrever(anexos), agora);
-            a.mudarStatus(StatusAnalise.AGUARDANDO, escrever(List.of(new Etapa(StatusAnalise.AGUARDANDO, agora))), agora);
-            a.guardarAnexosLidos(anexosLidos);
-            return repository.save(a);
-        });
+        AnaliseFiscal salva = tx.execute(s -> registrarNova(cliente, dados, anexos, anexosLidos));
 
         // o 202 descreve a análise como foi criada (AGUARDANDO), antes de o processamento começar
         AnaliseResumo criada = resumo(salva);
-        // depois do commit: o processamento lê a análise em outra transação
+        despachar(salva.getId());
+        return criada;
+    }
+
+    /**
+     * Grava uma análise nova em AGUARDANDO, dentro da transação de quem chama. Não confere acesso: quem chama já
+     * autorizou a empresa (o {@link #iniciar} pelo usuário logado; a API pública pela chave de API, cuja empresa é fixa).
+     */
+    public AnaliseFiscal registrarNova(Cliente cliente, MercadoriaEntradaDto dados, List<Anexo> anexos,
+                                       ProcessadorAnaliseFiscal.AnexosLidos anexosLidos) {
+        String ncmAtual = dados.ncmAtual() == null ? null : dados.ncmAtual().replaceAll("\\D", "");
+        Instant agora = Instant.now();
+        AnaliseFiscal a = new AnaliseFiscal(cliente, dados.nome().trim(), dados.descricao().trim(),
+                vazioComoNulo(dados.composicao()), vazioComoNulo(dados.finalidade()),
+                vazioComoNulo(dados.caracteristicas()), vazioComoNulo(ncmAtual), escrever(anexos), agora);
+        a.mudarStatus(StatusAnalise.AGUARDANDO, escrever(List.of(new Etapa(StatusAnalise.AGUARDANDO, agora))), agora);
+        a.guardarAnexosLidos(escrever(anexosLidos));
+        return repository.save(a);
+    }
+
+    /**
+     * Põe a análise já gravada (e com a transação confirmada) na fila de processamento. Fila cheia: a análise vira
+     * FALHA com a explicação e a chamada responde 503.
+     */
+    public void despachar(Long analiseId) {
         try {
-            executor.execute(() -> processador.processar(salva.getId()));
+            executor.execute(() -> processador.processar(analiseId));
         } catch (TaskRejectedException e) {
-            tx.executeWithoutResult(s -> repository.findById(salva.getId()).ifPresent(a -> {
+            tx.executeWithoutResult(s -> repository.findById(analiseId).ifPresent(a -> {
                 a.mudarStatus(StatusAnalise.FALHA, a.getHistoricoJson(), Instant.now());
                 a.concluir(null, null, "O servidor está ocupado com outras análises. Tente novamente em instantes.");
             }));
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Serviço ocupado",
                     "Muitas análises em andamento. Tente novamente em instantes.");
         }
-        return criada;
     }
 
     /** Pedido de revisão humana: a NCM decidida (a sugerida, uma alternativa ou outra da NCM vigente) e o porquê. */
@@ -264,6 +278,11 @@ public class AnaliseFiscalService {
             encontrada.getCliente().getRazaoSocial(); // carrega a empresa (usada no relatório, fora da transação)
             return encontrada;
         });
+    }
+
+    /** Detalhe de uma análise cuja empresa o chamador já autorizou (a API pública, pela empresa da chave). */
+    public AnaliseDetalhe detalheAutorizado(AnaliseFiscal a) {
+        return detalhe(a);
     }
 
     private AnaliseDetalhe detalhe(AnaliseFiscal a) {
