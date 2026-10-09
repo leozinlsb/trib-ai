@@ -4,7 +4,7 @@
 
 | Id | Pendência | Por quê | Sugestão |
 |---|---|---|---|
-| API-1 | Validar o fluxo com **Gemini real** pela API pública | Não executado (custo, sem autorização) | Uma análise com o produto de exemplo, autorizada, registrando tempo e resultado |
+| API-1 | ~~Validar o fluxo com Gemini real~~ **Feito em 09/10/2026**: análise de NCM (~10 s, foi para revisão por divergência com a NCM informada) e envio de NF-e (12,3 s, 8 itens pela IA) | — | — |
 | API-2 | **Profile `prod`**: decidir se a API pública fica ligada na hospedagem e com quais limites | Hoje fica ligada em todos os profiles (sem Swagger em prod) | Revisar limites e emitir chaves só para integradores reais |
 | API-3 | Contadores por minuto e falhas por IP **em memória** | Várias instâncias multiplicam o limite | Contador compartilhado (banco/Redis) se houver escala horizontal |
 | API-4 | Migrações versionadas | `ddl-auto=update` cria as tabelas novas; padrão atual do projeto | Flyway antes de produção com dados reais (vale para todo o projeto) |
@@ -21,5 +21,6 @@
 - **OAuth2 client credentials** para integradores corporativos que exigem tokens de curta duração.
 - **Rotação** assistida de chave (duas chaves válidas em sobreposição) e idempotência por integrador.
 - Medição de uso para cobrança (a contagem por chave já existe em `solicitacao_api`).
-- Endpoints para CST/cClassTrib e projeção CBS/IBS de itens de NF-e, **somente** depois da validação profissional
-  das regras (pendências V1–V6/S5 da plataforma).
+- Fase 1 de notas e comparativo **implementada** em 09/10/2026 ([11](11-FASE-1-NOTAS-E-COMPARATIVO.md)), com os valores
+  de 2027 marcados como projeção. Fase 2 (classificação avulsa e calculadora sem nota) **somente** depois da validação
+  profissional das regras (pendências V1–V6/S5 da plataforma).

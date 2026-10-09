@@ -136,7 +136,9 @@ Implementada e testada (35 testes novos; suíte 353 / 0 falhas). Detalhes:
 
 | # | Pendência |
 |---|-----------|
-| API-1 | Validar uma análise pela API pública com o Gemini real (não executado: custo, sem autorização). |
+| API-1 | ~~Validar com o Gemini real~~ feito em 09/10/2026 (análise de NCM e envio de NF-e). |
+| API-8 | Fase 2 da API (classificação avulsa e calculadora sem nota) só depois da validação profissional (S5, R2, V1–V6). |
+| API-9 | Revisão humana das notas enviadas pela API só na plataforma; cliente de exemplo ainda cobre só análises de NCM. |
 | API-2 | Decidir se a API pública fica ligada no profile `prod` e com quais limites; emitir chaves só para integradores reais. |
 | API-3 | Limite por minuto e falhas por IP ficam em memória: com várias instâncias, usar contador compartilhado. |
 | API-4 | Tabelas `chave_api`/`solicitacao_api` criadas por `ddl-auto=update` (padrão do projeto); migrações versionadas antes de produção. |

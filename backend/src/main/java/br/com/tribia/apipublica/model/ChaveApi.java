@@ -69,6 +69,9 @@ public class ChaveApi {
 
     private Integer maxAnalisesSimultaneas;
 
+    /** Itens de NF-e enviados à IA por dia; null = padrão tribia.api-publica.cota-diaria-itens-ia. */
+    private Integer cotaDiariaItensIa;
+
     protected ChaveApi() {
     }
 
@@ -86,6 +89,14 @@ public class ChaveApi {
         this.requisicoesPorMinuto = requisicoesPorMinuto;
         this.cotaDiariaAnalises = cotaDiariaAnalises;
         this.maxAnalisesSimultaneas = maxAnalisesSimultaneas;
+    }
+
+    public ChaveApi(String prefixo, String hashSegredo, String nomeIntegrador, Cliente cliente, Set<EscopoApi> escopos,
+                    Instant criadaEm, String criadaPor, Instant expiraEm, Integer requisicoesPorMinuto,
+                    Integer cotaDiariaAnalises, Integer maxAnalisesSimultaneas, Integer cotaDiariaItensIa) {
+        this(prefixo, hashSegredo, nomeIntegrador, cliente, escopos, criadaEm, criadaPor, expiraEm, requisicoesPorMinuto,
+                cotaDiariaAnalises, maxAnalisesSimultaneas);
+        this.cotaDiariaItensIa = cotaDiariaItensIa;
     }
 
     public void revogar(Instant quando, String quem) {
@@ -161,5 +172,9 @@ public class ChaveApi {
 
     public Integer getMaxAnalisesSimultaneas() {
         return maxAnalisesSimultaneas;
+    }
+
+    public Integer getCotaDiariaItensIa() {
+        return cotaDiariaItensIa;
     }
 }

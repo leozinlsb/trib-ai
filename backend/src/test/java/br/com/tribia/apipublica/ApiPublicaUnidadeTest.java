@@ -54,7 +54,10 @@ class ApiPublicaUnidadeTest {
 
     @Test
     void escoposConhecidosEDesconhecidos() {
-        assertThat(EscopoApi.separar(" analises_ler , ANALISES_CRIAR")).isEqualTo(EnumSet.allOf(EscopoApi.class));
+        assertThat(EscopoApi.separar(" analises_ler , ANALISES_CRIAR"))
+                .isEqualTo(EnumSet.of(EscopoApi.ANALISES_LER, EscopoApi.ANALISES_CRIAR));
+        assertThat(EscopoApi.separar("notas_enviar,NOTAS_LER"))
+                .isEqualTo(EnumSet.of(EscopoApi.NOTAS_ENVIAR, EscopoApi.NOTAS_LER));
         assertThat(EscopoApi.juntar(EnumSet.of(EscopoApi.ANALISES_LER))).isEqualTo("ANALISES_LER");
         assertThat(EscopoApi.separar("")).isEmpty();
         assertThatThrownBy(() -> EscopoApi.separar("ADMIN")).isInstanceOf(IllegalArgumentException.class);

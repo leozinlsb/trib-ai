@@ -6,6 +6,20 @@
 
 ---
 
+## Atualização mais recente — API pública, fase 1: notas fiscais e comparativo (09/10/2026)
+
+Pedido da responsável: a API pública passa a cobrir também classificação e cálculo, não só a sugestão de NCM.
+- Rotas novas: `POST /api/v1/notas` (XML da NF-e → 202), `GET /api/v1/notas/{id}`, `GET /api/v1/notas`,
+  `GET /api/v1/comparativo`. Escopos novos `NOTAS_ENVIAR` e `NOTAS_LER`. Sem regra fiscal nova: mesmos serviços do site.
+- Cota diária de **itens enviados à IA**: 500 por chave (decisão da responsável), ajustável por chave. Itens resolvidos
+  pelo XML ou pelo cache não contam; se a nota não cabe na cota, é calculada sem IA e o resto fica para a revisão.
+- `security/EscopoIntegracao`: bloco por thread preso à empresa da chave; dentro dele o `AcessoService` aplica as
+  regras de usuário EMPRESA. Fora dele, nada muda. Fila própria (`notasApiExecutor`) e retomada após reinício.
+- Valores de 2027 saem com `natureza = PROJECAO_PENDENTE_VALIDACAO` e avisos.
+- Testes: `ApiPublicaNotasTest` (10); suíte **362 / 0 falhas / 8 ignorados** nas duas ordens; mutação de controle
+  confirmou a segunda barreira de isolamento; ensaio real em segundo plano com Gemini (NF 1004 em 12,3 s).
+- Contrato e detalhes: `docs/contexto-projeto/API-PUBLICA/11-FASE-1-NOTAS-E-COMPARATIVO.md`.
+
 ## Atualização mais recente — API pública v1 para integradores (09/10/2026)
 
 Missão autônoma pedida pela responsável: a Inteligência Fiscal (sugestão de NCM) virou também uma **API REST pública**

@@ -107,7 +107,8 @@ public class FiltroChaveApi extends OncePerRequestFilter {
                 c.getCliente().getId(), c.getEscopos(),
                 valor(c.getRequisicoesPorMinuto(), props.requisicoesPorMinuto()),
                 valor(c.getCotaDiariaAnalises(), props.cotaDiariaAnalises()),
-                valor(c.getMaxAnalisesSimultaneas(), props.maxAnalisesSimultaneas()));
+                valor(c.getMaxAnalisesSimultaneas(), props.maxAnalisesSimultaneas()),
+                valor(c.getCotaDiariaItensIa(), props.cotaDiariaItensIa()));
 
         LimitadorRequisicoes.Resultado limite = porChave.consumir("chave:" + c.getId(), integrador.requisicoesPorMinuto());
         res.setHeader("X-RateLimit-Limit", String.valueOf(limite.limite()));

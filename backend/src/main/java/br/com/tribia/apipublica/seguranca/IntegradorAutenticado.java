@@ -18,7 +18,7 @@ import java.util.stream.Stream;
  */
 public record IntegradorAutenticado(Long chaveId, String prefixo, String nomeIntegrador, Long clienteId,
                                     Set<EscopoApi> escopos, int requisicoesPorMinuto, int cotaDiariaAnalises,
-                                    int maxAnalisesSimultaneas) {
+                                    int maxAnalisesSimultaneas, int cotaDiariaItensIa) {
 
     public boolean pode(EscopoApi escopo) {
         return escopos.contains(escopo);

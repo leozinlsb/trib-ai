@@ -118,7 +118,8 @@ GEMINI_API_KEY=sua-chave
 
 ### API pública v1 (integradores: ERPs e sistemas contábeis)
 
-`/api/v1/**` expõe a Inteligência Fiscal (sugestão de NCM) com chave de API presa a uma empresa (`X-API-Key`),
+`/api/v1/**` expõe a Inteligência Fiscal (sugestão de NCM) e, desde a fase 1, o envio de NF-e com classificação,
+cálculo de 2027 e comparativo (`/api/v1/notas`, `/api/v1/comparativo`), com chave de API presa a uma empresa (`X-API-Key`),
 idempotência e limites de uso. Emissão de chave só por ADMIN. Guia, contratos e demo:
 [`docs/contexto-projeto/API-PUBLICA/`](docs/contexto-projeto/API-PUBLICA/06-GUIA-DE-USO.md).
 

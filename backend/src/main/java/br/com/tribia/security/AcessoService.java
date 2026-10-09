@@ -45,6 +45,11 @@ public class AcessoService {
 
     /** Usuário da requisição. Se ele foi removido depois do login, a sessão deixa de valer. */
     public UsuarioLogado atual() {
+        // API pública: só dentro de um bloco EscopoIntegracao.executar, preso à empresa da chave conferida
+        UsuarioLogado integracao = EscopoIntegracao.ativo();
+        if (integracao != null) {
+            return integracao;
+        }
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof UsuarioLogado u)) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Não autenticado", "Faça login para continuar.");

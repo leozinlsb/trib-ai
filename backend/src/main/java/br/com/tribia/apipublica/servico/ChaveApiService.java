@@ -59,7 +59,7 @@ public class ChaveApiService {
             escopos = form.escopos() == null || form.escopos().isEmpty() ? EscopoApi.PADRAO
                     : EscopoApi.separar(String.join(",", form.escopos()));
         } catch (IllegalArgumentException e) {
-            throw ApiException.requisicaoInvalida("Escopo desconhecido. Use ANALISES_CRIAR e/ou ANALISES_LER.");
+            throw ApiException.requisicaoInvalida("Escopo desconhecido. Use ANALISES_CRIAR, ANALISES_LER, NOTAS_ENVIAR e/ou NOTAS_LER.");
         }
         if (escopos.isEmpty()) {
             throw ApiException.requisicaoInvalida("Informe ao menos um escopo.");
@@ -76,7 +76,8 @@ public class ChaveApiService {
         }
         ChaveApi c = chaves.save(new ChaveApi(g.prefixo(), g.hash(), form.nomeIntegrador().trim(), cliente, escopos,
                 agora, admin.email(), dias == null ? null : agora.plus(Duration.ofDays(dias)),
-                form.requisicoesPorMinuto(), form.cotaDiariaAnalises(), form.maxAnalisesSimultaneas()));
+                form.requisicoesPorMinuto(), form.cotaDiariaAnalises(), form.maxAnalisesSimultaneas(),
+                form.cotaDiariaItensIa()));
         log.info("API pública: chave {} emitida para a empresa {} por {}", c.getPrefixo(), cliente.getId(), admin.email());
         return new ChaveCriada(g.chaveCompleta(),
                 "Guarde esta chave agora: ela não será mostrada de novo. Não a coloque em código-fonte, Git ou logs.",
@@ -109,6 +110,6 @@ public class ChaveApiService {
                 c.getCliente().getRazaoSocial(), c.getEscopos().stream().map(Enum::name).sorted().toList(), situacao,
                 c.getCriadaEm(), c.getCriadaPor(), c.getExpiraEm(), c.getRevogadaEm(), c.getRevogadaPor(),
                 c.getUltimoUsoEm(), c.getRequisicoesPorMinuto(), c.getCotaDiariaAnalises(),
-                c.getMaxAnalisesSimultaneas());
+                c.getMaxAnalisesSimultaneas(), c.getCotaDiariaItensIa());
     }
 }

@@ -19,7 +19,11 @@ Base: `http://localhost:8090` (local). OpenAPI: `/v3/api-docs/publica-v1`; Swagg
 | `POST /api/v1/analises` | `ANALISES_CRIAR` | 202 | Envia a mercadoria; responde com a análise criada (ou a repetida) |
 | `GET /api/v1/analises/{id}` | `ANALISES_LER` | 200 | Status e resultado |
 | `GET /api/v1/analises?referenciaExterna=&pagina=&tamanho=` | `ANALISES_LER` | 200 | Lista da empresa, mais recentes primeiro (tamanho 1–100) |
-| `GET /api/v1/uso` | `ANALISES_LER` | 200 | Empresa da chave, escopos, limites, consumo do dia |
+| `GET /api/v1/uso` | `ANALISES_LER` ou `NOTAS_LER` | 200 | Empresa da chave, escopos, limites, consumo do dia |
+| `POST /api/v1/notas` | `NOTAS_ENVIAR` | 202 | XML da NF-e: importa, classifica e calcula 2027 (fase 1, ver [11](11-FASE-1-NOTAS-E-COMPARATIVO.md)) |
+| `GET /api/v1/notas/{id}` | `NOTAS_LER` | 200 | Itens classificados, cálculo de 2027 e comparativo da nota |
+| `GET /api/v1/notas` | `NOTAS_LER` | 200 | Notas enviadas pela API para a empresa |
+| `GET /api/v1/comparativo` | `NOTAS_LER` | 200 | Comparativo hoje × 2027 da empresa (site + API) |
 
 Gestão (rotas **internas**, sessão de ADMIN + CSRF; não aceitam chave de API):
 

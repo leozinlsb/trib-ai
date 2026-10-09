@@ -209,10 +209,14 @@ public final class ApiPublicaDtos {
     public record EmpresaInfo(String cnpj, String razaoSocial) {
     }
 
-    public record Limites(int requisicoesPorMinuto, int cotaDiariaAnalises, int maxAnalisesSimultaneas) {
+    public record Limites(int requisicoesPorMinuto, int cotaDiariaAnalises, int maxAnalisesSimultaneas,
+                          @Schema(description = "Itens de NF-e enviados à IA por dia") int cotaDiariaItensIa) {
     }
 
     @Schema(description = "Contagem do dia corrente no fuso de Brasília.")
-    public record Consumo(String dia, long analisesCriadasHoje, long restantesHoje, long emProcessamento) {
+    public record Consumo(String dia, long analisesCriadasHoje, long restantesHoje, long emProcessamento,
+                          @Schema(description = "Itens de NF-e enviados à IA hoje") long itensIaHoje,
+                          long itensIaRestantesHoje,
+                          @Schema(description = "Notas enviadas pela API ainda em processamento") long notasEmProcessamento) {
     }
 }

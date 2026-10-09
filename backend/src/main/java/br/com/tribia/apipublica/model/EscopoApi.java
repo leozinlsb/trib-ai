@@ -11,7 +11,11 @@ public enum EscopoApi {
     /** Enviar mercadorias para análise (gera chamada à IA: consome cota). */
     ANALISES_CRIAR,
     /** Consultar status e resultado das análises da empresa e o consumo da própria chave. */
-    ANALISES_LER;
+    ANALISES_LER,
+    /** Enviar XML de NF-e: importa, classifica (XML, cache ou IA: consome a cota de itens) e calcula 2027. */
+    NOTAS_ENVIAR,
+    /** Consultar as notas enviadas, seus itens classificados, o cálculo de 2027 e o comparativo da empresa. */
+    NOTAS_LER;
 
     public static final Set<EscopoApi> PADRAO = EnumSet.allOf(EscopoApi.class);
 

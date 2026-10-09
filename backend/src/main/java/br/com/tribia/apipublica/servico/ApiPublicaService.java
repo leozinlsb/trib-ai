@@ -13,6 +13,7 @@ import br.com.tribia.apipublica.dto.ApiPublicaDtos.UsoChave;
 import br.com.tribia.apipublica.model.ChaveApi;
 import br.com.tribia.apipublica.model.SolicitacaoApi;
 import br.com.tribia.apipublica.repository.ChaveApiRepository;
+import br.com.tribia.apipublica.repository.EnvioNotaApiRepository;
 import br.com.tribia.apipublica.repository.SolicitacaoApiRepository;
 import br.com.tribia.apipublica.seguranca.ChavesApi;
 import br.com.tribia.apipublica.seguranca.IntegradorAutenticado;
@@ -73,6 +74,7 @@ public class ApiPublicaService {
 
     private final SolicitacaoApiRepository solicitacoes;
     private final ChaveApiRepository chaves;
+    private final EnvioNotaApiRepository envios;
     private final ClienteRepository clientes;
     private final AnaliseFiscalService analises;
     private final ObjectMapper json;
@@ -81,10 +83,11 @@ public class ApiPublicaService {
     private final Map<Long, Object> travas = new ConcurrentHashMap<>();
 
     public ApiPublicaService(SolicitacaoApiRepository solicitacoes, ChaveApiRepository chaves,
-                             ClienteRepository clientes, AnaliseFiscalService analises, ObjectMapper json,
+                             EnvioNotaApiRepository envios, ClienteRepository clientes, AnaliseFiscalService analises, ObjectMapper json,
                              PlatformTransactionManager transacoes) {
         this.solicitacoes = solicitacoes;
         this.chaves = chaves;
+        this.envios = envios;
         this.clientes = clientes;
         this.analises = analises;
         this.json = json;
@@ -171,12 +174,16 @@ public class ApiPublicaService {
             Cliente cliente = c.getCliente();
             long criadas = solicitacoes.contarCriadasDesde(quem.chaveId(), inicioDoDia(hoje));
             long andamento = solicitacoes.contarEmAndamento(quem.chaveId(), StatusAnalise.EM_ANDAMENTO);
+            long itensIa = envios.somarItensIaDesde(quem.chaveId(), inicioDoDia(hoje));
+            long notasEmProcessamento = envios.contarEmProcessamento(quem.chaveId());
             return new UsoChave(
                     new ChaveInfo(c.getPrefixo(), c.getNomeIntegrador(),
                             c.getEscopos().stream().map(Enum::name).sorted().toList(), c.getExpiraEm()),
                     new EmpresaInfo(cliente.getCnpj(), cliente.getRazaoSocial()),
-                    new Limites(quem.requisicoesPorMinuto(), quem.cotaDiariaAnalises(), quem.maxAnalisesSimultaneas()),
-                    new Consumo(hoje.toString(), criadas, Math.max(0, quem.cotaDiariaAnalises() - criadas), andamento));
+                    new Limites(quem.requisicoesPorMinuto(), quem.cotaDiariaAnalises(), quem.maxAnalisesSimultaneas(),
+                            quem.cotaDiariaItensIa()),
+                    new Consumo(hoje.toString(), criadas, Math.max(0, quem.cotaDiariaAnalises() - criadas), andamento,
+                            itensIa, Math.max(0, quem.cotaDiariaItensIa() - itensIa), notasEmProcessamento));
         });
     }
 
