@@ -54,6 +54,7 @@ public class ApiPublicaSecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/analises").hasAuthority("SCOPE_ANALISES_CRIAR")
                         .requestMatchers(HttpMethod.POST, "/api/v1/notas").hasAuthority("SCOPE_NOTAS_ENVIAR")
                         .requestMatchers(HttpMethod.POST, "/api/v1/classificacoes").hasAuthority("SCOPE_CLASSIFICAR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/classificacoes/**").hasAuthority("SCOPE_CLASSIFICAR")
                         .requestMatchers(HttpMethod.POST, "/api/v1/calculos/simular").hasAuthority("SCOPE_CALCULAR")
                         .requestMatchers(HttpMethod.GET, "/api/v1/notas", "/api/v1/notas/**", "/api/v1/comparativo")
                         .hasAuthority("SCOPE_NOTAS_LER")

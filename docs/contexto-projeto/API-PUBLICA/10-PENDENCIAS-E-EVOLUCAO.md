@@ -25,5 +25,5 @@
   de 2027 marcados como projeção. Fase 2 (classificação avulsa e calculadora sem nota) **implementada** em 09/10/2026 a pedido da
   responsável ([12](12-FASE-2-CLASSIFICADOR-E-CALCULADORA.md)), com respostas marcadas como sugestão/projeção; as regras
   continuam pendentes de validação profissional (V1–V6/S5/R2).
-- **API-10:** classificação avulsa é síncrona e pode passar de 100 s se o Gemini estiver lento (ensaio: 69 s). Tornar
-  assíncrona (202 + consulta) ou reduzir o timeout do modelo principal.
+- ~~API-10~~ **Resolvido em 09/10/2026:** classificação avulsa agora é assíncrona (POST em 151 ms no ensaio real,
+  antes 69 s).

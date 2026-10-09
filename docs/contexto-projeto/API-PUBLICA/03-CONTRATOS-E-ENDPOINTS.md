@@ -24,7 +24,8 @@ Base: `http://localhost:8090` (local). OpenAPI: `/v3/api-docs/publica-v1`; Swagg
 | `GET /api/v1/notas/{id}` | `NOTAS_LER` | 200 | Itens classificados, cálculo de 2027 e comparativo da nota |
 | `GET /api/v1/notas` | `NOTAS_LER` | 200 | Notas enviadas pela API para a empresa |
 | `GET /api/v1/comparativo` | `NOTAS_LER` | 200 | Comparativo hoje × 2027 da empresa (site + API) |
-| `POST /api/v1/classificacoes` | `CLASSIFICAR` | 200 | Até 50 produtos (NCM + descrição) → CST/cClassTrib sugeridos (fase 2, ver [12](12-FASE-2-CLASSIFICADOR-E-CALCULADORA.md)) |
+| `POST /api/v1/classificacoes` | `CLASSIFICAR` | 202 | Até 50 produtos (NCM + descrição) → CST/cClassTrib sugeridos, assíncrono (fase 2, ver [12](12-FASE-2-CLASSIFICADOR-E-CALCULADORA.md)) |
+| `GET /api/v1/classificacoes/{id}` | `CLASSIFICAR` | 200 | Situação e resultado da classificação |
 | `POST /api/v1/calculos/simular` | `CALCULAR` | 200 | Até 100 itens → CBS/IBS/IS de 2027 sem gravar nada (fase 2) |
 
 Gestão (rotas **internas**, sessão de ADMIN + CSRF; não aceitam chave de API):

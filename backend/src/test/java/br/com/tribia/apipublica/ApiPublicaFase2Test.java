@@ -125,7 +125,10 @@ class ApiPublicaFase2Test {
             Object pedido = produtos(produto("A", "1006.30.21", "ARROZ TIPO 1 5KG"),
                     produto("B", "22021000", "REFRIGERANTE COLA 2L"),
                     produto("C", "10063021", "Arroz tipo 1 5kg"));
-            JsonNode r = corpo(postar(chave, "/api/v1/classificacoes", pedido).andExpect(status().isOk())
+            JsonNode r = corpo(postar(chave, "/api/v1/classificacoes", pedido).andExpect(status().isAccepted())
+                    .andExpect(header().exists("Location"))
+                    .andExpect(jsonPath("$.status").value("CONCLUIDA"))
+                    .andExpect(jsonPath("$.finalizada").value(true))
                     .andExpect(header().string("Cache-Control", "no-store"))
                     .andExpect(jsonPath("$.natureza").value("SUGESTAO_AUTOMATICA"))
                     .andExpect(jsonPath("$.itensClassificadosPorIa").value(2))
@@ -143,7 +146,8 @@ class ApiPublicaFase2Test {
             verify(llm, times(1)).gerarJson(anyString(), anyString(), anyMap());
 
             clearInvocations(llm);
-            postar(chave, "/api/v1/classificacoes", pedido).andExpect(status().isOk())
+            postar(chave, "/api/v1/classificacoes", pedido).andExpect(status().isAccepted())
+                    .andExpect(jsonPath("$.status").value("CONCLUIDA"))
                     .andExpect(jsonPath("$.itensClassificadosPorIa").value(0))
                     .andExpect(jsonPath("$.produtos[0].origem").value("CACHE"));
             verify(llm, never()).gerarJson(anyString(), anyString(), anyMap());
@@ -169,13 +173,13 @@ class ApiPublicaFase2Test {
             String chave = novaChave(empresa.getId(), EscopoApi.PADRAO, 2);
             postar(chave, "/api/v1/classificacoes", produtos(produto("A", "22021000", "REFRIGERANTE A"),
                     produto("B", "22021000", "REFRIGERANTE B"), produto("C", "22021000", "REFRIGERANTE C")))
-                    .andExpect(status().isOk())
+                    .andExpect(status().isAccepted())
                     .andExpect(jsonPath("$.itensClassificadosPorIa").value(0))
                     .andExpect(jsonPath("$.produtos[0].situacao").value("SEM_CLASSIFICACAO"));
             verify(llm, never()).gerarJson(anyString(), anyString(), anyMap());
 
             postar(chave, "/api/v1/classificacoes", produtos(produto("A", "22021000", "REFRIGERANTE A"),
-                    produto("B", "22021000", "REFRIGERANTE B"))).andExpect(status().isOk())
+                    produto("B", "22021000", "REFRIGERANTE B"))).andExpect(status().isAccepted())
                     .andExpect(jsonPath("$.itensClassificadosPorIa").value(2));
             postar(chave, "/api/v1/classificacoes", produtos(produto("D", "22021000", "REFRIGERANTE D")))
                     .andExpect(status().isTooManyRequests())
@@ -193,9 +197,41 @@ class ApiPublicaFase2Test {
                     .andExpect(status().isAccepted()).andExpect(jsonPath("$.itensClassificadosPorIa").value(8));
             postar(chave, "/api/v1/classificacoes", produtos(produto("A", "22021000", "SUCO A"),
                     produto("B", "22021000", "SUCO B"), produto("C", "22021000", "SUCO C")))
-                    .andExpect(status().isOk())
+                    .andExpect(status().isAccepted())
                     .andExpect(jsonPath("$.itensClassificadosPorIa").value(0))
                     .andExpect(jsonPath("$.avisos[2]").value(org.hamcrest.Matchers.containsString("restam 2")));
+        }
+
+
+        @Test
+        void idempotenciaConsultaEOutraEmpresaNaoVe() throws Exception {
+            iaResponde();
+            String chave = novaChave(novaEmpresa().getId());
+            Object pedido = produtos(produto("A", "22021000", "CHA GELADO 1L"));
+            String id = corpo(mvc.perform(post("/api/v1/classificacoes").header("X-API-Key", chave)
+                    .header("Idempotency-Key", "pedido-1").contentType("application/json")
+                    .content(json.writeValueAsString(pedido))).andExpect(status().isAccepted())).get("id").asText();
+            clearInvocations(llm);
+
+            mvc.perform(post("/api/v1/classificacoes").header("X-API-Key", chave).header("Idempotency-Key", "pedido-1")
+                            .contentType("application/json").content(json.writeValueAsString(pedido)))
+                    .andExpect(status().isAccepted())
+                    .andExpect(header().string("Idempotent-Replayed", "true"))
+                    .andExpect(jsonPath("$.id").value(id));
+            mvc.perform(post("/api/v1/classificacoes").header("X-API-Key", chave).header("Idempotency-Key", "pedido-1")
+                            .contentType("application/json")
+                            .content(json.writeValueAsString(produtos(produto("B", "22021000", "OUTRO")))))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.codigo").value("IDEMPOTENCIA_CONFLITO"));
+            verify(llm, never()).gerarJson(anyString(), anyString(), anyMap());
+
+            mvc.perform(get("/api/v1/classificacoes/" + id).header("X-API-Key", chave)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("CONCLUIDA"))
+                    .andExpect(jsonPath("$.produtos[0].referencia").value("A"));
+            String outra = novaChave(novaEmpresa().getId());
+            mvc.perform(get("/api/v1/classificacoes/" + id).header("X-API-Key", outra)).andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.codigo").value("CLASSIFICACAO_NAO_ENCONTRADA"));
+            mvc.perform(get("/api/v1/classificacoes/abc").header("X-API-Key", chave)).andExpect(status().isNotFound());
         }
 
         @Test
@@ -303,6 +339,69 @@ class ApiPublicaFase2Test {
             postar(antigas, "/api/v1/classificacoes", classificacao).andExpect(status().isForbidden());
             mvc.perform(get("/api/v1/uso").header("X-API-Key", soCalcular)).andExpect(status().isOk());
             verify(llm, never()).gerarJson(anyString(), anyString(), anyMap());
+        }
+    }
+
+    /** Fila de verdade (não síncrona): prova que a requisição não espera a IA, que é o motivo da mudança. */
+    @Nested
+    @SpringBootTest(properties = {"tribia.seed.enabled=false", "tribia.calculo.modo=SIMPLIFICADA", ISOLADO,
+            "tribia.api-publica.sincrono=false"})
+    @AutoConfigureMockMvc
+    class Assincrono {
+
+        @Autowired
+        MockMvc mvc;
+        @Autowired
+        ObjectMapper json;
+        @Autowired
+        ChaveApiRepository chaves;
+        @Autowired
+        ClienteRepository clientes;
+        @MockitoBean
+        LlmClient llm;
+
+        @Test
+        void requisicaoNaoEsperaAIaEOResultadoChegaPelaConsulta() throws Exception {
+            java.util.concurrent.CountDownLatch liberaIa = new java.util.concurrent.CountDownLatch(1);
+            when(llm.gerarJson(anyString(), anyString(), anyMap())).thenAnswer(inv -> {
+                liberaIa.await(30, java.util.concurrent.TimeUnit.SECONDS); // IA "lenta"
+                return ApiPublicaNotasTest.respostaIa(inv.getArgument(1));
+            });
+            String cnpj = String.format("%014d", ThreadLocalRandom.current().nextLong(10_000_000_000_000L, 99_999_999_999_999L));
+            Cliente empresa = clientes.save(Cliente.nova(cnpj, new Cliente.Dados("Empresa Teste " + cnpj, null,
+                    Regime.LUCRO_REAL, null, "SP", null, "3550308", null, null, null, null)));
+            ChavesApi.ChaveGerada g = ChavesApi.gerar();
+            chaves.save(new ChaveApi(g.prefixo(), g.hash(), "ERP de teste", empresa, EscopoApi.PADRAO, Instant.now(),
+                    "teste", null, null, null, null, null));
+            String chave = g.chaveCompleta();
+
+            long inicio = System.nanoTime();
+            String id = json.readTree(mvc.perform(post("/api/v1/classificacoes").header("X-API-Key", chave)
+                            .contentType("application/json")
+                            .content(json.writeValueAsString(Map.of("produtos", List.of(
+                                    Map.of("ncm", "10063021", "descricao", "ARROZ TIPO 1 5KG"))))))
+                    .andExpect(status().isAccepted())
+                    .andExpect(jsonPath("$.status").value("EM_PROCESSAMENTO"))
+                    .andExpect(jsonPath("$.finalizada").value(false))
+                    .andExpect(jsonPath("$.produtos").isEmpty())
+                    .andReturn().getResponse().getContentAsString()).get("id").asText();
+            long ms = (System.nanoTime() - inicio) / 1_000_000;
+            assertThat(ms).as("a resposta não espera a IA").isLessThan(5_000);
+
+            mvc.perform(get("/api/v1/classificacoes/" + id).header("X-API-Key", chave))
+                    .andExpect(jsonPath("$.status").value("EM_PROCESSAMENTO"));
+            liberaIa.countDown();
+            String status = "EM_PROCESSAMENTO";
+            JsonNode r = null;
+            for (int i = 0; i < 100 && status.equals("EM_PROCESSAMENTO"); i++) {
+                Thread.sleep(100);
+                r = json.readTree(mvc.perform(get("/api/v1/classificacoes/" + id).header("X-API-Key", chave))
+                        .andReturn().getResponse().getContentAsString());
+                status = r.get("status").asText();
+            }
+            assertThat(status).isEqualTo("CONCLUIDA");
+            assertThat(r.get("produtos").get(0).get("cClassTrib").asText()).isEqualTo("200003");
+            assertThat(r.get("itensClassificadosPorIa").asInt()).isEqualTo(1);
         }
     }
 }

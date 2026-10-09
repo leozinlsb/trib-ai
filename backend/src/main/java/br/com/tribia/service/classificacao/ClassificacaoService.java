@@ -124,10 +124,12 @@ public class ClassificacaoService {
     }
 
     /**
-     * @param sugestoes na ordem da entrada; null quando não houve evidência para sugerir
-     * @param itensIa   produtos distintos enviados à IA (contam na cota de quem pediu)
+     * @param sugestoes        na ordem da entrada; null quando não houve evidência para sugerir
+     * @param itensIa          produtos distintos enviados à IA (contam na cota de quem pediu)
+     * @param precisavamDeIa   produtos distintos que o cache não resolveu (com limiteIa = 0, diz quantos iriam à IA)
      */
-    public record ResultadoAvulso(List<SugestaoAvulsa> sugestoes, int itensIa, List<String> avisos) {
+    public record ResultadoAvulso(List<SugestaoAvulsa> sugestoes, int itensIa, List<String> avisos,
+                                  int precisavamDeIa) {
     }
 
     /**
@@ -136,7 +138,7 @@ public class ClassificacaoService {
      * as sugestões da IA vão para o cache privado da empresa (não validadas), como no fluxo da nota.
      *
      * @param limiteIa máximo de produtos que podem ir à IA (cota de quem pediu); se os pendentes passam disso, nenhum
-     *                 vai e o aviso diz quantos ficaram sem sugestão
+     *                 vai (precisavamDeIa diz quantos eram); 0 serve para só consultar o cache
      */
     public ResultadoAvulso classificarAvulsos(Long clienteId, List<ProdutoAvulso> produtos, int limiteIa) {
         acesso.clienteAcessivel(clienteId);
@@ -163,12 +165,11 @@ public class ClassificacaoService {
 
         List<String> avisos = new ArrayList<>();
         if (pendentes.isEmpty()) {
-            return new ResultadoAvulso(resultado, 0, avisos);
+            return new ResultadoAvulso(resultado, 0, avisos, 0);
         }
         if (pendentes.size() > limiteIa) {
-            avisos.add("Cota diária de itens para a IA insuficiente: " + pendentes.size() + " produto(s) precisariam "
-                    + "da IA e restam " + Math.max(0, limiteIa) + ". Eles ficaram sem sugestão.");
-            return new ResultadoAvulso(resultado, 0, avisos);
+            // quem chamou decide o aviso (sabe quanto resta da cota): aqui só não vai à IA
+            return new ResultadoAvulso(resultado, 0, avisos, pendentes.size());
         }
         List<Produto> lista = List.copyOf(pendentes.values());
         Map<Produto, Sugestao> sugestoes = sugerir(lista, avisos);
@@ -186,7 +187,7 @@ public class ClassificacaoService {
                 posicoes.get(chave).forEach(i -> resultado.set(i, a));
             }
         });
-        return new ResultadoAvulso(resultado, lista.size(), avisos);
+        return new ResultadoAvulso(resultado, lista.size(), avisos, lista.size());
     }
 
     private List<Produto> aplicarXmlECache(Long notaId) {

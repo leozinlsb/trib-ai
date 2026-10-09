@@ -16,6 +16,14 @@ import br.com.tribia.apipublica.model.ClassificacaoAvulsaApi;
 import br.com.tribia.apipublica.repository.ChaveApiRepository;
 import br.com.tribia.apipublica.repository.ClassificacaoAvulsaApiRepository;
 import br.com.tribia.apipublica.seguranca.IntegradorAutenticado;
+import br.com.tribia.apipublica.seguranca.ChavesApi;
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.core.task.TaskRejectedException;
+import org.springframework.dao.DataIntegrityViolationException;
+import java.util.UUID;
+import java.util.regex.Pattern;
 import br.com.tribia.apipublica.web.ApiPublicaException;
 import br.com.tribia.client.calculadora.ResultadoCalculo.AliquotasAplicadas;
 import br.com.tribia.exception.ApiException;
@@ -26,9 +34,7 @@ import br.com.tribia.service.calculo.CalculoService;
 import br.com.tribia.service.calculo.CalculoService.ItemSimuladoResultado;
 import br.com.tribia.service.calculo.CalculoService.ResultadoSimulacao;
 import br.com.tribia.service.classificacao.ClassificacaoService;
-import br.com.tribia.service.classificacao.ClassificacaoService.ProdutoAvulso;
 import br.com.tribia.service.classificacao.ClassificacaoService.ResultadoAvulso;
-import br.com.tribia.service.classificacao.ClassificacaoService.SugestaoAvulsa;
 import br.com.tribia.service.classificacao.CriterioRevisao;
 import br.com.tribia.service.tabelas.TabelaCClassTrib;
 import br.com.tribia.service.tabelas.TabelaCClassTrib.CClassTrib;
@@ -78,12 +84,24 @@ public class ApiPublicaFase2Service {
     private final ClassificacaoAvulsaApiRepository avulsas;
     private final ChaveApiRepository chaves;
     private final ClienteRepository clientes;
+    private final ProcessadorClassificacaoAvulsa processador;
+    private final TaskExecutor executor;
     private final TransactionTemplate tx;
+
+    private static final Pattern IDEMPOTENCY_KEY = Pattern.compile("^[A-Za-z0-9_.:-]{1,100}$");
+    private static final Pattern UUID_TEXTO = Pattern.compile(
+            "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$");
+    private static final TypeReference<List<ProdutoClassificado>> LISTA_CLASSIFICADOS = new TypeReference<>() {
+    };
+    private static final TypeReference<List<String>> LISTA_TEXTOS = new TypeReference<>() {
+    };
 
     public ApiPublicaFase2Service(ClassificacaoService classificacao, CalculoService calculo, TabelaCClassTrib tabela,
                                   CriterioRevisao criterio, ConsumoIaApi consumo,
                                   ClassificacaoAvulsaApiRepository avulsas, ChaveApiRepository chaves,
-                                  ClienteRepository clientes, PlatformTransactionManager transacoes) {
+                                  ClienteRepository clientes, ProcessadorClassificacaoAvulsa processador,
+                                  @Qualifier("notasApiExecutor") TaskExecutor executor,
+                                  PlatformTransactionManager transacoes) {
         this.classificacao = classificacao;
         this.calculo = calculo;
         this.tabela = tabela;
@@ -92,18 +110,48 @@ public class ApiPublicaFase2Service {
         this.avulsas = avulsas;
         this.chaves = chaves;
         this.clientes = clientes;
+        this.processador = processador;
+        this.executor = executor;
         this.tx = new TransactionTemplate(transacoes);
     }
 
-    // ---------------- classificação ----------------
+    // ---------------- classificação (assíncrona) ----------------
 
-    public RespostaClassificacao classificar(IntegradorAutenticado quem, SolicitacaoClassificacao pedido) {
-        List<ProdutoAvulso> produtos = pedido.produtos().stream()
-                .map(p -> new ProdutoAvulso(p.ncm().replaceAll("\\D", ""), p.descricao().trim(), vazio(p.unidade()),
-                        p.valorUnitario()))
+    public record Pedido(RespostaClassificacao resposta, boolean repetida) {
+    }
+
+    /**
+     * Na requisição: confere o cache (sem IA), conta quantos produtos iriam à IA e reserva a cota. Tudo resolvido pelo
+     * cache, ou cota insuficiente para os pendentes: o pedido já nasce CONCLUIDA (com aviso no segundo caso). Senão,
+     * nasce EM_PROCESSAMENTO e a IA trabalha em segundo plano; a requisição nunca espera a IA.
+     */
+    public Pedido classificar(IntegradorAutenticado quem, String idempotencyKey, SolicitacaoClassificacao pedido) {
+        String chaveIdem = idempotencyKey == null || idempotencyKey.isBlank() ? null : idempotencyKey.trim();
+        if (chaveIdem != null && !IDEMPOTENCY_KEY.matcher(chaveIdem).matches()) {
+            throw new ApiPublicaException(HttpStatus.BAD_REQUEST, "IDEMPOTENCY_KEY_INVALIDA", "Idempotency-Key inválida",
+                    "Idempotency-Key deve ter de 1 a 100 caracteres [A-Za-z0-9_.:-] (um UUID serve).");
+        }
+        List<ProdutoClassificar> produtos = pedido.produtos().stream()
+                .map(p -> new ProdutoClassificar(vazio(p.referencia()), p.ncm().replaceAll("\\D", ""),
+                        p.descricao().trim(), vazio(p.unidade()), p.valorUnitario()))
                 .toList();
-        ResultadoAvulso r;
+        String produtosJson = processador.escrever(produtos);
+        String hash = ChavesApi.sha256(produtosJson);
+
+        ClassificacaoAvulsaApi criado;
+        boolean despachar;
         synchronized (consumo.trava(quem.chaveId())) {
+            if (chaveIdem != null) {
+                Optional<ClassificacaoAvulsaApi> existente = tx.execute(s -> avulsas.buscarPorIdempotencia(quem.chaveId(), chaveIdem));
+                if (existente.isPresent()) {
+                    if (!existente.get().getHashPayload().equals(hash)) {
+                        throw new ApiPublicaException(HttpStatus.CONFLICT, "IDEMPOTENCIA_CONFLITO", "Idempotency-Key já usada",
+                                "Esta Idempotency-Key já foi usada com outros produtos. Use uma chave nova para um pedido novo.",
+                                Map.of("classificacaoId", existente.get().getPublicoId()), Map.of());
+                    }
+                    return new Pedido(consultar(quem, existente.get().getPublicoId()), true);
+                }
+            }
             long usados = consumo.itensHoje(quem.chaveId());
             if (usados >= quem.cotaDiariaItensIa()) {
                 throw new ApiPublicaException(HttpStatus.TOO_MANY_REQUESTS, "COTA_DIARIA_ITENS_IA_EXCEDIDA",
@@ -112,39 +160,90 @@ public class ApiPublicaFase2Service {
                                 + "). A cota renova à meia-noite (horário de Brasília).",
                         Map.of(), Map.of("Retry-After", String.valueOf(ConsumoIaApi.segundosAteRenovar())));
             }
-            int restante = (int) Math.min(Integer.MAX_VALUE, quem.cotaDiariaItensIa() - usados);
-            r = EscopoIntegracao.executar(quem.clienteId(),
-                    () -> classificacao.classificarAvulsos(quem.clienteId(), produtos, restante));
-            int itensIa = r.itensIa();
-            tx.executeWithoutResult(s -> avulsas.save(new ClassificacaoAvulsaApi(
-                    chaves.getReferenceById(quem.chaveId()), clientes.getReferenceById(quem.clienteId()),
-                    produtos.size(), itensIa, Instant.now())));
+            long emProcessamento = tx.execute(s -> avulsas.contarEmProcessamento(quem.chaveId()));
+            if (emProcessamento >= quem.maxAnalisesSimultaneas()) {
+                throw new ApiPublicaException(HttpStatus.TOO_MANY_REQUESTS, "LIMITE_CLASSIFICACOES_SIMULTANEAS",
+                        "Muitas classificações em processamento",
+                        "Esta chave já tem " + emProcessamento + " classificações em processamento (limite: "
+                                + quem.maxAnalisesSimultaneas() + "). Aguarde alguma terminar.",
+                        Map.of(), Map.of("Retry-After", "10"));
+            }
+            // só o cache, sem IA: rápido, e diz quantos produtos iriam à IA
+            ResultadoAvulso semIa = EscopoIntegracao.executar(quem.clienteId(), () ->
+                    classificacao.classificarAvulsos(quem.clienteId(), ProcessadorClassificacaoAvulsa.paraMotor(produtos), 0));
+            int paraIa = semIa.precisavamDeIa();
+            despachar = paraIa > 0 && usados + paraIa <= quem.cotaDiariaItensIa();
+            int reservados = despachar ? paraIa : 0;
+            try {
+                criado = tx.execute(s -> {
+                    ClassificacaoAvulsaApi c = avulsas.saveAndFlush(new ClassificacaoAvulsaApi(UUID.randomUUID().toString(),
+                            chaves.getReferenceById(quem.chaveId()), clientes.getReferenceById(quem.clienteId()),
+                            chaveIdem, hash, produtos.size(), reservados, produtosJson, Instant.now()));
+                    if (!despachar) {
+                        // tudo do cache, ou a cota não comporta os pendentes: já termina com o que o cache resolveu
+                        List<String> avisos = new ArrayList<>(semIa.avisos());
+                        if (paraIa > 0) {
+                            avisos.add("Cota diária de itens para a IA insuficiente: " + paraIa + " produto(s) "
+                                    + "precisariam da IA e restam " + (quem.cotaDiariaItensIa() - usados)
+                                    + ". Eles ficaram sem sugestão.");
+                        }
+                        c.concluir(processador.escrever(processador.publico(produtos, semIa)),
+                                processador.escrever(avisos), Instant.now());
+                    }
+                    return c;
+                });
+            } catch (DataIntegrityViolationException e) {
+                Optional<ClassificacaoAvulsaApi> vencedor = chaveIdem == null ? Optional.empty()
+                        : tx.execute(s -> avulsas.buscarPorIdempotencia(quem.chaveId(), chaveIdem));
+                if (vencedor.isPresent() && vencedor.get().getHashPayload().equals(hash)) {
+                    return new Pedido(consultar(quem, vencedor.get().getPublicoId()), true);
+                }
+                throw e;
+            }
         }
-        log.info("API pública: {} produto(s) classificado(s) avulsos (chave {}, itens para a IA: {})", produtos.size(),
-                quem.prefixo(), r.itensIa());
-
-        List<ProdutoClassificado> saida = new ArrayList<>();
-        for (int i = 0; i < pedido.produtos().size(); i++) {
-            ProdutoClassificar p = pedido.produtos().get(i);
-            saida.add(produto(p, produtos.get(i).ncm(), r.sugestoes().get(i)));
+        log.info("API pública: classificação avulsa {} recebida (chave {}, {} produto(s), para a IA: {})",
+                criado.getPublicoId(), quem.prefixo(), produtos.size(), criado.getItensIa());
+        if (despachar) {
+            Long id = criado.getId();
+            try {
+                executor.execute(() -> processador.processar(id));
+            } catch (TaskRejectedException e) {
+                tx.executeWithoutResult(s -> avulsas.findById(id).ifPresent(c -> c.falhar(
+                        "Fila do servidor cheia. Envie de novo com outra Idempotency-Key em instantes.", Instant.now())));
+                throw new ApiPublicaException(HttpStatus.SERVICE_UNAVAILABLE, "SERVICO_OCUPADO", "Serviço ocupado",
+                        "Muitas tarefas em processamento no servidor. Envie de novo em instantes.",
+                        Map.of("classificacaoId", criado.getPublicoId()), Map.of("Retry-After", "30"));
+            }
         }
-        List<String> avisos = new ArrayList<>(AVISOS_CLASSIFICACAO);
-        r.avisos().stream().filter(a -> !avisos.contains(a)).forEach(avisos::add);
-        return new RespostaClassificacao(ApiPublicaFase2Dtos.NATUREZA_SUGESTAO, saida, r.itensIa(), avisos);
+        return new Pedido(consultar(quem, criado.getPublicoId()), false);
     }
 
-    private ProdutoClassificado produto(ProdutoClassificar p, String ncm, SugestaoAvulsa s) {
-        if (s == null) {
-            return new ProdutoClassificado(p.referencia(), ncm, p.descricao(), "SEM_CLASSIFICACAO", null, null, null,
-                    null, null, null, null, null);
+    public RespostaClassificacao consultar(IntegradorAutenticado quem, String id) {
+        String publico = id == null ? "" : id.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!UUID_TEXTO.matcher(publico).matches()) {
+            throw classificacaoNaoEncontrada();
         }
-        Optional<CClassTrib> oficial = tabela.buscar(s.cClassTrib());
-        boolean confiancaBaixa = s.confianca() == null || s.confianca().compareTo(criterio.confiancaMinima()) < 0;
-        String situacao = !s.aceita() || confiancaBaixa ? "PENDENTE_REVISAO" : "CONFIRMADA";
-        return new ProdutoClassificado(p.referencia(), ncm, p.descricao(), situacao, s.cst(), s.cClassTrib(),
-                oficial.map(CClassTrib::nome).orElse(null), oficial.map(c -> c.regime().name()).orElse(null),
-                oficial.map(CClassTrib::descricaoRegime).orElse(null), s.origem().name(), s.confianca(),
-                s.justificativa());
+        ClassificacaoAvulsaApi c = tx.execute(s -> avulsas.buscarDaEmpresa(publico, quem.clienteId()).orElse(null));
+        if (c == null) {
+            throw classificacaoNaoEncontrada();
+        }
+        boolean concluida = c.getStatus() == ClassificacaoAvulsaApi.Status.CONCLUIDA;
+        List<ProdutoClassificado> produtos = concluida && c.getResultadoJson() != null
+                ? processador.ler(c.getResultadoJson(), LISTA_CLASSIFICADOS) : List.of();
+        List<String> avisos = new ArrayList<>(AVISOS_CLASSIFICACAO);
+        if (c.getAvisosJson() != null) {
+            processador.ler(c.getAvisosJson(), LISTA_TEXTOS).stream().filter(a -> !avisos.contains(a)).forEach(avisos::add);
+        }
+        ApiPublicaNotasDtos.Erro erro = c.getStatus() == ClassificacaoAvulsaApi.Status.FALHOU
+                ? new ApiPublicaNotasDtos.Erro("PROCESSAMENTO_FALHOU", c.getMensagem()) : null;
+        return new RespostaClassificacao(c.getPublicoId(), c.getStatus().name(),
+                c.getStatus() != ClassificacaoAvulsaApi.Status.EM_PROCESSAMENTO, c.getCriadoEm(), c.getFinalizadoEm(),
+                ApiPublicaFase2Dtos.NATUREZA_SUGESTAO, produtos, c.getItensIa(), erro, avisos);
+    }
+
+    private static ApiPublicaException classificacaoNaoEncontrada() {
+        return new ApiPublicaException(HttpStatus.NOT_FOUND, "CLASSIFICACAO_NAO_ENCONTRADA",
+                "Classificação não encontrada", "Nenhum pedido de classificação com este id para esta chave de API.");
     }
 
     // ---------------- simulação ----------------

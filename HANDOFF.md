@@ -16,8 +16,12 @@ Pedido da responsável (ciente de que as regras aguardam validação profissiona
 - Cota de itens para a IA (500/chave/dia) agora é **compartilhada** entre notas e classificações (`ConsumoIaApi`,
   tabela `classificacao_avulsa_api`, trava por chave comum).
 - Testes: `ApiPublicaFase2Test` (9, valores conferidos à mão); suíte **371 / 0 falhas / 8 ignorados** nas duas ordens.
-  Ensaio real com Gemini: travas ok (detergente/azeite integrais, sabonete 60%), mas a classificação levou 69 s porque o
-  modelo principal estourou o timeout de 60 s (pendência API-10). Detalhes: `API-PUBLICA/12-FASE-2-…md`.
+  Ensaio real com Gemini: travas ok (detergente/azeite integrais, sabonete 60%).
+- **Tempo de resposta resolvido:** a classificação síncrona levou 69 s num ensaio (modelo principal estourou o timeout
+  de 60 s). Agora é assíncrona: `POST /api/v1/classificacoes` → 202 em ~150 ms (só cache + reserva de cota), IA em
+  segundo plano (`ProcessadorClassificacaoAvulsa`, fila da API, retomada após reinício), resultado em
+  `GET /api/v1/classificacoes/{id}`; Idempotency-Key aceita. Teste com IA travada prova que a requisição não espera.
+  Suíte: **373 / 0 falhas / 8 ignorados**. Detalhes: `API-PUBLICA/12-FASE-2-…md`.
 
 ## Atualização mais recente — API pública, fase 1: notas fiscais e comparativo (09/10/2026)
 

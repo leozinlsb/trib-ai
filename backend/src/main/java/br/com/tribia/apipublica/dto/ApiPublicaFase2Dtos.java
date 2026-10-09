@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -47,12 +48,23 @@ public final class ApiPublicaFase2Dtos {
             @DecimalMin(value = "0", message = "valorUnitario não pode ser negativo.") BigDecimal valorUnitario) {
     }
 
+    @Schema(description = """
+            Pedido de classificação. EM_PROCESSAMENTO: produtos que o cache não resolveu estão na IA (consulte
+            GET /api/v1/classificacoes/{id} até finalizada = true). CONCLUIDA: produtos com sugestão (ou
+            SEM_CLASSIFICACAO). FALHOU: erro no processamento (ver erro.mensagem).""")
     public record RespostaClassificacao(
+            @Schema(description = "Id público (UUID) do pedido") String id,
+            @Schema(description = "EM_PROCESSAMENTO, CONCLUIDA ou FALHOU") String status,
+            boolean finalizada,
+            Instant recebidaEm,
+            Instant finalizadaEm,
             @Schema(description = "Sempre SUGESTAO_AUTOMATICA: confirme na plataforma antes de usar em documento fiscal")
             String natureza,
+            @Schema(description = "Na ordem dos produtos enviados; vazio enquanto EM_PROCESSAMENTO")
             List<ProdutoClassificado> produtos,
-            @Schema(description = "Produtos distintos enviados à IA nesta chamada (contam na cota diária)")
+            @Schema(description = "Produtos distintos reservados para a IA (contam na cota diária)")
             int itensClassificadosPorIa,
+            ApiPublicaNotasDtos.Erro erro,
             List<String> avisos) {
     }
 

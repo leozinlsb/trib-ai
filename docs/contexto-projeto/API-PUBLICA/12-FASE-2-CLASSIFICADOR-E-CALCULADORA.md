@@ -4,11 +4,12 @@ Pedido da responsável, sabendo que as regras ainda aguardam validação profiss
 resposta sai marcada: a classificação como `SUGESTAO_AUTOMATICA`, o cálculo como `PROJECAO_PENDENTE_VALIDACAO`, com
 avisos. Não há regra fiscal nova: os dois endpoints usam os mesmos motores do site, com uma entrada "avulsa".
 
-## Endpoints (síncronos, respondem na hora)
+## Endpoints
 
 | Método e rota | Escopo | Limite | Descrição |
 |---|---|---|---|
-| `POST /api/v1/classificacoes` | `CLASSIFICAR` | 50 produtos | NCM + descrição → CST/cClassTrib sugeridos |
+| `POST /api/v1/classificacoes` | `CLASSIFICAR` | 50 produtos | NCM + descrição → CST/cClassTrib sugeridos (**assíncrono**: 202 + consulta) |
+| `GET /api/v1/classificacoes/{id}` | `CLASSIFICAR` | — | Situação e resultado do pedido |
 | `POST /api/v1/calculos/simular` | `CALCULAR` | 100 itens | Itens com cClassTrib e valor → CBS/IBS/IS de 2027; nada é gravado |
 
 Chaves novas recebem os seis escopos por padrão (análises, notas, classificar, calcular); as antigas mantêm os seus.
@@ -77,14 +78,23 @@ R$ 0,39 + R$ 0,39 = **R$ 74,94**, o mesmo valor do item no painel da plataforma.
   Simulação dos 5 (valor 1.000, ICMS 180): base 820; integral R$ 78,15; redução de 60% R$ 31,25; cesta zero; cerveja
   no campo do IS com IS zero (revenda). Uso 5/500.
 
-## Atenção: tempo da classificação (síncrona)
+## Tempo de resposta: classificação assíncrona (resolvido em 09/10/2026)
 
-No ensaio real a classificação levou **69,4 s**: o `gemini-3.5-flash` não respondeu e só desistiu no limite de
-`tribia.llm.timeout-resposta` (60 s); o modelo reserva (`flash-lite`) respondeu em 9 s. No pior caso (os dois modelos
-lentos) a chamada passa de 100 s, e proxies de hospedagem (o Render corta em ~100 s) podem devolver erro ao integrador
-mesmo com o servidor terminando o trabalho.
+No primeiro ensaio real a classificação era síncrona e levou **69,4 s**: o `gemini-3.5-flash` não respondeu até o
+limite de 60 s e só então o modelo reserva respondeu. Com proxies que cortam em ~100 s (Render), o integrador
+receberia erro. Por isso a classificação passou a ser **assíncrona**, como as notas:
 
-Mitigação já existente: a resposta da IA fica no cache da empresa e a trava por chave serializa as chamadas, então
-**repetir a mesma chamada depois de um timeout devolve o resultado do cache, na hora e sem gastar cota**. Recomendação
-ao integrador: timeout de cliente de 120 s e uma nova tentativa. Evolução registrada (API-10): tornar a classificação
-assíncrona (202 + consulta), como as notas, ou reduzir `tribia.llm.timeout-resposta` para o modelo principal.
+1. `POST /api/v1/classificacoes` (aceita `Idempotency-Key`): na requisição, só o cache (sem IA). Conta os produtos que
+   iriam à IA, confere a cota e reserva. Responde **202** com `id`, `status` e `Location`.
+   - Tudo resolvido pelo cache, ou cota insuficiente para os pendentes: já vem `CONCLUIDA` (no segundo caso, com aviso
+     do saldo real da cota).
+   - Senão, `EM_PROCESSAMENTO`, e a IA trabalha em segundo plano (fila da API pública, a mesma das notas).
+2. `GET /api/v1/classificacoes/{id}` (escopo `CLASSIFICAR`) até `finalizada = true`. Outra empresa ou id inválido: 404
+   `CLASSIFICACAO_NAO_ENCONTRADA`. Falha: `FALHOU` com `erro.codigo = PROCESSAMENTO_FALHOU`.
+3. Reinício do servidor retoma os pedidos em processamento (cota já reservada). Limite de pedidos simultâneos por chave:
+   `LIMITE_CLASSIFICACOES_SIMULTANEAS` (mesmo valor das análises).
+
+Evidências: teste com a IA travada de propósito (`ApiPublicaFase2Test$Assincrono`): o POST responde
+`EM_PROCESSAMENTO` em menos de 5 s e o resultado chega pela consulta depois que a IA libera. Ensaio real com o Gemini:
+**POST em 151 ms** (antes 69 s), IA em segundo plano por 26 s; pedido novo com os mesmos produtos: 20 ms, do cache;
+repetição idempotente: 9 ms. A simulação de cálculo continua síncrona (não chama a IA).
