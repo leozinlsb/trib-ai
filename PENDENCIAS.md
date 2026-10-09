@@ -137,7 +137,8 @@ Implementada e testada (35 testes novos; suíte 353 / 0 falhas). Detalhes:
 | # | Pendência |
 |---|-----------|
 | API-1 | ~~Validar com o Gemini real~~ feito em 09/10/2026 (análise de NCM e envio de NF-e). |
-| API-8 | Fase 2 da API (classificação avulsa e calculadora sem nota) só depois da validação profissional (S5, R2, V1–V6). |
+| API-8 | Fase 2 da API implementada em 09/10/2026 a pedido da responsável, com respostas marcadas como sugestão/projeção; as regras seguem pendentes de validação profissional (S5, R2, V1–V6). |
+| API-10 | `POST /api/v1/classificacoes` é síncrono: com o Gemini lento passou de 69 s no ensaio (risco de corte em ~100 s no Render). Repetir devolve do cache sem custo; avaliar versão assíncrona ou timeout menor do modelo principal. |
 | API-9 | Revisão humana das notas enviadas pela API só na plataforma; cliente de exemplo ainda cobre só análises de NCM. |
 | API-2 | Decidir se a API pública fica ligada no profile `prod` e com quais limites; emitir chaves só para integradores reais. |
 | API-3 | Limite por minuto e falhas por IP ficam em memória: com várias instâncias, usar contador compartilhado. |

@@ -156,6 +156,59 @@ public class CalculoService {
                 r == null ? 0 : r.itens().size(), p.pendentes(), List.copyOf(avisos), ComparativoDto.de(total));
     }
 
+    /** Item de uma simulação sem nota (API pública): o que viria no item da NF-e. */
+    public record ItemSimulado(String ncm, BigDecimal quantidade, String unidade, BigDecimal valorOperacao,
+                               BigDecimal vIcms, BigDecimal vPis, BigDecimal vCofins, String cst, String cClassTrib) {
+    }
+
+    public record ItemSimuladoResultado(BigDecimal base, boolean sujeitoIs, Tributos2027 tributos,
+                                        ResultadoCalculo.AliquotasAplicadas aliquotas) {
+    }
+
+    public record ResultadoSimulacao(OrigemCalculo origem, boolean simulado, AliquotasNominais nominais,
+                                     List<ItemSimuladoResultado> itens, List<String> avisos) {
+    }
+
+    /**
+     * Calcula CBS/IBS/IS de 2027 para itens avulsos, sem gravar nada, com as mesmas regras do cálculo da nota: base
+     * de 2027 (mesmas exclusões), IS só para o fabricante na venda, calculadora oficial com plano B simplificado.
+     *
+     * @param operacao  VENDA (débito) ou COMPRA (crédito); muda só o IS (fabricante vendendo)
+     * @param municipio código IBGE do destino; null usa o da empresa
+     */
+    public ResultadoSimulacao simular(Long clienteId, Operacao operacao, String municipio, String uf,
+                                      List<ItemSimulado> itens, BigDecimal cbsCenario) {
+        Cliente cliente = acesso.clienteAcessivel(clienteId);
+        AliquotasNominais nominais = nominais(cbsCenario);
+        boolean cobraIs = cliente.isFabricante() && operacao == Operacao.VENDA;
+        List<ItemCalculo> calculo = new ArrayList<>();
+        List<BigDecimal> bases = new ArrayList<>();
+        List<Boolean> sujeitos = new ArrayList<>();
+        for (int i = 0; i < itens.size(); i++) {
+            ItemSimulado it = itens.get(i);
+            boolean sujeitoIs = it.ncm() != null && tabelaIs.aliquota(it.ncm(), props.dataFatoGerador()).isPresent();
+            ImpostoSeletivo is = !sujeitoIs ? null : cobraIs ? new ImpostoSeletivo("000", "000001") : ImpostoSeletivo.REVENDA;
+            BigDecimal base = RegrasApuracao.base2027(it.valorOperacao(), it.vIcms(), it.vPis(), it.vCofins(),
+                    props.excluirTributosDaBase());
+            calculo.add(new ItemCalculo(i + 1, it.ncm(), it.quantidade(), it.unidade(), base, it.cst(), it.cClassTrib(), is));
+            bases.add(base);
+            sujeitos.add(sujeitoIs);
+        }
+        String mun = municipio != null ? municipio : cliente.getCodigoMunicipio();
+        String estado = uf != null ? uf : cliente.getUf();
+        OperacaoCalculo op = new OperacaoCalculo("simulacao-" + clienteId, dataFatoGerador(), mun, estado, calculo, nominais);
+        Set<String> avisos = new LinkedHashSet<>(avisosDeAliquota(nominais, cbsCenario));
+        ResultadoCalculo r = executar(op, avisos);
+        Map<Integer, ItemCalculado> porNumero = r.itens().stream()
+                .collect(Collectors.toMap(ItemCalculado::numero, Function.identity()));
+        List<ItemSimuladoResultado> resultado = new ArrayList<>();
+        for (int i = 0; i < itens.size(); i++) {
+            ItemCalculado ic = porNumero.get(i + 1);
+            resultado.add(ic == null ? null : new ItemSimuladoResultado(bases.get(i), sujeitos.get(i), ic.tributos(), ic.aliquotas()));
+        }
+        return new ResultadoSimulacao(r.origem(), r.simulado(), nominais, resultado, List.copyOf(avisos));
+    }
+
     /**
      * Recalcula a nota mantendo o cenário de CBS com que ela foi calculada da última vez (se havia um).
      * Usado depois de classificar ou revisar, para o painel refletir a mudança sem perder o cenário escolhido.

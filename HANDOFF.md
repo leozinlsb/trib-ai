@@ -6,6 +6,19 @@
 
 ---
 
+## Atualização mais recente — API pública, fase 2: classificador e calculadora sem nota (09/10/2026)
+
+Pedido da responsável (ciente de que as regras aguardam validação profissional).
+- `POST /api/v1/classificacoes` (escopo `CLASSIFICAR`, até 50 produtos) e `POST /api/v1/calculos/simular` (escopo
+  `CALCULAR`, até 100 itens), síncronos. Respostas marcadas `SUGESTAO_AUTOMATICA` / `PROJECAO_PENDENTE_VALIDACAO`.
+- Motores do site com entrada avulsa: `ClassificacaoService.classificarAvulsos` (cache da empresa → SEED → IA → planos
+  B; sugestões da IA vão ao cache privado) e `CalculoService.simular` (mesma base, IS e calculadora; nada gravado).
+- Cota de itens para a IA (500/chave/dia) agora é **compartilhada** entre notas e classificações (`ConsumoIaApi`,
+  tabela `classificacao_avulsa_api`, trava por chave comum).
+- Testes: `ApiPublicaFase2Test` (9, valores conferidos à mão); suíte **371 / 0 falhas / 8 ignorados** nas duas ordens.
+  Ensaio real com Gemini: travas ok (detergente/azeite integrais, sabonete 60%), mas a classificação levou 69 s porque o
+  modelo principal estourou o timeout de 60 s (pendência API-10). Detalhes: `API-PUBLICA/12-FASE-2-…md`.
+
 ## Atualização mais recente — API pública, fase 1: notas fiscais e comparativo (09/10/2026)
 
 Pedido da responsável: a API pública passa a cobrir também classificação e cálculo, não só a sugestão de NCM.

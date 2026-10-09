@@ -66,7 +66,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
@@ -114,13 +113,13 @@ public class ApiPublicaNotasService {
     private final TaskExecutor executor;
     private final ObjectMapper json;
     private final TransactionTemplate tx;
-    private final Map<Long, Object> travas = new ConcurrentHashMap<>();
+    private final ConsumoIaApi consumo;
 
     public ApiPublicaNotasService(EnvioNotaApiRepository envios, ChaveApiRepository chaves, ClienteRepository clientes,
                                   NotaService notas, ClassificacaoService classificacao, DashboardService painel,
                                   CriterioRevisao criterio, ProcessadorEnvioNota processador,
                                   @Qualifier("notasApiExecutor") TaskExecutor executor, ObjectMapper json,
-                                  PlatformTransactionManager transacoes) {
+                                  PlatformTransactionManager transacoes, ConsumoIaApi consumo) {
         this.envios = envios;
         this.chaves = chaves;
         this.clientes = clientes;
@@ -132,6 +131,7 @@ public class ApiPublicaNotasService {
         this.executor = executor;
         this.json = json;
         this.tx = new TransactionTemplate(transacoes);
+        this.consumo = consumo;
     }
 
     public record Envio(NotaPublica nota, boolean repetida) {
@@ -151,7 +151,8 @@ public class ApiPublicaNotasService {
         String hash = ChavesApi.sha256((referencia == null ? "" : referencia) + "\n" + xml);
 
         EnvioNotaApi criado;
-        synchronized (travas.computeIfAbsent(quem.chaveId(), k -> new Object())) {
+        // trava compartilhada com a classificação avulsa: as duas gastam a mesma cota de itens para a IA
+        synchronized (consumo.trava(quem.chaveId())) {
             if (chaveIdem != null) {
                 Optional<EnvioNotaApi> existente = tx.execute(s -> envios.buscarPorIdempotencia(quem.chaveId(), chaveIdem));
                 if (existente.isPresent()) {
@@ -205,7 +206,7 @@ public class ApiPublicaNotasService {
 
     /** @return itens já enviados à IA hoje por esta chave */
     private long verificarConsumo(IntegradorAutenticado quem, LocalDate hoje) {
-        long itensHoje = tx.execute(s -> envios.somarItensIaDesde(quem.chaveId(), inicioDoDia(hoje)));
+        long itensHoje = consumo.itensHoje(quem.chaveId());
         if (itensHoje >= quem.cotaDiariaItensIa()) {
             long segundos = java.time.Duration.between(Instant.now(), inicioDoDia(hoje.plusDays(1))).toSeconds();
             throw new ApiPublicaException(HttpStatus.TOO_MANY_REQUESTS, "COTA_DIARIA_ITENS_IA_EXCEDIDA",

@@ -53,11 +53,13 @@ public class ApiPublicaSecurityConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.POST, "/api/v1/analises").hasAuthority("SCOPE_ANALISES_CRIAR")
                         .requestMatchers(HttpMethod.POST, "/api/v1/notas").hasAuthority("SCOPE_NOTAS_ENVIAR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/classificacoes").hasAuthority("SCOPE_CLASSIFICAR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/calculos/simular").hasAuthority("SCOPE_CALCULAR")
                         .requestMatchers(HttpMethod.GET, "/api/v1/notas", "/api/v1/notas/**", "/api/v1/comparativo")
                         .hasAuthority("SCOPE_NOTAS_LER")
                         // consumo da própria chave: qualquer escopo de leitura
                         .requestMatchers(HttpMethod.GET, "/api/v1/uso")
-                        .hasAnyAuthority("SCOPE_ANALISES_LER", "SCOPE_NOTAS_LER")
+                        .hasAnyAuthority("SCOPE_ANALISES_LER", "SCOPE_NOTAS_LER", "SCOPE_CLASSIFICAR", "SCOPE_CALCULAR")
                         .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAuthority("SCOPE_ANALISES_LER")
                         .anyRequest().hasRole("INTEGRADOR"))
                 .exceptionHandling(e -> e

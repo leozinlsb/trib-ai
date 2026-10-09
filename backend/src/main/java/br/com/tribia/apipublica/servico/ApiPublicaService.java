@@ -81,10 +81,11 @@ public class ApiPublicaService {
     private final TransactionTemplate tx;
     private final Clock relogio;
     private final Map<Long, Object> travas = new ConcurrentHashMap<>();
+    private final ConsumoIaApi consumo;
 
     public ApiPublicaService(SolicitacaoApiRepository solicitacoes, ChaveApiRepository chaves,
                              EnvioNotaApiRepository envios, ClienteRepository clientes, AnaliseFiscalService analises, ObjectMapper json,
-                             PlatformTransactionManager transacoes) {
+                             PlatformTransactionManager transacoes, ConsumoIaApi consumo) {
         this.solicitacoes = solicitacoes;
         this.chaves = chaves;
         this.envios = envios;
@@ -93,6 +94,7 @@ public class ApiPublicaService {
         this.json = json;
         this.tx = new TransactionTemplate(transacoes);
         this.relogio = Clock.systemUTC();
+        this.consumo = consumo;
     }
 
     /** Resultado da criação: a análise e se ela veio de uma repetição idempotente. */
@@ -174,7 +176,7 @@ public class ApiPublicaService {
             Cliente cliente = c.getCliente();
             long criadas = solicitacoes.contarCriadasDesde(quem.chaveId(), inicioDoDia(hoje));
             long andamento = solicitacoes.contarEmAndamento(quem.chaveId(), StatusAnalise.EM_ANDAMENTO);
-            long itensIa = envios.somarItensIaDesde(quem.chaveId(), inicioDoDia(hoje));
+            long itensIa = consumo.itensHoje(quem.chaveId());
             long notasEmProcessamento = envios.contarEmProcessamento(quem.chaveId());
             return new UsoChave(
                     new ChaveInfo(c.getPrefixo(), c.getNomeIntegrador(),

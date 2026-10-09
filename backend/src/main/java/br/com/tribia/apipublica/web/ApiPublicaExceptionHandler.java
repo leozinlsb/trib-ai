@@ -27,7 +27,8 @@ import java.util.Map;
  * ApiExceptionHandler da plataforma (que continua valendo para as rotas internas). Erro inesperado vira 500
  * ERRO_INTERNO sem detalhe técnico na resposta; o detalhe fica no log do servidor, com o mesmo requestId.
  */
-@RestControllerAdvice(assignableTypes = {ApiPublicaAnaliseController.class, ApiPublicaNotasController.class})
+@RestControllerAdvice(assignableTypes = {ApiPublicaAnaliseController.class, ApiPublicaNotasController.class,
+        ApiPublicaFase2Controller.class})
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ApiPublicaExceptionHandler {
 

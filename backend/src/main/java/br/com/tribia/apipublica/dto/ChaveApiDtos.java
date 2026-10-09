@@ -20,7 +20,7 @@ public final class ChaveApiDtos {
             @NotNull(message = "Informe a empresa (clienteId).") Long clienteId,
             @NotBlank(message = "Informe o nome do integrador.") @Size(max = 100, message = "Nome com até 100 caracteres.")
             String nomeIntegrador,
-            @Schema(description = "ANALISES_CRIAR, ANALISES_LER, NOTAS_ENVIAR e/ou NOTAS_LER; vazio = todos")
+            @Schema(description = "ANALISES_CRIAR, ANALISES_LER, NOTAS_ENVIAR, NOTAS_LER, CLASSIFICAR e/ou CALCULAR; vazio = todos")
             List<String> escopos,
             @Schema(description = "Validade em dias; vazio = padrão (tribia.api-publica.validade-maxima-dias)")
             @Min(value = 1, message = "validadeDias mínimo 1.") Integer validadeDias,

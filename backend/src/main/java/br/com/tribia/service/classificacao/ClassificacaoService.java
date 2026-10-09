@@ -114,6 +114,81 @@ public class ClassificacaoService {
         });
     }
 
+    /** Produto informado sem nota (API pública): NCM + descrição, como viriam no item da NF-e. */
+    public record ProdutoAvulso(String ncm, String descricao, String unidade, BigDecimal valorUnitario) {
+    }
+
+    /** Sugestão para um produto avulso; aceita = false para tudo que não foi confirmado por uma pessoa. */
+    public record SugestaoAvulsa(String cst, String cClassTrib, String justificativa, BigDecimal confianca,
+                                 OrigemClassificacao origem, boolean aceita) {
+    }
+
+    /**
+     * @param sugestoes na ordem da entrada; null quando não houve evidência para sugerir
+     * @param itensIa   produtos distintos enviados à IA (contam na cota de quem pediu)
+     */
+    public record ResultadoAvulso(List<SugestaoAvulsa> sugestoes, int itensIa, List<String> avisos) {
+    }
+
+    /**
+     * Classifica produtos sem nota, pela mesma ordem e com as mesmas travas da nota: cache da empresa e catálogo SEED;
+     * para o resto, IA (respostas gravadas e regra oficial como plano B). Nada é gravado como classificação de item;
+     * as sugestões da IA vão para o cache privado da empresa (não validadas), como no fluxo da nota.
+     *
+     * @param limiteIa máximo de produtos que podem ir à IA (cota de quem pediu); se os pendentes passam disso, nenhum
+     *                 vai e o aviso diz quantos ficaram sem sugestão
+     */
+    public ResultadoAvulso classificarAvulsos(Long clienteId, List<ProdutoAvulso> produtos, int limiteIa) {
+        acesso.clienteAcessivel(clienteId);
+        List<SugestaoAvulsa> resultado = new ArrayList<>(java.util.Collections.nCopies(produtos.size(), null));
+        Map<String, Produto> pendentes = new LinkedHashMap<>();
+        Map<String, List<Integer>> posicoes = new LinkedHashMap<>();
+        tx.executeWithoutResult(s -> {
+            for (int i = 0; i < produtos.size(); i++) {
+                ProdutoAvulso p = produtos.get(i);
+                Optional<SugestaoAvulsa> doCache = cacheDoProduto(clienteId, p.ncm(), p.descricao())
+                        .filter(c -> tabela.validoParaNfe(c.getCst(), c.getCClassTrib()))
+                        .map(c -> new SugestaoAvulsa(c.getCst(), c.getCClassTrib(), c.getJustificativa(),
+                                c.getConfianca(), OrigemClassificacao.CACHE, c.isValidada()));
+                if (doCache.isPresent()) {
+                    resultado.set(i, doCache.get());
+                } else {
+                    String chave = ChaveClassificacao.de(p.ncm(), p.descricao());
+                    pendentes.computeIfAbsent(chave, k -> new Produto(p.ncm(), p.descricao(), p.unidade(),
+                            p.valorUnitario(), List.of()));
+                    posicoes.computeIfAbsent(chave, k -> new ArrayList<>()).add(i);
+                }
+            }
+        });
+
+        List<String> avisos = new ArrayList<>();
+        if (pendentes.isEmpty()) {
+            return new ResultadoAvulso(resultado, 0, avisos);
+        }
+        if (pendentes.size() > limiteIa) {
+            avisos.add("Cota diária de itens para a IA insuficiente: " + pendentes.size() + " produto(s) precisariam "
+                    + "da IA e restam " + Math.max(0, limiteIa) + ". Eles ficaram sem sugestão.");
+            return new ResultadoAvulso(resultado, 0, avisos);
+        }
+        List<Produto> lista = List.copyOf(pendentes.values());
+        Map<Produto, Sugestao> sugestoes = sugerir(lista, avisos);
+        tx.executeWithoutResult(s -> sugestoes.forEach((produto, sug) -> {
+            if (sug.origem() == OrigemClassificacao.IA) {
+                armazenarNoCache(ChaveClassificacao.daEmpresa(clienteId, produto.ncm(), produto.descricao()),
+                        produto.ncm(), sug.cst(), sug.cClassTrib(), sug.justificativa(), sug.confianca(), "IA", false);
+            }
+        }));
+        pendentes.forEach((chave, produto) -> {
+            Sugestao sug = sugestoes.get(produto);
+            if (sug != null) {
+                SugestaoAvulsa a = new SugestaoAvulsa(sug.cst(), sug.cClassTrib(), sug.justificativa(), sug.confianca(),
+                        sug.origem(), false);
+                posicoes.get(chave).forEach(i -> resultado.set(i, a));
+            }
+        });
+        return new ResultadoAvulso(resultado, lista.size(), avisos);
+    }
+
     private List<Produto> aplicarXmlECache(Long notaId) {
         acesso.notaAcessivel(notaId);
         Nota nota = notaRepository.buscarComItens(notaId)
@@ -226,12 +301,14 @@ public class ClassificacaoService {
     }
 
     private Optional<ClassificacaoCache> cacheDoItem(Item item) {
-        return cacheRepository.findByChave(chavePrivada(item))
-                .or(() -> cacheRepository.findByChaveAndFonte(
-                        ChaveClassificacao.doCatalogo(item.getNcm(), item.getDescricao()), "SEED"))
+        return cacheDoProduto(item.getNota().getCliente().getId(), item.getNcm(), item.getDescricao());
+    }
+
+    private Optional<ClassificacaoCache> cacheDoProduto(Long clienteId, String ncm, String descricao) {
+        return cacheRepository.findByChave(ChaveClassificacao.daEmpresa(clienteId, ncm, descricao))
+                .or(() -> cacheRepository.findByChaveAndFonte(ChaveClassificacao.doCatalogo(ncm, descricao), "SEED"))
                 // Legado sem dono: somente o SEED curado pode ser compartilhado.
-                .or(() -> cacheRepository.findByChaveAndFonte(
-                        ChaveClassificacao.de(item.getNcm(), item.getDescricao()), "SEED"));
+                .or(() -> cacheRepository.findByChaveAndFonte(ChaveClassificacao.de(ncm, descricao), "SEED"));
     }
 
     private static String chavePrivada(Item item) {

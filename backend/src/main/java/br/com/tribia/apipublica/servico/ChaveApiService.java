@@ -59,7 +59,7 @@ public class ChaveApiService {
             escopos = form.escopos() == null || form.escopos().isEmpty() ? EscopoApi.PADRAO
                     : EscopoApi.separar(String.join(",", form.escopos()));
         } catch (IllegalArgumentException e) {
-            throw ApiException.requisicaoInvalida("Escopo desconhecido. Use ANALISES_CRIAR, ANALISES_LER, NOTAS_ENVIAR e/ou NOTAS_LER.");
+            throw ApiException.requisicaoInvalida("Escopo desconhecido. Use ANALISES_CRIAR, ANALISES_LER, NOTAS_ENVIAR, NOTAS_LER, CLASSIFICAR e/ou CALCULAR.");
         }
         if (escopos.isEmpty()) {
             throw ApiException.requisicaoInvalida("Informe ao menos um escopo.");

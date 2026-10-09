@@ -15,7 +15,11 @@ public enum EscopoApi {
     /** Enviar XML de NF-e: importa, classifica (XML, cache ou IA: consome a cota de itens) e calcula 2027. */
     NOTAS_ENVIAR,
     /** Consultar as notas enviadas, seus itens classificados, o cálculo de 2027 e o comparativo da empresa. */
-    NOTAS_LER;
+    NOTAS_LER,
+    /** Classificar produtos avulsos (CST/cClassTrib); produtos enviados à IA consomem a cota de itens. */
+    CLASSIFICAR,
+    /** Simular o cálculo de CBS/IBS/IS de 2027 sem nota (não chama a IA nem grava nada). */
+    CALCULAR;
 
     public static final Set<EscopoApi> PADRAO = EnumSet.allOf(EscopoApi.class);
 

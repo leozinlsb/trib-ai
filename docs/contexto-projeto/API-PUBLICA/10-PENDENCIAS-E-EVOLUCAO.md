@@ -22,5 +22,8 @@
 - **Rotação** assistida de chave (duas chaves válidas em sobreposição) e idempotência por integrador.
 - Medição de uso para cobrança (a contagem por chave já existe em `solicitacao_api`).
 - Fase 1 de notas e comparativo **implementada** em 09/10/2026 ([11](11-FASE-1-NOTAS-E-COMPARATIVO.md)), com os valores
-  de 2027 marcados como projeção. Fase 2 (classificação avulsa e calculadora sem nota) **somente** depois da validação
-  profissional das regras (pendências V1–V6/S5 da plataforma).
+  de 2027 marcados como projeção. Fase 2 (classificação avulsa e calculadora sem nota) **implementada** em 09/10/2026 a pedido da
+  responsável ([12](12-FASE-2-CLASSIFICADOR-E-CALCULADORA.md)), com respostas marcadas como sugestão/projeção; as regras
+  continuam pendentes de validação profissional (V1–V6/S5/R2).
+- **API-10:** classificação avulsa é síncrona e pode passar de 100 s se o Gemini estiver lento (ensaio: 69 s). Tornar
+  assíncrona (202 + consulta) ou reduzir o timeout do modelo principal.
