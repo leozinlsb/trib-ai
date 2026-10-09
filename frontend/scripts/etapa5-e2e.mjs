@@ -4,7 +4,7 @@
  *
  * Exige backend ISOLADO, sem chave de IA (nenhuma chamada paga) e sem o .env da raiz:
  *   backend: mvnw spring-boot:run -Dspring-boot.run.profiles=demo "-Dspring-boot.run.arguments=--server.port=8190
- *            --spring.config.import= --spring.datasource.url=jdbc:h2:mem:e2e;DB_CLOSE_DELAY=-1
+ *            --tribia.arquivo-local=x --tribia.arquivo-env-raiz=x --tribia.arquivo-env-backend=x --spring.datasource.url=jdbc:h2:mem:e2e;DB_CLOSE_DELAY=-1
  *            --tribia.admin.senha=<senha> --tribia.llm.api-key= --tribia.calculo.modo=SIMPLIFICADA"
  *   front:   npm run build; TRIBIA_BACKEND_URL=http://127.0.0.1:8190 npx vite preview --port 15173 --host 127.0.0.1
  *   teste:   TRIBIA_E2E_ISOLADO=1 TRIBIA_E2E_SENHA=<senha> TRIBIA_PLAYWRIGHT_MODULE=<pasta>/node_modules/playwright \

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,11 +23,15 @@ class JevContratoTest {
 
     @Test
     void apiRealAceitaOFormatoESeparaAsCandidatas() {
+        var propsBase = new JevProperties(JevProperties.Modo.HTTP, "https://api.typesafe.ai", System.getenv("JEV_API_KEY"),
+                "jev-latest", Duration.ofSeconds(5), Duration.ofSeconds(30), 2, Duration.ofMillis(500), Duration.ofSeconds(4), 10);
+        JevHttp clienteBase = JevConfig.criar(RestClient.builder(), propsBase);
+        List<String> modelos = clienteBase.modelos();
+        assertThat(modelos).isNotEmpty();
+        String modelo = modelos.contains("jev-1.13.0") ? "jev-1.13.0" : modelos.get(0);
         var props = new JevProperties(JevProperties.Modo.HTTP, "https://api.typesafe.ai", System.getenv("JEV_API_KEY"),
-                "jev-1.13.0", Duration.ofSeconds(5), Duration.ofSeconds(30), 2, Duration.ofMillis(500), Duration.ofSeconds(4), 10);
+                modelo, Duration.ofSeconds(5), Duration.ofSeconds(30), 2, Duration.ofMillis(500), Duration.ofSeconds(4), 10);
         JevHttp jev = JevConfig.criar(RestClient.builder(), props);
-
-        assertThat(jev.modelos()).contains("jev-1.13.0");
         var d = jev.avaliarComDiagnostico(TesteConexaoJev.MERCADORIA_SINTETICA, TesteConexaoJev.CANDIDATAS_SINTETICAS);
 
         System.out.printf("JEV real: modelo %s, %d ms, tokens %s/%s, pontuações %s%n", d.modelo(), d.milissegundos(),

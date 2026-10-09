@@ -6,7 +6,7 @@
  * Usa DUBLÊS locais das APIs externas (scripts/stubs-ia-e2e.mjs): nenhuma chamada paga. O backend roda o código
  * real (GeminiClient, JevHttp) apontado para os dublês:
  *   dublês:  node scripts/stubs-ia-e2e.mjs
- *   backend: mvnw spring-boot:run "-Dspring-boot.run.arguments=--server.port=8190 --spring.config.import=
+ *   backend: mvnw spring-boot:run "-Dspring-boot.run.arguments=--server.port=8190 --tribia.arquivo-local=x --tribia.arquivo-env-raiz=x --tribia.arquivo-env-backend=x
  *            --spring.datasource.url=jdbc:h2:mem:e2e;DB_CLOSE_DELAY=-1 --tribia.admin.senha=<senha>
  *            --tribia.llm.url=http://127.0.0.1:18995/v1beta --tribia.llm.modelos=dubl --tribia.llm.api-key=chave-falsa-e2e
  *            --tribia.jev.modo=HTTP --tribia.jev.url=http://127.0.0.1:18995 --tribia.jev.api-key=chave-falsa-jev-e2e

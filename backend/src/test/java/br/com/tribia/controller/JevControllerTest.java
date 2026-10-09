@@ -64,5 +64,15 @@ class JevControllerTest {
         mvc.perform(get("/api/admin/jev/status").with(comoEmpresa)).andExpect(status().isForbidden());
         mvc.perform(post("/api/admin/jev/teste").param("confirmarCusto", "true").with(comoEmpresa).with(csrf()))
                 .andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/tabelas/ncm").with(comoEmpresa)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void situacaoDaTabelaNcmParaAdmin() throws Exception {
+        mvc.perform(get("/api/admin/tabelas/ncm"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ato").value(containsString("Gecex")))
+                .andExpect(jsonPath("$.limiteDias").value(120))
+                .andExpect(jsonPath("$.comoAtualizar").value(containsString("atualizar_ncm.mjs")));
     }
 }

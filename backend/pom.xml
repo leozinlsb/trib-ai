@@ -73,6 +73,20 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <!-- Testes herméticos: nunca leem o .env nem o application-local.properties da máquina (chaves, senha,
+                 modelo da JEV, banco). Os caminhos importados pelo application.properties apontam para arquivos
+                 que não existem durante os testes. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <tribia.arquivo-local>target/testes-sem-config-local.properties</tribia.arquivo-local>
+                        <tribia.arquivo-env-raiz>target/testes-sem-env</tribia.arquivo-env-raiz>
+                        <tribia.arquivo-env-backend>target/testes-sem-env</tribia.arquivo-env-backend>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

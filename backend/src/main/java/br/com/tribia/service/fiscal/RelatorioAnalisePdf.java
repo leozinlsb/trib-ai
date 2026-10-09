@@ -18,6 +18,7 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.springframework.stereotype.Component;
 
@@ -53,6 +54,15 @@ public class RelatorioAnalisePdf {
             + "definitiva nem decisão da Receita Federal: confira com profissional habilitado antes de usar.";
 
     private static final Color VERDE = new Color(0x0F, 0x76, 0x6E);
+    private static final Color MARINHO = new Color(0x12, 0x30, 0x6A);
+
+    private static byte[] logotipo() {
+        try (var in = RelatorioAnalisePdf.class.getResourceAsStream("/brand/logo-escuro.png")) {
+            return in == null ? null : in.readAllBytes();
+        } catch (IOException e) {
+            return null;
+        }
+    }
     private static final Color CINZA = new Color(0x55, 0x5F, 0x6D);
     private static final Color CLARO = new Color(0xE6, 0xF2, 0xF1);
     private static final Color ALERTA = new Color(0xB4, 0x53, 0x09);
@@ -290,13 +300,23 @@ public class RelatorioAnalisePdf {
         }
 
         void faixaTitulo(String titulo, String sub) throws IOException {
-            float h = 62;
-            cs.setNonStrokingColor(VERDE);
+            float h = 72;
+            cs.setNonStrokingColor(MARINHO);
             cs.addRect(0, A4.getHeight() - h, A4.getWidth(), h);
             cs.fill();
-            texto("TribIA", negrito, 10, Color.WHITE, MARGEM, A4.getHeight() - 20);
-            texto(titulo, negrito, 16, Color.WHITE, MARGEM, A4.getHeight() - 40);
-            texto(sub, normal, 10, Color.WHITE, MARGEM, A4.getHeight() - 55);
+            // logotipo oficial (branco, fundo transparente) à direita; se o recurso faltar, cai no texto
+            byte[] png = logotipo();
+            if (png != null) {
+                PDImageXObject img = PDImageXObject.createFromByteArray(doc, png, "logo");
+                float alturaLogo = 34;
+                float larguraLogo = alturaLogo * img.getWidth() / img.getHeight();
+                cs.drawImage(img, A4.getWidth() - MARGEM - larguraLogo, A4.getHeight() - h + (h - alturaLogo) / 2,
+                        larguraLogo, alturaLogo);
+            } else {
+                texto("TribIA", negrito, 14, Color.WHITE, A4.getWidth() - MARGEM - 50, A4.getHeight() - 40);
+            }
+            texto(titulo, negrito, 16, Color.WHITE, MARGEM, A4.getHeight() - 33);
+            texto(sub, normal, 10, Color.WHITE, MARGEM, A4.getHeight() - 52);
             y = A4.getHeight() - h - 18;
         }
 

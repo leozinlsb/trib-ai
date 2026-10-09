@@ -125,8 +125,12 @@ tribia.jev.modelo=jev-1.13.0
 - `AnaliseFiscalControllerTest`: `ComJev` (bean de teste), `ComJevSimulada` e `ComJevHttpSemChave`.
 - Os testes forçam `tribia.jev.modo=DESLIGADO` e chave vazia (`src/test/resources/config/application.properties`).
 
-**Validação externa pendente:** uma chamada real autorizada, com uma mercadoria sintética, para confirmar que a API
-aceita o formato e devolve `answers` como documentado.
+**Validação externa — FEITA em 08/10/2026 (noite), com autorização da responsável:** `JevContratoTest`, uma única
+execução: listagem de modelos + **1** chamada ao `/v1/systemone` com o sabonete sintético. Resultado: API real aceitou
+o formato e devolveu `answers` como documentado; modelo `jev-1.13.0`; 327 ms; **568 tokens de entrada / 56 de saída**
+(≈ US$ 0,00002 pela tabela de US$ 0,042 por milhão de tokens de entrada); sabonete × NCM 3401.11.90 = **0,83**,
+sabonete × NCM 8517.13.00 (celular) = **0,01**. Teste aprovado (1/1). Chave lida do `.env` no processo, nunca exibida.
+Isso valida o contrato técnico, não a correção fiscal de classificações.
 
 ## 6. Decisões que continuam com o responsável
 

@@ -158,23 +158,35 @@ public class JevHttp implements AvaliadorJev {
     }
 
     /** O "estado" avaliado: os dados que a pessoa informou e as características que a análise extraiu. */
+    /** Teto por campo do "state": a JEV cobra por token e o texto é dado não confiável. */
+    static final int MAX_CAMPO_ESTADO = 2000;
+
+    /**
+     * O "state" avaliado. Na API do Jev ele é separado das perguntas (que o TribIA escreve), mas o texto vem do
+     * usuário: passa pela mesma neutralização usada no Gemini (sem marcação nem controles) e tem tamanho limitado.
+     */
     static Map<String, Object> estado(MercadoriaParaJev m) {
         Map<String, Object> s = new LinkedHashMap<>();
-        s.put("mercadoria", m.nome());
-        s.put("descricao", m.descricao());
+        s.put("mercadoria", dado(m.nome()));
+        s.put("descricao", dado(m.descricao()));
         if (m.composicao() != null) {
-            s.put("composicao", m.composicao());
+            s.put("composicao", dado(m.composicao()));
         }
         if (m.finalidade() != null) {
-            s.put("finalidade", m.finalidade());
+            s.put("finalidade", dado(m.finalidade()));
         }
         if (m.caracteristicasInformadas() != null) {
-            s.put("caracteristicas_informadas", m.caracteristicasInformadas());
+            s.put("caracteristicas_informadas", dado(m.caracteristicasInformadas()));
         }
         if (m.caracteristicasInterpretadas() != null && !m.caracteristicasInterpretadas().isEmpty()) {
-            s.put("caracteristicas_interpretadas", m.caracteristicasInterpretadas());
+            s.put("caracteristicas_interpretadas", m.caracteristicasInterpretadas().stream().limit(20).map(JevHttp::dado).toList());
         }
         return s;
+    }
+
+    static String dado(String texto) {
+        String t = PesquisaNcmIa.neutralizar(texto).strip();
+        return t.length() > MAX_CAMPO_ESTADO ? t.substring(0, MAX_CAMPO_ESTADO) : t;
     }
 
     static Map<String, Object> perguntas(List<Candidata> candidatas) {
@@ -183,7 +195,9 @@ public class JevHttp implements AvaliadorJev {
             q.put(chave(c.ncm()), Map.of(
                     "type", "noul",
                     "instructions", "A mercadoria descrita é compatível com o código NCM " + formatar(c.ncm())
-                            + (c.descricao() == null || c.descricao().isBlank() ? "" : " (" + c.descricao() + ")")
+                            // a descrição vem da análise da IA: entra limpa e curta (as instruções são nossas)
+                            + (c.descricao() == null || c.descricao().isBlank() ? ""
+                            : " (" + PesquisaNcmIa.limitar(PesquisaNcmIa.neutralizar(c.descricao())) + ")")
                             + ", considerando sua natureza, composição e finalidade?",
                     "criteria", Map.of(
                             "true", "A descrição da mercadoria corresponde ao texto e ao alcance do código.",

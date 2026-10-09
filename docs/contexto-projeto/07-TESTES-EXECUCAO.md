@@ -1,5 +1,19 @@
 # 07 — Testes e execução (Windows / PowerShell)
 
+## Jeito mais simples (08/10/2026, noite)
+
+```powershell
+# na raiz do repositório; encontra o JDK 21 em %USERPROFILE%\.jdks\ sozinho
+powershell -ExecutionPolicy Bypass -File .\iniciar-backend.ps1 -SkipRun                 # confere JDK e .env (sem valores)
+powershell -ExecutionPolicy Bypass -File .\iniciar-backend.ps1 -Testes                  # suíte completa: 317 / 0 falhas / 8 ignorados
+powershell -ExecutionPolicy Bypass -File .\iniciar-backend.ps1 -Testes -Filtro "JevHttpTest,AnaliseFiscalControllerTest*"
+powershell -ExecutionPolicy Bypass -File .\iniciar-backend.ps1                          # sobe a API com o .env (atenção se a JEV estiver em HTTP)
+```
+
+Os testes são herméticos: nunca leem o `.env` nem o `application-local.properties` (o `pom.xml` aponta os imports para
+arquivos inexistentes). Para um backend de E2E sem o `.env`, passe `--tribia.arquivo-local=x --tribia.arquivo-env-raiz=x
+--tribia.arquivo-env-backend=x` (o antigo `--spring.config.import=` **não** isola).
+
 ## Validação mais recente — Inteligência Fiscal (08/10/2026, tarde)
 
 Backend: **290 testes, 0 falhas, 0 erros, 7 ignorados**, em ordem normal e inversa
@@ -11,7 +25,7 @@ E2E novo (indicadores, pagamento, recálculo, PDF sem resultado, isolamento), co
 ```powershell
 # backend (JDK 21): banco em memória, sem .env, sem chave, JEV desligada
 $env:GEMINI_API_KEY = ''; $env:JEV_API_KEY = ''
-.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=demo "-Dspring-boot.run.arguments=--server.address=127.0.0.1 --server.port=8190 --spring.config.import= --spring.datasource.url=jdbc:h2:mem:e2e;DB_CLOSE_DELAY=-1 --tribia.admin.senha=senha-apenas-e2e-2026 --tribia.llm.api-key= --tribia.jev.modo=DESLIGADO --tribia.calculo.modo=SIMPLIFICADA"
+.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=demo "-Dspring-boot.run.arguments=--server.address=127.0.0.1 --server.port=8190 --tribia.arquivo-local=x --tribia.arquivo-env-raiz=x --tribia.arquivo-env-backend=x --spring.datasource.url=jdbc:h2:mem:e2e;DB_CLOSE_DELAY=-1 --tribia.admin.senha=senha-apenas-e2e-2026 --tribia.llm.api-key= --tribia.jev.modo=DESLIGADO --tribia.calculo.modo=SIMPLIFICADA"
 
 # front (pasta frontend)
 npm run build
@@ -133,8 +147,8 @@ Comandos efetivamente usados (backend; JDK 21 disponível via JAVA_HOME):
 
 ```powershell
 $env:GEMINI_API_KEY = ''
-.\mvnw.cmd -o test '-Dtest=AcessoEmpresasTest,IsolamentoEmpresasTest,SeedRunnerTest,SeedRunnerAutorizacaoTest,ClienteControllerTest' '-Dspring.config.import=' '-Dtribia.admin.senha=senha-apenas-dos-testes'
-.\mvnw.cmd -o test '-Dspring.config.import=' '-Dtribia.admin.senha=senha-apenas-dos-testes'
+.\mvnw.cmd -o test '-Dtest=AcessoEmpresasTest,IsolamentoEmpresasTest,SeedRunnerTest,SeedRunnerAutorizacaoTest,ClienteControllerTest' '-Dtribia.admin.senha=senha-apenas-dos-testes'
+.\mvnw.cmd -o test '-Dtribia.admin.senha=senha-apenas-dos-testes'
 ```
 
 Senha acima é exclusivamente sintética para os testes, nunca credencial local. Importação local desabilitada,

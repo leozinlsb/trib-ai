@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { RefreshCw } from 'lucide-react'
 import { CardConta, CardPreferencias } from '../../components/Preferencias'
 import { CardJev } from '../../components/fiscal/CardJev'
+import { CardTabelaNcm } from '../../components/fiscal/CardTabelaNcm'
 import { INTELIGENCIA_FISCAL_ATIVA } from '../../lib/rotas'
 import { Badge, Card } from '../../components/ui'
 import { useAtividades, useDados, useToast } from '../../state/contexts'
@@ -58,6 +59,11 @@ export function Configuracoes() {
         <CardPreferencias />
         {INTELIGENCIA_FISCAL_ATIVA && <CardJev />}
       </div>
+      {INTELIGENCIA_FISCAL_ATIVA && (
+        <div className="grid-2" style={{ marginTop: 'var(--gap)' }}>
+          <CardTabelaNcm />
+        </div>
+      )}
     </>
   )
 }
