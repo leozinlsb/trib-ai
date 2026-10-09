@@ -94,8 +94,68 @@ function useRevelar() {
   return raiz
 }
 
+/** Duração da rolagem entre seções: cresce com a distância, sem ficar lenta nem brusca. */
+const duracaoRolagem = (distancia: number) => Math.min(1100, Math.max(550, Math.abs(distancia) * 0.55))
+const suavizar = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2) // easeInOutCubic
+
+/**
+ * Cliques em links de seção (#funcionalidades etc.) rolam com animação suave. Com "reduzir movimento" ativo no
+ * sistema, a página vai direto à seção. Rolar com o mouse ou o dedo durante a animação a interrompe.
+ */
+function useRolagemSuave(raiz: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const el = raiz.current
+    if (!el) return
+    let quadro = 0
+    const limpar = () => {
+      cancelAnimationFrame(quadro)
+      quadro = 0
+    }
+    const aoClicar = (e: MouseEvent) => {
+      const link = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#"]')
+      if (!link || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+      const alvo = document.getElementById(link.getAttribute('href')!.slice(1))
+      if (!alvo) return
+      e.preventDefault()
+      limpar()
+      history.replaceState(null, '', link.getAttribute('href'))
+      const margem = parseFloat(getComputedStyle(alvo).scrollMarginTop) || 0
+      const destino = Math.max(0, alvo.getBoundingClientRect().top + window.scrollY - margem)
+      const origem = window.scrollY
+      const distancia = destino - origem
+      if (Math.abs(distancia) < 2) return
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        window.scrollTo(0, destino)
+        return
+      }
+      const duracao = duracaoRolagem(distancia)
+      const inicio = performance.now()
+      const passo = (agora: number) => {
+        const t = Math.min(1, (agora - inicio) / duracao)
+        window.scrollTo(0, origem + distancia * suavizar(t))
+        if (t < 1) quadro = requestAnimationFrame(passo)
+        else limpar()
+      }
+      quadro = requestAnimationFrame(passo)
+    }
+    const interromper = () => quadro && limpar()
+    el.addEventListener('click', aoClicar)
+    window.addEventListener('wheel', interromper, { passive: true })
+    window.addEventListener('touchmove', interromper, { passive: true })
+    window.addEventListener('keydown', interromper)
+    return () => {
+      limpar()
+      el.removeEventListener('click', aoClicar)
+      window.removeEventListener('wheel', interromper)
+      window.removeEventListener('touchmove', interromper)
+      window.removeEventListener('keydown', interromper)
+    }
+  }, [raiz])
+}
+
 export function Landing() {
   const raiz = useRevelar()
+  useRolagemSuave(raiz)
   const [rolado, setRolado] = useState(false)
   const [menu, setMenu] = useState(false)
 
@@ -154,10 +214,6 @@ export function Landing() {
         <section id="inicio" className="lp-hero">
           <div className="lp-container lp-hero__grid">
             <div className="lp-revela">
-              <span className="lp-selo">
-                <span className="lp-selo__ponto" aria-hidden="true" />
-                Reforma tributária · NF-e
-              </span>
               <h1>
                 Transforme documentos em <em>inteligência.</em>
               </h1>

@@ -8,7 +8,7 @@
  * Enquanto as rotas não existirem, o servidor responde 404 de "rota inexistente" e as telas mostram o estado
  * "serviço indisponível" (ver {@link servicoIndisponivel}). Nada aqui simula resultado.
  */
-import { ApiError, request } from './client'
+import { ApiError, json, request } from './client'
 
 /* ---------- Tipos ---------- */
 
@@ -80,6 +80,9 @@ export interface IndicadoresFiscais {
   concluidas: number
   emProcessamento: number
   aguardandoRevisao: number
+  /** encerradas com falha (IA indisponível, erro); ausente em backends antigos */
+  falhas?: number
+  informacoesInsuficientes?: number
 }
 
 /** Pontuação de compatibilidade (JEV), com a escala e o significado definidos pelo backend. */
@@ -149,6 +152,8 @@ export interface AnaliseDetalhe extends AnaliseResumo {
   /** motivo da falha ou das informações que faltam */
   mensagem?: string
   relatorio?: { disponivel: boolean; downloadUrl?: string }
+  /** decisões de pessoas sobre a sugestão, em ordem; o resultado automático continua como evidência */
+  revisoes?: RevisaoHumana[]
 }
 
 export interface FiltroAnalises {
@@ -196,6 +201,21 @@ export function detalharAnalise(id: number, signal?: AbortSignal) {
  * true quando a rota não existe no servidor (serviço ainda não implementado). O 404 de "rota inexistente"
  * do Spring não tem o título "Recurso não encontrado" usado pelos erros de negócio (empresa/análise inexistente).
  */
+/** Revisão humana registrada: ACEITA (manteve a sugestão) ou ALTERADA (escolheu outra NCM). */
+export interface RevisaoHumana {
+  decisao: 'ACEITA' | 'ALTERADA'
+  ncm: string
+  ncmSugerida?: string
+  observacao?: string
+  revisadaPor: string
+  revisadaEm: string
+}
+
+/** Registra a decisão de quem revisou (PUT /api/analises-fiscais/{id}/revisao). Devolve o detalhe atualizado. */
+export function revisarAnalise(id: number, dados: { ncm: string; observacao?: string }) {
+  return request<AnaliseDetalhe>(`/api/analises-fiscais/${id}/revisao`, json('PUT', dados))
+}
+
 export function servicoIndisponivel(e: unknown) {
   if (!(e instanceof ApiError)) return false
   if (e.status === 501 || e.status === 405) return true

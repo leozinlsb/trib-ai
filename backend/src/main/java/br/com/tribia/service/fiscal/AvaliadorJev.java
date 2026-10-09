@@ -22,6 +22,11 @@ public interface AvaliadorJev {
     /** false enquanto a JEV não estiver integrada (a análise registra a limitação). */
     boolean disponivel();
 
+    /** true só no modo de desenvolvimento ({@link JevSimulado}): a análise avisa que as pontuações são fictícias. */
+    default boolean simulado() {
+        return false;
+    }
+
     /**
      * @param mercadoria  dados informados pela pessoa e características interpretadas
      * @param candidatas  NCMs candidatas (8 dígitos) com a descrição usada na análise

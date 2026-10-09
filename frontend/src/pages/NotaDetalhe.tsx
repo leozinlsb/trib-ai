@@ -1,23 +1,27 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { Check, ChevronRight, Copy, LoaderCircle, Sparkles } from 'lucide-react'
+import { Check, ChevronRight, Copy, LoaderCircle, RefreshCw, Sparkles } from 'lucide-react'
 import { ApiError } from '../api/client'
-import { detalharNota } from '../api/tribia'
+import { calcularNota, confirmarPagamento, detalharNota } from '../api/tribia'
 import type { NotaDetalhe as Detalhe } from '../api/types'
-import { Aviso, Badge, Card, Carregando, ErroEstado, KpiCard, Vazio } from '../components/ui'
+import { Aviso, Badge, Card, Carregando, Confirmacao, ErroEstado, KpiCard, Vazio } from '../components/ui'
 import { BadgeClassificacao, BadgeTipo } from '../components/notas'
 import { CelulaClassificacao } from '../components/classificacao'
 import { itemClassificado } from '../lib/aggregate'
 import {
   capitalizar, fmtChave, fmtCnpj, fmtCompetencia, fmtData, fmtMoeda, fmtNumero, nomeCliente, REGIME_LABEL, tituloNota,
 } from '../lib/format'
-import { useAtividades, useDados } from '../state/contexts'
+import { useAtividades, useDados, useToast } from '../state/contexts'
 import { rotaEmpresa, rotaNota } from '../lib/rotas'
 
 export function NotaDetalhe() {
   const { id, empresaId } = useParams()
-  const { clientes, versaoFiscal } = useDados()
+  const { clientes, versaoFiscal, atualizarDetalhes, marcarAlteracaoFiscal } = useDados()
   const { processar, processando } = useAtividades()
+  const { mostrar } = useToast()
+  const [recalculando, setRecalculando] = useState(false)
+  const [alterandoPagamento, setAlterandoPagamento] = useState(false)
+  const [confirmarPagamentoAberto, setConfirmarPagamentoAberto] = useState(false)
   const [nota, setNota] = useState<Detalhe | null>(null)
   const [erro, setErro] = useState<{ msg: string; status: number } | null>(null)
   const [tentativa, setTentativa] = useState(0)
@@ -47,6 +51,42 @@ export function NotaDetalhe() {
       await processar([nota.id])
     } finally {
       setProcessandoNota(false)
+    }
+  }
+
+  /** Mensagem curta do resultado do cálculo: o primeiro aviso do servidor, se houver. */
+  const resumoCalculo = (avisos: string[]) => (avisos.length ? avisos[0] : undefined)
+
+  const recalcular = async () => {
+    if (!nota || recalculando) return
+    setRecalculando(true)
+    try {
+      const r = await calcularNota(nota.id)
+      await atualizarDetalhes([nota.id])
+      marcarAlteracaoFiscal()
+      mostrar({ tipo: 'sucesso', titulo: `Nota recalculada (${r.itensCalculados} itens)`, texto: resumoCalculo(r.avisos) })
+    } catch (e) {
+      mostrar({ tipo: 'erro', titulo: 'Não foi possível recalcular', texto: e instanceof Error ? e.message : undefined })
+    } finally {
+      setRecalculando(false)
+    }
+  }
+
+  // erros sobem para a Confirmacao, que os mostra no próprio modal
+  const alterarPagamento = async (confirmado: boolean) => {
+    if (!nota) return
+    setAlterandoPagamento(true)
+    try {
+      const r = await confirmarPagamento(nota.id, confirmado)
+      await atualizarDetalhes([nota.id])
+      marcarAlteracaoFiscal()
+      mostrar({
+        tipo: 'sucesso',
+        titulo: confirmado ? 'Pagamento confirmado' : 'Compra marcada como não paga',
+        texto: resumoCalculo(r.avisos.filter((a) => a.startsWith('Pagamento')).concat(r.avisos)),
+      })
+    } finally {
+      setAlterandoPagamento(false)
     }
   }
 
@@ -133,15 +173,25 @@ export function NotaDetalhe() {
             {capitalizar(nota.contraparteNome)} · emitida em {fmtData(nota.dataEmissao)}
           </p>
         </div>
-        {(pendentes > 0 || calculados.length < nota.itens.length) && (
+        {pendentes > 0 || calculados.length < nota.itens.length ? (
           <button
             className="btn btn--primary"
             onClick={processarNota}
-            disabled={ocupado}
+            disabled={ocupado || recalculando}
             title="Classifica os itens pendentes (XML, cache e IA) e calcula 2027"
           >
             {ocupado ? <LoaderCircle size={17} className="spin" /> : <Sparkles size={17} />}
             {ocupado ? 'Processando...' : 'Processar nota'}
+          </button>
+        ) : (
+          <button
+            className="btn btn--secondary"
+            onClick={recalcular}
+            disabled={ocupado || recalculando || alterandoPagamento}
+            title="Refaz o cálculo de 2027 com a classificação atual (ex.: depois de a calculadora oficial voltar)"
+          >
+            {recalculando ? <LoaderCircle size={17} className="spin" /> : <RefreshCw size={17} />}
+            {recalculando ? 'Recalculando...' : 'Recalcular 2027'}
           </button>
         )}
       </div>
@@ -164,7 +214,8 @@ export function NotaDetalhe() {
 
       {calculados.length > 0 && (
         <Aviso tipo="warn" style={{ marginBottom: 'var(--gap)' }}>
-          Valores de 2027 são simulação com alíquota estimada da CBS e dependem da classificação de cada item.
+          Valores de 2027 são projeção pendente de validação fiscal: alíquota da CBS estimada e base sem ICMS, PIS e
+          Cofins da nota (hipótese ainda não confirmada por especialista). Dependem da classificação de cada item.
           ICMS destacado nesta nota: {fmtMoeda(icms)} (não muda em 2027, fica fora do comparativo).
         </Aviso>
       )}
@@ -193,8 +244,46 @@ export function NotaDetalhe() {
               </dd>
             </div>
           )}
+          {nota.operacao === 'COMPRA' && nota.pagamentoConfirmado != null && (
+            <div>
+              <dt>Pagamento ao fornecedor</dt>
+              <dd style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                {nota.pagamentoConfirmado
+                  ? <Badge cor="green" sm>Confirmado</Badge>
+                  : <Badge cor="amber" sm title="Sem pagamento confirmado, a compra não gera crédito de 2027">Não confirmado</Badge>}
+                <button
+                  className="btn btn--ghost btn--sm"
+                  disabled={ocupado || alterandoPagamento}
+                  onClick={() => setConfirmarPagamentoAberto(true)}
+                >
+                  {nota.pagamentoConfirmado ? 'Marcar como não pago' : 'Confirmar pagamento'}
+                </button>
+              </dd>
+            </div>
+          )}
         </dl>
       </Card>
+
+      {confirmarPagamentoAberto && (
+        <Confirmacao
+          titulo={nota.pagamentoConfirmado ? 'Marcar a compra como não paga?' : 'Confirmar o pagamento da compra?'}
+          rotulo={nota.pagamentoConfirmado ? 'Marcar como não pago' : 'Confirmar pagamento'}
+          perigo={false}
+          onFechar={() => setConfirmarPagamentoAberto(false)}
+          onConfirmar={async () => {
+            await alterarPagamento(!nota.pagamentoConfirmado)
+            setConfirmarPagamentoAberto(false)
+          }}
+        >
+          <p>
+            Na reforma, o crédito de CBS/IBS da compra depende do pagamento ao fornecedor (LC 214/2025, art. 47).
+            {nota.pagamentoConfirmado
+              ? ' Marcada como não paga, esta compra deixa de gerar crédito de 2027 na simulação.'
+              : ' Com o pagamento confirmado, esta compra volta a gerar crédito de 2027 na simulação.'}
+          </p>
+          <p style={{ marginTop: 10 }}>A nota é recalculada em seguida. Você pode desfazer a qualquer momento.</p>
+        </Confirmacao>
+      )}
 
       <div style={{ height: 'var(--gap)' }} />
 

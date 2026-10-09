@@ -31,13 +31,19 @@ public interface AnaliseFiscalRepository extends JpaRepository<AnaliseFiscal, Lo
     @Query("select a.status, count(a) from AnaliseFiscal a where a.cliente.id = :clienteId group by a.status")
     List<Object[]> contarPorStatus(@Param("clienteId") Long clienteId);
 
-    /** Análises que estavam em andamento quando o servidor parou (o processamento roda em memória). */
-    @Modifying
+    /**
+     * Reserva a análise para processamento: só passa de AGUARDANDO para INTERPRETANDO uma vez (1 = reservada,
+     * 0 = outra execução já pegou ou ela já terminou). Evita processamento duplicado.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
-            update AnaliseFiscal a set a.status = br.com.tribia.model.StatusAnalise.FALHA, a.mensagem = :mensagem,
-                   a.atualizadaEm = :agora
-            where a.status in :emAndamento
+            update AnaliseFiscal a set a.status = br.com.tribia.model.StatusAnalise.INTERPRETANDO,
+                   a.tentativas = coalesce(a.tentativas, 0) + 1, a.atualizadaEm = :agora
+            where a.id = :id and a.status = br.com.tribia.model.StatusAnalise.AGUARDANDO
             """)
-    int interromperEmAndamento(@Param("emAndamento") Collection<StatusAnalise> emAndamento,
-                               @Param("mensagem") String mensagem, @Param("agora") Instant agora);
+    int reservar(@Param("id") Long id, @Param("agora") Instant agora);
+
+    /** Análises que estavam em andamento quando o servidor parou, para retomar ou encerrar na inicialização. */
+    @Query("select a.id from AnaliseFiscal a where a.status in :emAndamento order by a.criadaEm, a.id")
+    List<Long> idsEmAndamento(@Param("emAndamento") Collection<StatusAnalise> emAndamento);
 }

@@ -27,12 +27,21 @@ Sem commit, sem mudanças fiscais, sem tocar dados reais. Abertos:
 |---|-----|-----------|-------------------|
 | B3-HISTORICO | Classificações eventualmente contaminadas pelo cache antigo não foram remediadas. | Defeito anterior reproduzido em dados sintéticos; ocorrência real não investigada. | Avaliar histórico somente em ambiente autorizado, aprovar remediação auditável; não inferir dono/apagar automaticamente. Etapa 1. |
 | A1 | Classificação do XML é aceita sem conferir a lista de NCMs do benefício. | `ClassificacaoService.doXml` grava origem XML, confiança 1, aceita. | Motor de alertas sinaliza no front; avaliar no backend marcar como não aceita quando `exigeNcmNaLista` e o NCM não estiver na lista (regra fiscal: validar antes). Etapa 3. |
-| I-FISCAL | Backend da Inteligência Fiscal implementado em 08/10/2026 (4 endpoints, Gemini sugere NCM, telas ligadas por padrão). Restam: vigência/existência da NCM não verificadas (sem base da TIPI no projeto); só anexos .txt são lidos pela IA (PDF/imagem/Office não); relatório em PDF não gerado; JEV AI depende do colaborador (`AvaliadorJev`, guia em `docs/JEV-AI-INTEGRACAO.md`); processamento em memória (reinício marca as em andamento como FALHA). | `service/fiscal/*`, `AnaliseFiscalControllerTest`, `frontend/scripts/inteligencia-fiscal-e2e.mjs`. | Base da TIPI para validar vigência; leitura de PDF/imagem pela IA; JEV; relatório PDF. Etapa 3. |
+| I-FISCAL | Atualizado em 08/10/2026 (tarde, ver `docs/contexto-projeto/ENTREGA-INTELIGENCIA-FISCAL-2026-10-08.md`). **Resolvidos:** existência/vigência da NCM pela NCM vigente do Siscomex (Res. Gecex 926/2026); relatório PDF; leitura de PDF/DOCX/XLSX; fila persistente com retomada após reinício; adaptador da JEV. **Restam:** JEV não validada na API real (JEV-CONFIRMAR); imagens e .doc/.xls antigos não lidos (sem OCR); sem histórico da NCM antes de 2022 (NCM-HIST). | `service/fiscal/*`, `service/tabelas/TabelaNcmVigente`, testes `AnaliseFiscalControllerTest` (20), `JevHttpTest`, `LeitorAnexosTest`, `TabelaNcmVigenteTest`, E2E `etapa5-e2e.mjs`. | Ver JEV-CONFIRMAR e NCM-HIST. Etapa 3. |
+| JEV-CONFIRMAR | **Contrato real validado em 08/10 (noite)**, com autorização: `JevContratoTest` 1/1, modelo `jev-1.13.0`, 568/56 tokens, sabonete × 3401.11.90 = 0,83 e × 8517.13.00 = 0,01. Falta só confirmar que a "JEV AI" do projeto é esse produto (Jev da TypeSafe) e calibrar os limites 0,50/0,20 com análises reais. | `docs/JEV-AI-INTEGRACAO.md` §5. | Confirmação da equipe; calibração. |
+| ENV-JDK | Resolvido em 08/10 (noite): não havia JDK instalado; o único estava numa pasta temporária de sessão. JDK em `%USERPROFILE%\.jdks\temurin-21.0.12.1`, detectado pelo `iniciar-backend.ps1`. | `iniciar-backend.ps1 -Testes` → 317 / 0 falhas. | Instalar um JDK 21 oficial no sistema quando possível (`winget install EclipseAdoptium.Temurin.21.JDK`). |
+| TESTES-ENV | Resolvido em 08/10 (noite): os testes liam o `.env` da raiz. Agora herméticos (surefire aponta os imports para arquivos inexistentes). | `pom.xml` (surefire), `application.properties` (`tribia.arquivo-*`). | Não usar `-Dspring.config.import=` para isolar: não funciona. |
+| ENV-JEV-HTTP | O `.env` local ativa a JEV real (`TRIBIA_JEV_MODO=HTTP`, chave definida) e usa `jev-latest` (alias que muda). Toda análise local passa a ser cobrada. | `iniciar-backend.ps1 -SkipRun` mostra o aviso. | Decisão da responsável: manter HTTP só quando quiser gastar créditos; preferir `jev-1.13.0` fixo. |
+| PROMPT-INJ | Mitigado em 08/10 (JEV incluída à noite): delimitador aleatório, neutralização de marcação, prompt reforçado, saída limitada, trechos suspeitos → observação + revisão. Não há garantia absoluta contra injeção semântica num modelo de linguagem. | `PesquisaNcmIaSegurancaTest`, `AnaliseFiscalControllerTest.anexoComInstrucaoEmbutida...`. | Manter revisão humana obrigatória; acompanhar casos reais. |
+| NCM-HIST | A tabela pública traz só códigos vigentes: código ausente pode ser extinto ou inexistente; vigência em datas anteriores à NCM 2022 não é avaliada. A tabela embarcada envelhece (alerta após 120 dias). | `TabelaNcmVigente`, `ncm-vigente.json`. | Rodar `node ferramentas/atualizar_ncm.mjs` periodicamente; se precisar de histórico, incorporar os atos Gecex anteriores. |
+| S5-PROJECAO | Auditoria das 15 divergências (08/10/2026): aritmética confere com a regra (54,07 e 50,50 recalculados à mão a partir do XML). Exclusão do ICMS tem base legal (LC 214, art. 12, §2º, V). Exclusão do PIS/Cofins de 2026 na base de 2027 é hipótese de projeção (em 2027 eles não existem na operação). | `ENTREGA-INTELIGENCIA-FISCAL-2026-10-08.md` §I. | Pergunta ao especialista: a projeção parte do preço com ou sem PIS/Cofins? Depois, tornar a escolha explícita em configuração. |
 | F-TABELA | Exceções NCM em linhas repetidas podem reintroduzir associação excluída. | Arroz/feijão retornam múltiplos códigos; fallback agora se abstém. | Conferir extração/semântica com base oficial, Etapa 3; não alterar tabelas sem validação. |
 
 ## Testes do backend (08/10/2026)
 
-**Atual (após Inteligência Fiscal, 08/10/2026): 246 testes, 0 falhas, 0 erros, 7 ignorados**, nas duas ordens
+**Atual (após NCM, JEV, PDF, anexos e fila persistente, 08/10/2026 à tarde): 290 testes, 0 falhas, 0 erros,
+7 ignorados**, nas duas ordens; front build/lint/`npm test` verdes; E2E `etapa5-e2e.mjs` 7/7 e `etapa4-e2e.mjs` 11/11.
+Anterior (após Inteligência Fiscal): 246 testes, 0 falhas, 0 erros, 7 ignorados, nas duas ordens
 (`-Dsurefire.runOrder=reversealphabetical`), sem a calculadora no ar (3 contratos RTC + 2 Gemini reais +
 2 geradores opt-in ignorados). Front: build, lint e `npm test` (8) verdes. Histórico abaixo.
 
@@ -119,3 +128,18 @@ restantes era de autenticação (evidências históricas); a execução P0.1 nã
 | O1 | Resolvido pelo responsável em 08/10/2026: chave antiga revogada; a nova fica só no `.env` da raiz (fora do Git), lido pelo backend. Testes forçam a chave vazia. |
 | O2 | O `nfe_teste_hackathon.xml` original nunca foi recebido: os testes usam uma reconstrução a partir da tabela do PDF (inclusive o NCM extinto 34022000 do detergente). |
 | O3 | O pacote da calculadora baixado pelo portal veio truncado (`calculadora.tar.gz`); usamos a distribuição oficial `jar` via `ferramentas/atualizar_calculadora.py`. |
+
+## API pública v1 (09/10/2026)
+
+Implementada e testada (35 testes novos; suíte 353 / 0 falhas). Detalhes:
+[`docs/contexto-projeto/API-PUBLICA/10-PENDENCIAS-E-EVOLUCAO.md`](docs/contexto-projeto/API-PUBLICA/10-PENDENCIAS-E-EVOLUCAO.md).
+
+| # | Pendência |
+|---|-----------|
+| API-1 | Validar uma análise pela API pública com o Gemini real (não executado: custo, sem autorização). |
+| API-2 | Decidir se a API pública fica ligada no profile `prod` e com quais limites; emitir chaves só para integradores reais. |
+| API-3 | Limite por minuto e falhas por IP ficam em memória: com várias instâncias, usar contador compartilhado. |
+| API-4 | Tabelas `chave_api`/`solicitacao_api` criadas por `ddl-auto=update` (padrão do projeto); migrações versionadas antes de produção. |
+| API-5 | Sem tela de gestão de chaves (só API/script de ADMIN); o front não fazia parte do escopo. |
+| API-6 | Idempotency-Key sem expiração; definir retenção se o volume crescer. |
+| API-7 | Termos de uso/LGPD/responsabilidade do integrador antes de oferta comercial. |

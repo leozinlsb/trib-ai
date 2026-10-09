@@ -224,6 +224,17 @@ export interface CalculoNota {
   comparativo: Comparativo | null
 }
 
+/** Resultado de POST /api/clientes/{id}/calcular (recalcula todas as notas da empresa). */
+export interface CalculoEmpresa {
+  clienteId: number
+  aliquotaCbs: number | null
+  notas: number
+  itensCalculados: number
+  itensPendentes: number
+  avisos: string[]
+  comparativo: Comparativo | null
+}
+
 /** Resultado de POST /api/notas/{id}/classificar (já com o recálculo da nota). */
 export interface ClassificacaoNota {
   notaId: number
@@ -354,6 +365,8 @@ export interface NotaDetalhe {
   contraparteNome: string | null
   valorProdutos: number | null
   valorTotal: number
+  /** compra paga ao fornecedor: sem pagamento confirmado, a compra não gera crédito de 2027 (LC 214, art. 47) */
+  pagamentoConfirmado?: boolean
   itens: Item[]
 }
 

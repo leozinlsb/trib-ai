@@ -1,6 +1,48 @@
 # 07 — Testes e execução (Windows / PowerShell)
 
-## Validação mais recente — execução autônoma da Etapa 1
+## Jeito mais simples (08/10/2026, noite)
+
+```powershell
+# na raiz do repositório; encontra o JDK 21 em %USERPROFILE%\.jdks\ sozinho
+powershell -ExecutionPolicy Bypass -File .\iniciar-backend.ps1 -SkipRun                 # confere JDK e .env (sem valores)
+powershell -ExecutionPolicy Bypass -File .\iniciar-backend.ps1 -Testes                  # suíte completa: 317 / 0 falhas / 8 ignorados
+powershell -ExecutionPolicy Bypass -File .\iniciar-backend.ps1 -Testes -Filtro "JevHttpTest,AnaliseFiscalControllerTest*"
+powershell -ExecutionPolicy Bypass -File .\iniciar-backend.ps1                          # sobe a API com o .env (atenção se a JEV estiver em HTTP)
+```
+
+Os testes são herméticos: nunca leem o `.env` nem o `application-local.properties` (o `pom.xml` aponta os imports para
+arquivos inexistentes). Para um backend de E2E sem o `.env`, passe `--tribia.arquivo-local=x --tribia.arquivo-env-raiz=x
+--tribia.arquivo-env-backend=x` (o antigo `--spring.config.import=` **não** isola).
+
+## Validação mais recente — Inteligência Fiscal (08/10/2026, tarde)
+
+Backend: **290 testes, 0 falhas, 0 erros, 7 ignorados**, em ordem normal e inversa
+(`.\mvnw.cmd test "-Dsurefire.runOrder=reversealphabetical"`). Front: `npm run build`, `npm run lint` e `npm test` verdes.
+
+E2E novo (indicadores, pagamento, recálculo, PDF sem resultado, isolamento), contra API isolada **sem o .env**
+(a chave real do Gemini não pode ser carregada) e sem IA:
+
+```powershell
+# backend (JDK 21): banco em memória, sem .env, sem chave, JEV desligada
+$env:GEMINI_API_KEY = ''; $env:JEV_API_KEY = ''
+.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=demo "-Dspring-boot.run.arguments=--server.address=127.0.0.1 --server.port=8190 --tribia.arquivo-local=x --tribia.arquivo-env-raiz=x --tribia.arquivo-env-backend=x --spring.datasource.url=jdbc:h2:mem:e2e;DB_CLOSE_DELAY=-1 --tribia.admin.senha=senha-apenas-e2e-2026 --tribia.llm.api-key= --tribia.jev.modo=DESLIGADO --tribia.calculo.modo=SIMPLIFICADA"
+
+# front (pasta frontend)
+npm run build
+$env:TRIBIA_BACKEND_URL = 'http://127.0.0.1:8190'; npx vite preview --port 15173 --host 127.0.0.1
+
+# teste (pasta frontend; backend recém-iniciado: o roteiro parte do estado vazio)
+$env:TRIBIA_E2E_ISOLADO = '1'; $env:TRIBIA_E2E_SENHA = 'senha-apenas-e2e-2026'
+$env:TRIBIA_PLAYWRIGHT_MODULE = '<pasta>\node_modules\playwright'
+node scripts/etapa5-e2e.mjs     # 7/7 em 08/10/2026
+node scripts/etapa4-e2e.mjs     # regressão 11/11
+```
+
+Atualizar a tabela NCM oficial: na pasta backend, `node ferramentas/atualizar_ncm.mjs` (rede; API pública, sem
+autenticação).
+Detalhes e auditoria S5: [ENTREGA-INTELIGENCIA-FISCAL-2026-10-08.md](ENTREGA-INTELIGENCIA-FISCAL-2026-10-08.md).
+
+## Registro anterior — execução autônoma da Etapa 1
 
 **120 testes locais direcionados aprovados** (104 + 16 não sobrepostos), 3 contratos RTC
 offline reais e 10 fluxos E2E Chrome aprovados, zero pageerrors. **Suíte final: 220 testes,
@@ -105,8 +147,8 @@ Comandos efetivamente usados (backend; JDK 21 disponível via JAVA_HOME):
 
 ```powershell
 $env:GEMINI_API_KEY = ''
-.\mvnw.cmd -o test '-Dtest=AcessoEmpresasTest,IsolamentoEmpresasTest,SeedRunnerTest,SeedRunnerAutorizacaoTest,ClienteControllerTest' '-Dspring.config.import=' '-Dtribia.admin.senha=senha-apenas-dos-testes'
-.\mvnw.cmd -o test '-Dspring.config.import=' '-Dtribia.admin.senha=senha-apenas-dos-testes'
+.\mvnw.cmd -o test '-Dtest=AcessoEmpresasTest,IsolamentoEmpresasTest,SeedRunnerTest,SeedRunnerAutorizacaoTest,ClienteControllerTest' '-Dtribia.admin.senha=senha-apenas-dos-testes'
+.\mvnw.cmd -o test '-Dtribia.admin.senha=senha-apenas-dos-testes'
 ```
 
 Senha acima é exclusivamente sintética para os testes, nunca credencial local. Importação local desabilitada,

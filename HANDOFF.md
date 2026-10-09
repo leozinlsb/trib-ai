@@ -6,7 +6,113 @@
 
 ---
 
-## Atualização mais recente — Etapa 2 concluída, Etapa 3 revisada, Etapa 4 iniciada (08/10/2026)
+## Atualização mais recente — API pública v1 para integradores (09/10/2026)
+
+Missão autônoma pedida pela responsável: a Inteligência Fiscal (sugestão de NCM) virou também uma **API REST pública**
+para ERPs e sistemas contábeis, no mesmo backend e com o **mesmo motor** (cada pedido cria uma `AnaliseFiscal`, que
+aparece na plataforma para revisão humana). Fora das quatro etapas do plano mestre; nenhuma etapa mudou.
+
+- Rotas: `POST /api/v1/analises` (202 + UUID), `GET /api/v1/analises/{id}`, `GET /api/v1/analises`, `GET /api/v1/uso`.
+  Autenticação `X-API-Key`; chave presa a **uma empresa**, guardada só como SHA-256 + prefixo; escopos
+  `ANALISES_CRIAR`/`ANALISES_LER`; revogação e validade. Emissão só por ADMIN em `/api/admin/chaves-api` (sessão + CSRF)
+  ou `node exemplos/api-publica/emitir-chave-local.mjs`.
+- Cadeia de segurança própria (`/api/v1/**`, stateless, sem CSRF/sessão); a sessão da plataforma não abre a API pública
+  e a chave não abre rotas internas. Idempotency-Key (mesmo corpo → mesma análise sem nova chamada à IA; outro corpo →
+  409), limite por minuto, cota diária e análises simultâneas por chave, erros ProblemDetail com `codigo` e `requestId`.
+- Swagger: documento "API pública v1 (integradores)" em `/swagger-ui.html` (`/v3/api-docs/publica-v1`).
+- Código: `backend/src/main/java/br/com/tribia/apipublica/`; alteração mínima em `AnaliseFiscalService` (extraídos
+  `registrarNova`/`despachar`/`detalheAutorizado`), `OpenApiConfig` (grupos) e `application.properties`
+  (`tribia.api-publica.*`). Frontend, regras fiscais, JEV e Gemini intocados.
+- Testes: 35 novos; suíte do backend 353 casos / 0 falhas / 8 ignorados, nas duas ordens (base 318). Ensaio ao vivo com
+  servidor real, banco em memória, sem IA: fluxo, idempotência, 409, 401/404 entre empresas, revogação; chave ausente do
+  log. **Não executado:** análise com Gemini real (custo).
+- Documentação completa: [`docs/contexto-projeto/API-PUBLICA/`](docs/contexto-projeto/API-PUBLICA/07-HANDOFF-FINAL.md)
+  (comece por `07-HANDOFF-FINAL.md`). Pendências API-1 a API-7 em `PENDENCIAS.md`.
+
+## Registro anterior — ajustes da landing (08/10/2026, noite)
+
+- Removido o selo "Reforma tributária · NF-e" do topo da landing (`pages/landing/Landing.tsx`; os estilos `.lp-selo*` ficaram sem uso).
+- Rolagem suave nos links de seção (Início, Funcionalidades, Como funciona, Sobre, botões e menu mobile): hook `useRolagemSuave`
+  (easeInOutCubic, 550–1100 ms conforme a distância). `prefers-reduced-motion` pula direto; rolar com mouse/dedo/teclado interrompe.
+- O "foco de leitura" (desfoque em gradiente no topo durante a rolagem) foi testado e **removido a pedido da responsável**: não ficou bom.
+  Não há mais nenhum desfoque na landing; a rolagem suave dos links de seção continua, sem desfoque.
+
+## Atualização mais recente — nova logo (08/10/2026, noite)
+
+Arte oficial: `frontend/images/logo.png` (2172×724, fundo azul-marinho). Dela foram geradas, com fundo transparente, as
+variantes em `frontend/public/brand/`: `logo-escuro.png` (branca, para fundos azuis), `logo-claro.png` (azul-marinho, para
+fundo branco), `icone-escuro.png` e `icone-claro.png` (só o ícone). Onde entrou:
+- `components/layout/Logo.tsx` agora é uma `<img>` (antes era SVG + texto): barra lateral, login (painel e mobile), cabeçalho e
+  rodapé da landing. A prop `tamanho` é a altura base (logo ≈ 1,3×).
+- Favicon: `public/favicon.png` (ícone) e `apple-touch-icon`; `favicon.svg` removido.
+- PDF da análise fiscal: faixa azul-marinho com a logo à direita (`backend/src/main/resources/brand/logo-escuro.png`).
+- Prévia da landing: `public/landing/painel.jpg` refeita a partir do sistema real (a antiga mostrava a logo velha e um menu
+  desatualizado); `rede.jpg` e `kpi-documentos.jpg` não tinham logo.
+- Se a arte mudar: substitua `images/logo.png` e regere as variantes (script de chroma-key por canvas, não versionado:
+  fundo → transparente; branco → azul-marinho `#12306a` na versão clara; verde preservado).
+- Testes: backend 317 / 0 falhas; front build/lint/test verdes.
+
+## Registro anterior — resposta à auditoria do Hermes (08/10/2026, noite)
+
+Detalhes: `docs/contexto-projeto/RESPOSTA-AUDITORIA-HERMES-2026-10-08.md`. Sem commit desta etapa.
+
+- **Ambiente:** não há JDK instalado; o único era temporário. JDK Temurin 21 copiado para
+  `%USERPROFILE%\.jdks\temurin-21.0.12.1`; `iniciar-backend.ps1` detecta sozinho e roda testes com `-Testes [-Filtro]`.
+- **Testes herméticos:** os testes liam o `.env` da raiz (vazamento de `tribia.jev.modelo`). Caminhos do
+  `spring.config.import` agora são configuráveis e o surefire aponta para arquivos inexistentes. `-Dspring.config.import=`
+  não isola (não usar).
+- **JEV:** `state` e perguntas com o mesmo tratamento anti-injeção do Gemini. Política de divergência já existia.
+- **Tabela NCM:** aviso na inicialização + `GET /api/admin/tabelas/ncm` + card em Configurações; sem atualização automática.
+- **Senha do admin** retirada do `.env.example` e do guia do Hermes (nunca chegou ao Git).
+- **Atenção:** o `.env` local está com `TRIBIA_JEV_MODO=HTTP` + chave: o backend com ele chama a JEV real em cada análise.
+- Testes: 317 / 0 falhas / 8 ignorados (pelo script); front build/lint verdes; E2E `etapa6` 7/7.
+- **JEV real validada (autorizada):** `JevContratoTest` 1/1 — modelo `jev-1.13.0`, 327 ms, 568/56 tokens, sabonete ×
+  3401.11.90 = 0,83 e × 8517.13.00 = 0,01. Uma única chamada cobrada. Contrato técnico confirmado (não é validação fiscal).
+
+## Registro anterior — entrega: JEV pronta para teste real, revisão humana e segurança (08/10/2026, noite)
+
+Auditoria do Hermes (P0 JEV, P0 S5, P1 prompt injection) tratada no que dependia de código. Sem commit.
+
+- **JEV:** contrato reconfirmado na documentação oficial (`/v1/systemone`, Bearer, `noul` = probabilidade de "sim").
+  Teste de conexão do administrador (`GET /api/admin/jev/status` sem custo; `POST /api/admin/jev/teste?confirmarCusto=true`
+  cobrado, mercadoria sintética) + card "JEV AI" em Configurações + `JevContratoTest` opt-in. **Nenhuma chamada real feita.**
+- **Gemini × JEV:** divergência (outra candidata ≥ 0,20 acima) ou nota < 0,50 → ALERTA, divergência com as duas notas e
+  revisão humana; concordância nunca confirma (`tribia.jev.limite-baixo`, `tribia.jev.margem-divergencia`).
+- **Revisão humana da análise:** `PUT /api/analises-fiscais/{id}/revisao` + card na tela; aceitar ou trocar a NCM (troca
+  exige justificativa; NCM precisa constar da NCM vigente); grava quem/quando, preserva o resultado automático; sai no PDF.
+- **Prompt injection:** delimitador aleatório por pedido, `<`/`>` e controles neutralizados, prompt reforçado, saída da
+  IA limitada (600 caracteres, 10 itens); trechos com cara de instrução viram observação e mandam para revisão.
+- **S5:** aviso "Projeção pendente de validação fiscal" nas respostas de cálculo, no detalhe da nota e no painel 2027.
+- **Testes:** backend 314 / 0 falhas / 8 ignorados (o 8º é o contrato real da JEV); front build/lint/test verdes;
+  E2E `etapa6-if-e2e.mjs` 7/7 (fluxo completo com dublês locais da IA), `etapa5` 7/7, `etapa4` 11/11.
+- Roteiro da demonstração atualizado (`docs/ROTEIRO_DEMO.md`, passos 11–17). Passo a passo da JEV: `docs/JEV-AI-INTEGRACAO.md` §0.
+
+## Registro anterior — Inteligência Fiscal: NCM, JEV, PDF, anexos e fila persistente (08/10/2026, tarde)
+
+Pedido da responsável a partir da auditoria do Hermes (fases A–K). Branch `dev/prataliyann-hue`, **sem commit**.
+Relatório completo: `docs/contexto-projeto/ENTREGA-INTELIGENCIA-FISCAL-2026-10-08.md`.
+
+- **NCM vigente oficial** (Portal Único Siscomex, Res. Gecex 926/2026) em `dados-oficiais/ncm-vigente.csv`, extraída por
+  `ferramentas/atualizar_ncm.mjs`. `ValidadorNcm` confere existência e vigência na data da análise (OK / ALERTA /
+  FALHA→revisão), usa o texto oficial pela hierarquia e cita fonte e versão. NCM não é TIPI.
+- **JEV AI:** adaptador `JevHttp` para a API pública do Jev (TypeSafe), desligado por padrão (`tribia.jev.modo`), chave
+  só em `JEV_API_KEY`. Testado com servidor simulado; **nenhuma chamada real**. Premissa a confirmar. Guia:
+  `docs/JEV-AI-INTEGRACAO.md`.
+- **PDF:** `GET /api/analises-fiscais/{id}/relatorio` (PDFBox 3.0.5, Apache 2.0); 409 sem resultado; 404 outra empresa.
+- **Anexos:** PDF, DOCX e XLSX lidos (`LeitorAnexos`); assinatura conferida (arquivo disfarçado → 400); zip-bomb e XXE
+  bloqueados; imagens e .doc/.xls antigos aceitos e não lidos, com motivo.
+- **Fila persistente:** texto dos anexos gravado na análise, reserva atômica (sem duplicidade), retomada após reinício
+  com até 2 tentativas (`RetomadaAnalisesFiscais`). Colunas novas anuláveis; nada destrutivo.
+- **Front:** card "Inteligência Fiscal" no início da empresa (dados reais, inclusive falhas); pagamento da compra com
+  confirmação; "Recalcular 2027" na nota; "Recalcular todas as notas" nas configurações; download do PDF respeita
+  `VITE_API_URL`.
+- **S5:** aritmética confere (recalculado à mão); exclusão do PIS/Cofins na projeção de 2027 é hipótese que precisa de
+  especialista (PENDENCIAS S5-PROJECAO). Nenhum valor fiscal alterado.
+- **Testes:** backend 290 / 0 falhas / 7 ignorados nas duas ordens; front build, lint e `npm test` verdes; E2E novo
+  `etapa5-e2e.mjs` 7/7 e regressão `etapa4-e2e.mjs` 11/11, sem chaves reais e sem `.env`.
+- Teste da equipe `CreditoCompraDivergenteTest` normaliza CRLF do XML (falhava no Windows com `autocrlf`).
+
+## Registro anterior — Etapa 2 concluída, Etapa 3 revisada, Etapa 4 iniciada (08/10/2026)
 
 Responsável aprovou o fechamento da Etapa 2 e o início da Etapa 4 (ver `PLANO_MESTRE_TRIBIA.md`).
 

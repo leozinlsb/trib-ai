@@ -9,13 +9,14 @@ import { CabecalhoEmpresa, EstadoEmpresa } from '../../components/empresas/Cabec
 import { EnviosRecentes } from '../../components/EnviosRecentes'
 import { CardRecentes, CardVolume } from '../../components/painel/Blocos'
 import { Comparativo2027 } from '../../components/painel/Comparativo2027'
+import { IndicadoresFiscais } from '../../components/painel/IndicadoresFiscais'
 import { ResumoAlertas } from '../../components/painel/ResumoAlertas'
 import { Card, Carregando, ErroEstado, KpiCard } from '../../components/ui'
 import { useCobertura } from '../../hooks/useCobertura'
 import { useEmpresa } from '../../hooks/useEmpresa'
 import { competencias, maisRecentes } from '../../lib/aggregate'
 import { capitalizar, fmtCompetencia, fmtData, fmtMoeda, fmtNumero } from '../../lib/format'
-import { rotaEmpresa } from '../../lib/rotas'
+import { INTELIGENCIA_FISCAL_ATIVA, rotaEmpresa } from '../../lib/rotas'
 import { useAtividades, useAuth, useDados } from '../../state/contexts'
 
 /** Dashboard individual da empresa: estado dos documentos, resultado das análises e o próximo passo. */
@@ -114,9 +115,12 @@ export function InicioEmpresa() {
 
       <div className="grid-charts">
         <CardVolume notas={notas} carregando={carregando} />
-        <Card titulo="Envios recentes" acoes={<Link to={rotaEmpresa(id, 'documentos')} style={{ fontSize: 13, fontWeight: 500 }}>Documentos</Link>}>
-          <EnviosRecentes clienteId={id} limite={4} compacto />
-        </Card>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gap)', minWidth: 0 }}>
+          <Card titulo="Envios recentes" acoes={<Link to={rotaEmpresa(id, 'documentos')} style={{ fontSize: 13, fontWeight: 500 }}>Documentos</Link>}>
+            <EnviosRecentes clienteId={id} limite={4} compacto />
+          </Card>
+          {INTELIGENCIA_FISCAL_ATIVA && <IndicadoresFiscais id={id} />}
+        </div>
       </div>
 
       <CardRecentes notas={notas} carregando={carregando} verTodos={rotaEmpresa(id, 'documentos')} />

@@ -9,11 +9,16 @@ import br.com.tribia.service.fiscal.AnaliseFiscalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -65,5 +70,26 @@ public class AnaliseFiscalController {
     @GetMapping("/api/analises-fiscais/{id}")
     public AnaliseDetalhe detalhar(@PathVariable Long id) {
         return service.detalhar(id);
+    }
+
+    @Operation(summary = "Registra a revisão humana da análise (NCM decidida e justificativa)",
+            description = "Só para análises com resultado. Trocar a sugestão exige observação; a NCM decidida precisa "
+                    + "constar da NCM vigente. É registro interno, não decisão da Receita Federal.")
+    @PutMapping(value = "/api/analises-fiscais/{id}/revisao", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public AnaliseDetalhe revisar(@PathVariable Long id, @RequestBody AnaliseFiscalService.RevisaoForm form) {
+        return service.revisar(id, form);
+    }
+
+    @Operation(summary = "Relatório da análise em PDF",
+            description = "Disponível quando a análise tem resultado (concluída ou aguardando revisão); senão 409.")
+    @GetMapping(value = "/api/analises-fiscais/{id}/relatorio", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> relatorio(@PathVariable Long id) {
+        AnaliseFiscalService.RelatorioPdf r = service.relatorio(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(r.nomeArquivo()).build().toString())
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(r.conteudo());
     }
 }

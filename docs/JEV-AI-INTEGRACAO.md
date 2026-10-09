@@ -1,144 +1,149 @@
-# Integração da JEV AI — guia para quem vai implementar
+# Integração da JEV AI
 
-Estado em 08/10/2026. A Inteligência Fiscal (sugestão de NCM) já funciona de ponta a ponta com o Gemini; a JEV AI
-é a única peça que falta. Este guia diz onde ela entra, o que recebe, o que devolve e o que ainda precisa ser decidido.
+Estado em 08/10/2026. A Inteligência Fiscal (sugestão de NCM) funciona de ponta a ponta com o Gemini. Para a JEV AI
+existe agora um **adaptador HTTP implementado e testado contra a API pública documentada do Jev (TypeSafe)**, desligado
+por padrão. Ele **não foi validado contra a API real**: nenhuma chamada foi feita (custo por token, sem autorização).
 
-## 1. O que já está pronto
+> **Confirmar com a equipe:** este adaptador assume que a "JEV AI" do projeto é o **Jev da TypeSafe**
+> (`https://docs.typesafe.ai`), o único produto com esse nome que encontramos com API pública. Se a JEV AI for outro
+> serviço (ex.: um modelo próprio do colaborador), o adaptador HTTP não serve; a interface `AvaliadorJev` continua
+> sendo o ponto de encaixe (§4).
+
+## 0. Para ativar hoje (passo a passo)
+
+1. **No painel da TypeSafe** (`https://console.typesafe.ai/keys`): entrar na conta, criar uma API key e copiá-la.
+   A documentação não descreve plano gratuito: confira na conta se há crédito/forma de pagamento ativa (o
+   `/v1/systemone` é cobrado por token de entrada). Não há outra configuração no painel: o "avaliador" (as perguntas
+   sim/não por NCM) é montado pelo TribIA a cada requisição.
+2. **No servidor** (nunca no front nem no Git): `.env` da raiz com `JEV_API_KEY=<chave>` (ou variável de ambiente;
+   no Render, em Environment). Reiniciar a API.
+3. **Conferir sem custo:** `Configurações` (administrador) → card **JEV AI** → "Chave no servidor: Configurada".
+   (ou `GET /api/admin/jev/status`; a chave nunca aparece).
+4. **Teste real autorizado (cobrado, poucas centenas de tokens):** no mesmo card, "Testar conexão" → confirmar.
+   Lista os modelos da conta e avalia um sabonete fictício contra duas NCMs (uma compatível, uma de celular). O
+   resultado mostra modelo, tempo, tokens e se a JEV separou as duas. Alternativa por linha de comando:
+   `.\mvnw.cmd test "-Dtest=JevContratoTest" "-Djev.contrato=true"` (com `JEV_API_KEY` no ambiente).
+5. **Ativar nas análises:** variável de ambiente `TRIBIA_JEV_MODO=HTTP` (o Spring a mapeia para `tribia.jev.modo`;
+   também pode ir no `.env` da raiz) e reiniciar. O card passa a mostrar "Ativa".
+   Cada análise passa a fazer **uma** chamada à JEV.
+
+## 1. O que existe
 
 | Parte | Onde | Situação |
 |---|---|---|
-| 4 endpoints do contrato do front | `controller/AnaliseFiscalController` | Prontos e testados |
-| Processamento em etapas, em segundo plano | `service/fiscal/ProcessadorAnaliseFiscal` | Pronto |
-| Gemini interpreta a mercadoria e propõe até 4 NCMs | `service/fiscal/PesquisaNcmIa` + `resources/prompt-ncm.txt` | Pronto (testado com o Gemini real) |
-| Verificações da NCM sugerida | `service/fiscal/ValidadorNcm` | Pronto (vigência na TIPI: não realizada, ver §7) |
-| **Ponto de encaixe da JEV** | `service/fiscal/AvaliadorJev` (interface) | **Pronto, falta a implementação** |
-| Telas (nova análise, acompanhamento, resultado, histórico) | `frontend/src/pages/fiscal/` | Prontas, já mostram a pontuação quando ela existir |
+| Ponto de encaixe | `service/fiscal/AvaliadorJev` | Pronto |
+| Adaptador HTTP do Jev (TypeSafe) | `service/fiscal/JevHttp` + `config/JevProperties`, `config/JevConfig` | **Implementado e testado com servidor simulado; não validado na API real** |
+| Modo de desenvolvimento | `service/fiscal/JevSimulado` | Pontuações fictícias, marcadas como SIMULAÇÃO; recusado no profile `prod` |
+| Sem JEV (padrão) | `service/fiscal/JevIndisponivel` | A análise segue sem pontuação e registra a limitação |
+| Telas | `frontend/src/components/fiscal/Resultado.tsx` (`Alternativas`) | Mostram "0,92 (escala 0 a 1)", nunca porcentagem |
 
-Contrato da API com o front: `frontend/docs/inteligencia-fiscal-api.md`.
+## 2. Contrato usado (fonte: https://docs.typesafe.ai/api, consultado em 08/10/2026)
 
-## 2. Onde a JEV entra no fluxo
+- `POST https://api.typesafe.ai/v1/systemone`, cabeçalhos `Authorization: Bearer <chave>` e `Content-Type: application/json`.
+- Corpo: `model` (fixado em `jev-1.13.0`; `jev-latest` muda sozinho), `state` (objeto com a mercadoria) e `questions`
+  (mapa de perguntas). O TribIA faz **uma pergunta sim/não (`noul`) por NCM candidata**, numa única requisição:
 
-```
-AGUARDANDO → INTERPRETANDO → PESQUISANDO_NCM (Gemini) → AVALIANDO (JEV) → VALIDANDO → GERANDO_RELATORIO → CONCLUIDA
-                                                                                              ou AGUARDANDO_REVISAO
-```
-
-Na etapa AVALIANDO, o processador chama `AvaliadorJev.avaliar(...)` uma vez por análise, com todas as candidatas
-que o Gemini propôs. A pontuação devolvida aparece na tabela "Classificações avaliadas" da tela de resultado.
-
-## 3. O contrato (`AvaliadorJev`)
-
-```java
-public interface AvaliadorJev {
-    boolean disponivel();
-    Map<String, Pontuacao> avaliar(MercadoriaParaJev mercadoria, List<Candidata> candidatas);
+```json
+{
+  "model": "jev-1.13.0",
+  "state": { "mercadoria": "Sabonete", "descricao": "Sabonete em barra 90 g",
+             "finalidade": "higiene pessoal", "caracteristicas_interpretadas": ["sabão em barra"] },
+  "questions": {
+    "ncm_34011190": { "type": "noul",
+      "instructions": "A mercadoria descrita é compatível com o código NCM 3401.11.90 (...), considerando sua natureza, composição e finalidade?",
+      "criteria": { "true": "A descrição da mercadoria corresponde ao texto e ao alcance do código.",
+                    "false": "A mercadoria pertence a outro código ou a descrição não sustenta este." } }
+  }
 }
 ```
 
-**Entrada**
+- Resposta: `{"model": "...", "answers": {"ncm_34011190": {"type": "noul", "noul": 0.92}}, "usage": {...}}`.
+  O valor `noul` (0 a 1) vira `Pontuacao(valor, "0 a 1", significado)`, com o significado: *"Grau em que a JEV AI
+  (jev-1.13.0) considera a descrição compatível com o código, numa pergunta sim/não. Não é a probabilidade de a NCM
+  estar correta nem substitui a revisão profissional."*
+- Validação da resposta: sem `answers` → falha da JEV (análise segue sem pontuação); pergunta com `type` diferente de
+  `noul` ou valor fora de 0–1 → aquela NCM fica sem pontuação (nada é inventado).
 
-| Campo | Conteúdo |
+**Semântica (documentação oficial, `primitives/noul`):** o `noul` é a probabilidade de "sim" à pergunta. Aqui a
+pergunta é "a descrição é compatível com este código?": mede a compatibilidade do texto, **não** a probabilidade de a
+classificação fiscal estar correta. O significado gravado em cada pontuação diz isso.
+
+**Política (08/10/2026, pedida pela responsável):** a JEV **nunca troca a sugestão nem confirma a classificação**.
+Ela entra na validação como verificação "Avaliação da JEV AI":
+
+| Situação | Resultado |
 |---|---|
-| `MercadoriaParaJev.nome`, `descricao` | O que a pessoa digitou (obrigatórios) |
-| `composicao`, `finalidade`, `caracteristicasInformadas` | Opcionais, podem vir `null` |
-| `caracteristicasInterpretadas` | Lista de características que o Gemini extraiu (ex.: "sabão em barra") |
-| `Candidata.ncm` | 8 dígitos, sem pontos (ex.: `34011190`) |
-| `Candidata.descricao` | Texto do código segundo o Gemini (não é o texto oficial da TIPI) |
+| Sugestão do Gemini é a mais bem pontuada (ou a diferença é menor que `tribia.jev.margem-divergencia`, 0,20) e nota ≥ `tribia.jev.limite-baixo` (0,50) | OK, com o texto "isso não confirma a classificação fiscal". Não muda o status |
+| Outra candidata supera a sugestão em 0,20 ou mais | ALERTA + **divergência** com as duas notas + pendência → análise vai para **revisão humana** |
+| Sugestão com nota abaixo de 0,50 | ALERTA + pendência → revisão humana |
+| JEV não pontuou a sugestão | NÃO REALIZADA |
 
-A NCM que a empresa usa hoje e os anexos **não** são passados para a JEV hoje. Se ela precisar deles, peça e
-acrescentamos ao `MercadoriaParaJev`.
+As pontuações de todas as candidatas ficam gravadas (evidência) e aparecem na tabela "Classificações avaliadas" e no PDF.
 
-**Saída:** `Map<ncm, Pontuacao>`, com `Pontuacao(valor, escala, significado)`:
+## 3. Erros, tentativas e tempos
 
-- `valor`: `BigDecimal` (ex.: `0.82`);
-- `escala`: texto (ex.: `"0 a 1"`);
-- `significado`: o que a nota mede, em uma frase (ex.: "Compatibilidade entre a descrição e o texto do código").
+| Situação | Comportamento |
+|---|---|
+| 401/403 | Sem nova tentativa; limitação "A JEV AI recusou a chave". A chave nunca aparece em log ou mensagem |
+| 422 | Sem nova tentativa ("pedido recusado") |
+| 429, 529 (e 502/503/504) | Nova tentativa com espera crescente (0,5 s → 1 s …, teto 4 s), até `novas-tentativas` (2) |
+| Timeout / fora do ar | Sem nova tentativa (a fila de análises tem só 2 threads) |
+| Resposta ilegível | Falha da JEV; análise segue sem pontuação |
 
-Uma NCM ausente no mapa aparece sem pontuação ("—"). O front mostra "0,82 (escala 0 a 1)", nunca porcentagem,
-e avisa que não é probabilidade de acerto. **Não devolva a pontuação como chance de a NCM estar certa.**
+Timeouts: conexão 2 s, resposta 15 s. Logs registram só status e contagem, nunca o texto da mercadoria ou a chave.
 
-## 4. Como plugar
+## 4. Como ativar
 
-1. Crie uma classe em `backend/src/main/java/br/com/tribia/service/fiscal/` (ou num pacote seu) que implemente
-   `AvaliadorJev` e anote com `@Component`.
-2. Pronto: o processador passa a usá-la sozinho. Enquanto ela não existir, ele usa `JevIndisponivel` (sem
-   pontuação, com a limitação "JEV AI ainda não disponível" na tela). Só pode haver **um** bean `AvaliadorJev`.
-3. `disponivel()` devolve `false` quando a JEV não estiver configurada (ex.: sem URL/chave): a análise segue sem
-   pontuação, como hoje.
-
-Exemplo, se a JEV for um serviço HTTP (siga o padrão de `config/RestClientConfig` e `config/LlmProperties`):
-
-```java
-@ConfigurationProperties(prefix = "tribia.jev")
-public record JevProperties(String url, String apiKey, Duration timeoutConexao, Duration timeoutResposta) {}
-
-@Component
-public class JevHttp implements AvaliadorJev {
-    private final RestClient http;          // bean com timeouts, criado como o calculadoraRestClient
-    private final JevProperties props;
-    // construtor...
-
-    @Override public boolean disponivel() {
-        return props.url() != null && !props.url().isBlank();
-    }
-
-    @Override public Map<String, Pontuacao> avaliar(MercadoriaParaJev m, List<Candidata> candidatas) {
-        try {
-            // chame a JEV e converta a resposta em Map<ncm, Pontuacao>
-        } catch (RestClientException e) {
-            throw new JevIndisponivelException("JEV fora do ar", e);
-        }
-    }
-}
+```properties
+# application.properties (já presente; padrão DESLIGADO)
+tribia.jev.modo=HTTP            # DESLIGADO | HTTP | SIMULADO
+tribia.jev.api-key=${JEV_API_KEY:${TYPESAFE_API_KEY:}}
+tribia.jev.modelo=jev-1.13.0
 ```
 
-## 5. Regras que a implementação precisa respeitar
+- A chave vai **só** em variável de ambiente ou no `.env` da raiz (fora do Git): `JEV_API_KEY=...`.
+- **Custo:** cobrado por token de entrada (US$ 0,042 por milhão segundo a documentação em 08/10/2026). Ativar o modo
+  HTTP exige autorização do responsável.
+- Em modo HTTP sem chave, nada é chamado e a análise registra que a JEV não está disponível.
+- `SIMULADO` serve só para ver as telas: as pontuações são fictícias e a análise diz isso. O profile `prod` não sobe com ele.
+- Se a JEV AI for outro serviço: crie um `@Component` que implemente `AvaliadorJev` (só pode haver um bean) e deixe
+  `tribia.jev.modo=DESLIGADO`.
 
-- **Timeouts são obrigatórios.** O processador não corta a chamada. As análises rodam num pool de 2 threads
-  (`tribia.fiscal.threads`): uma JEV travada segura a fila inteira. Use algo como 2 s de conexão e 20 s de resposta.
-- **Falha não derruba a análise.** Qualquer exceção é capturada: a análise termina sem pontuação e com a limitação
-  "A JEV AI não respondeu". Prefira lançar `JevIndisponivelException` com uma mensagem clara.
-- **Roda em segundo plano, sem usuário logado.** Não use `AcessoService` nem `SecurityContextHolder` dentro da JEV:
-  a autorização da empresa já foi feita antes de a análise começar.
-- **Nada de segredo no repositório.** Chave e URL vão em variáveis de ambiente: no `.env` da raiz para rodar local
-  (ex.: `JEV_API_KEY=...`) e no painel do Render em produção. Use `tribia.jev.api-key=${JEV_API_KEY:}` no
-  `application.properties`, como já é feito com o Gemini.
-- **Testes não chamam a JEV real**, assim como já não chamam o Gemini real (custo e resultado variável).
+## 5. Testes (nenhum chama a API real sem autorização)
 
-## 6. Decisões que ainda precisam ser tomadas (com o responsável)
+- `TesteConexaoJevTest` (6) e `JevControllerTest` (3): status sem chamada e sem expor a chave; teste exige
+  `confirmarCusto=true`, ADMIN e CSRF; empresa recebe 403; 401 vira 502 sem a chave na mensagem.
+- `ValidadorNcmJevTest` (5) e `AnaliseFiscalControllerTest.ComJevDivergente`: política de divergência.
+- `JevContratoTest`: **API real**, pulado por padrão (exige `-Djev.contrato=true` e `JEV_API_KEY`).
+- E2E `frontend/scripts/etapa6-if-e2e.mjs`: fluxo completo no navegador com **dublês locais** da TypeSafe e do Gemini
+  (`scripts/stubs-ia-e2e.mjs`), exercitando o `JevHttp` real por HTTP: 7/7 em 08/10/2026.
 
-1. **A JEV muda a NCM sugerida?** Hoje não: a sugestão principal é a de maior confiança do Gemini e a JEV só exibe a
-   nota de cada candidata. Se a JEV deve reordenar, desempatar ou rebaixar a sugestão (ex.: pontuação baixa →
-   "Aguardando revisão"), isso é uma mudança pequena em `ProcessadorAnaliseFiscal`, mas é uma regra de produto.
-2. **A JEV entra na validação?** Ex.: verificação "Compatibilidade pela JEV" com ALERTA abaixo de um limite.
-3. **Escala e limites:** qual a escala oficial da pontuação e a partir de que valor ela é considerada baixa.
+- `JevHttpTest` (13): formato da requisição, cabeçalho, modelo fixado, 401/422 sem repetir, 429/529 com espera
+  crescente, desistência, timeout, resposta sem `answers`, ilegível, valores fora do formato, NCM malformada, chave fora
+  do `toString`, modo simulado identificado.
+- `JevConfigTest` (2): modo simulado recusado no profile `prod`.
+- `AnaliseFiscalControllerTest`: `ComJev` (bean de teste), `ComJevSimulada` e `ComJevHttpSemChave`.
+- Os testes forçam `tribia.jev.modo=DESLIGADO` e chave vazia (`src/test/resources/config/application.properties`).
 
-## 7. O que ainda falta na Inteligência Fiscal (não depende da JEV)
+**Validação externa — FEITA em 08/10/2026 (noite), com autorização da responsável:** `JevContratoTest`, uma única
+execução: listagem de modelos + **1** chamada ao `/v1/systemone` com o sabonete sintético. Resultado: API real aceitou
+o formato e devolveu `answers` como documentado; modelo `jev-1.13.0`; 327 ms; **568 tokens de entrada / 56 de saída**
+(≈ US$ 0,00002 pela tabela de US$ 0,042 por milhão de tokens de entrada); sabonete × NCM 3401.11.90 = **0,83**,
+sabonete × NCM 8517.13.00 (celular) = **0,01**. Teste aprovado (1/1). Chave lida do `.env` no processo, nunca exibida.
+Isso valida o contrato técnico, não a correção fiscal de classificações.
 
-| Item | Efeito hoje | O que resolveria |
-|---|---|---|
-| Base da TIPI | "Existência e vigência na TIPI" aparece como **não realizada** em toda análise | Tabela oficial da NCM/TIPI com vigência no projeto |
-| Leitura de PDF/imagem/Office | A IA só lê anexos `.txt`; os outros são listados como não lidos | Enviar os arquivos ao Gemini (o `LlmClient` hoje só aceita texto) |
-| Texto oficial do código | A descrição vem do Gemini (com aviso) | A mesma base da TIPI |
-| Relatório em PDF | `relatorio.disponivel` vem `false` | Endpoint opcional `GET /api/analises-fiscais/{id}/relatorio` |
-| Processamento em memória | Reinício do servidor marca as análises em andamento como FALHA | Fila persistente, se o volume crescer |
+## 6. Decisões que continuam com o responsável
 
-## 8. Como rodar e testar
+1. A JEV AI é o Jev da TypeSafe? (premissa do adaptador)
+2. ~~A pontuação deve reordenar ou mandar para revisão?~~ Decidido em 08/10: não reordena; divergência ou nota baixa
+   mandam para revisão humana (§2). Os limites 0,50 e 0,20 são **valores iniciais**, ajustáveis por configuração.
+3. Os limites iniciais (0,50 e 0,20) fazem sentido fiscalmente? Calibrar depois das primeiras análises reais.
+4. Autorização de custo para o teste real e para ativar o modo HTTP.
 
-- **Gemini local:** `GEMINI_API_KEY=...` no `.env` da raiz (fora do Git). Sem a chave, a análise termina em FALHA
-  com a mensagem "A IA não está configurada".
-- **Backend:** `cd backend; .\mvnw.cmd spring-boot:run` → API em http://localhost:8090.
-- **Front:** `cd frontend; npm run dev` → http://localhost:5173, menu "Inteligência Fiscal" da empresa.
-- **Testes do backend:** `.\mvnw.cmd test "-Dtest=AnaliseFiscalControllerTest*"`. A classe aninhada `ComJev` já
-  mostra como simular uma JEV num teste (`@TestConfiguration` com um bean `AvaliadorJev`); use-a como modelo.
-- **E2E no navegador:** `frontend/scripts/inteligencia-fiscal-e2e.mjs` (instruções no cabeçalho). Usa a IA real
-  se a chave estiver configurada.
-- **Suíte completa** (deve continuar com 0 falhas): `.\mvnw.cmd test`.
+## 7. Arquivos
 
-## 9. Arquivos para ler, nesta ordem
-
-1. `service/fiscal/AvaliadorJev.java`: o contrato.
-2. `service/fiscal/ProcessadorAnaliseFiscal.java`: método `avaliarComJev` e o fluxo.
-3. `dto/fiscal/ResultadoAnaliseFiscal.java`: `Pontuacao` e `Alternativa`.
-4. `test/.../controller/AnaliseFiscalControllerTest.java`: classe `ComJev`.
-5. `frontend/src/components/fiscal/Resultado.tsx`: função `Alternativas`, como a nota aparece na tela.
+`service/fiscal/AvaliadorJev.java`, `JevHttp.java`, `JevSimulado.java`, `JevIndisponivel.java`,
+`config/JevProperties.java`, `config/JevConfig.java`, `ProcessadorAnaliseFiscal.avaliarComJev`,
+`ValidadorNcm.avaliacaoDaJev`, `TesteConexaoJev.java`, `controller/JevController.java`; front
+`components/fiscal/CardJev.tsx`. Testes: `JevHttpTest`, `JevConfigTest`, `TesteConexaoJevTest`, `JevControllerTest`,
+`ValidadorNcmJevTest`, `JevContratoTest` (real, opt-in).

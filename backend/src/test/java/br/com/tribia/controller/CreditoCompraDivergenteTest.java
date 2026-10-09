@@ -50,7 +50,8 @@ class CreditoCompraDivergenteTest {
 
         /** Importa e classifica a compra, trocando o enquadramento que o fornecedor destacou na nota. */
         long compra(String destacado) throws Exception {
-            String xml = Fixtures.texto(Fixtures.NFE_ENTRADA_IBSCBS).replace(INTEGRAL, destacado);
+            // normaliza CRLF (checkout no Windows com autocrlf) para o replace abaixo casar
+            String xml = Fixtures.texto(Fixtures.NFE_ENTRADA_IBSCBS).replace("\r\n", "\n").replace(INTEGRAL, destacado);
             String body = mvc.perform(multipart("/api/clientes/1/notas")
                             .file(new MockMultipartFile("arquivos", "compra.xml", "application/xml",
                                     xml.getBytes(StandardCharsets.UTF_8))).with(csrf()))

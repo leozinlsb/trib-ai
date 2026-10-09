@@ -38,6 +38,24 @@ de 2027 sem ICMS/PIS/Cofins (decisão S5). Dados 100% fictícios.
 Depois do upload, a Distribuidora fica em **R$ 264,58 → R$ 378,44** (+43%); o item de maior impacto é o
 refrigerante (R$ 112,42).
 
+## Inteligência Fiscal: da mercadoria ao PDF (4–5 min)
+
+Precisa do Gemini (`GEMINI_API_KEY` no `.env`). A JEV só pontua se `JEV_API_KEY` + `TRIBIA_JEV_MODO=HTTP` estiverem
+configurados (ver `docs/JEV-AI-INTEGRACAO.md`); sem ela, a análise funciona e diz que a pontuação não está disponível.
+
+| # | Tela | O que fazer | O que dizer |
+|---|------|-------------|-------------|
+| 11 | Configurações (admin) → card JEV AI | Mostrar "Ativa" e "Chave no servidor: Configurada" (a chave nunca aparece) | "A chave fica só no servidor." |
+| 12 | Distribuidora → Início | Card "Inteligência Fiscal" com os números reais | "Acompanhamento de todas as análises da empresa." |
+| 13 | Inteligência Fiscal → Nova análise | Nome "Sabonete de glicerina 90 g", descrição de uso, NCM atual 3401.11.90; anexar uma ficha técnica em PDF ou .txt | "Documentos técnicos entram como dados, nunca como instruções para a IA." |
+| 14 | Acompanhamento | Etapas: interpretando → pesquisando NCM → avaliando (JEV) → validando | "Processamento em segundo plano; sobrevive a reinício do servidor." |
+| 15 | Resultado | NCM 3401.11.90 com o **texto oficial** da NCM vigente (Siscomex, Res. Gecex 926/2026); verificações; tabela "Classificações avaliadas" com a nota da JEV ("0,93 (escala 0 a 1)") | "A nota da JEV mede compatibilidade do texto, não é chance de acerto. Se a JEV discordar da IA, a análise vai para revisão." |
+| 16 | Revisão humana (no resultado) | Aceitar a sugestão ou escolher outra NCM com justificativa | "Nada vira classificação sem uma pessoa; fica registrado quem e quando." |
+| 17 | Baixar relatório | PDF com aviso, verificações, notas da JEV, revisão e fontes com versão | "Pronto para o contador conferir." |
+
+Plano B: sem Gemini, a análise termina com "A IA não está configurada" (não inventa resultado). Mostre então uma análise
+feita antes do evento.
+
 ## Se algo falhar
 
 - **IA lenta ou fora do ar:** o profile demo usa as respostas que o Gemini real deu antes para essas mesmas
@@ -53,3 +71,7 @@ refrigerante (R$ 112,42).
 - Base de 2027 sem ICMS/PIS/Cofins (LC 214, art. 12, § 2º) e crédito de compra divergente pelo menor valor (R2):
   decisões registradas, a confirmar com especialista.
 - Classificações automáticas são sugestões; a revisão humana é parte do produto.
+- Os valores de 2027 são **projeção pendente de validação fiscal**: além do ICMS, a base exclui o PIS/Cofins da nota de
+  2026 (hipótese S5, a confirmar com especialista). A tela e o PDF avisam.
+- Inteligência Fiscal: a NCM sugerida é apoio; a pontuação da JEV mede compatibilidade do texto, não acerto fiscal;
+  "validado pelas verificações disponíveis" não é aprovação da Receita Federal. Imagens anexadas não são lidas (sem OCR).

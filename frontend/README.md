@@ -36,9 +36,9 @@ Para entrar, use o administrador criado pelo backend (veja "Acesso" no [README p
 | `/dashboard/inteligencia-fiscal` | admin | Escolha da empresa para as análises fiscais |
 | `/dashboard/empresas/:id/inteligencia-fiscal[/nova\|/:analise]` | admin e a própria empresa | Inteligência Fiscal: histórico, nova análise, acompanhamento e resultado |
 
-**Inteligência Fiscal:** o frontend está pronto, mas os endpoints ainda não existem no backend. O contrato
-proposto está em [`docs/inteligencia-fiscal-api.md`](docs/inteligencia-fiscal-api.md) e em
-`src/api/inteligenciaFiscal.ts`. Sem o serviço, as telas mostram "Análise fiscal ainda não disponível". Em
+**Inteligência Fiscal:** ligada ao backend (contrato em [`docs/inteligencia-fiscal-api.md`](docs/inteligencia-fiscal-api.md)
+e `src/api/inteligenciaFiscal.ts`): análise com Gemini, vigência da NCM pela tabela oficial, relatório em PDF e
+indicadores no início da empresa. Se o servidor não tiver o serviço, as telas mostram "Análise fiscal ainda não disponível". Em
 `npm run dev` existe a rota `.../inteligencia-fiscal/exemplo`, com dados fictícios marcados, para revisar o
 layout do resultado. Ela não entra no build de produção.
 
@@ -71,12 +71,14 @@ src/
 | Acessos | `GET/POST /api/clientes/{id}/usuarios`, `DELETE /api/usuarios/{id}` |
 | Notas | `GET /api/clientes/{id}/notas?tipo=&competencia=`, `GET /api/notas/{id}`, `POST /api/clientes/{id}/notas` |
 | Relatório | `GET /api/clientes/{id}/relatorio?de=AAAA-MM&ate=AAAA-MM` |
+| Classificação e cálculo | `POST /api/notas/{id}/classificar`, `POST /api/notas/{id}/calcular`, `PUT /api/notas/{id}/pagamento?confirmado=`, `POST /api/clientes/{id}/calcular`, `GET /api/clientes/{id}/dashboard` |
+| Revisão | `GET /api/clientes/{id}/revisao`, `PUT /api/itens/{id}/classificacao`, `GET /api/classificacoes/opcoes` |
+| Inteligência Fiscal | `GET/POST /api/clientes/{id}/analises-fiscais`, `.../indicadores`, `GET /api/analises-fiscais/{id}`, `GET /api/analises-fiscais/{id}/relatorio` (PDF) |
 
 ## Limitações
 
-- Não há classificação por IA nem endpoint de cálculo de 2027 (CBS/IBS/IS). O relatório usa a apuração de
-  PIS/Cofins atual e mostra quantos itens já têm CST e cClassTrib (vindos no XML).
+- Os valores de 2027 são simulação (alíquota da CBS estimada); a tela avisa.
 - Relatórios são gerados na hora (não ficam armazenados). PDF: pelo "Imprimir / salvar PDF" do navegador.
 - Não há exclusão definitiva de empresas (só desativação), recuperação de senha nem troca de senha pelo usuário.
 - Notificações e a lista de envios ficam no navegador (por usuário); a API não guarda histórico de uploads.
-- O banco H2 é em memória: empresas, usuários e notas enviadas somem quando o backend reinicia.
+- O banco padrão do backend é H2 em arquivo (`backend/data/`): os dados persistem entre reinícios.
